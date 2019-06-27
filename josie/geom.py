@@ -1,6 +1,3 @@
-""" This module implements the different curve parametrization to describe the
-boundaries of a domain
-"""
 # josiepy
 # Copyright © 2019 Ruben Di Battista
 # All rights reserved.
@@ -27,6 +24,10 @@ boundaries of a domain
 # The views and conclusions contained in the software and documentation
 # are those of the authors and should not be interpreted as representing
 # official policies, either expressed or implied, of Ruben Di Battista.
+
+""" This module implements the different curve parametrization to describe the
+boundaries of a domain
+"""
 
 
 import abc
@@ -56,6 +57,10 @@ class BoundaryCurve(metaclass=abc.ABCMeta):
         Args:
             xi: The parameter the curve is parametrized with.
                 Ranges from 0 to 1
+
+        Returns:
+            xy: A tuple containing the x and y coordinates of the
+                BoundaryCurve computed for the `xi` values
         """
 
         raise NotImplementedError
