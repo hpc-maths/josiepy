@@ -49,7 +49,7 @@ class Mesh:
 
     def generate(self, num_xi, num_eta):
         """ This methods generates the mesh within the four given
-        BoundaryCurve
+        BoundaryCurve using Transfinite Interpolation
 
         Args:
             num_xi: Number of elements in xi-direction
