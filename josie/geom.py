@@ -154,11 +154,8 @@ class CircleArc(BoundaryCurve):
         th1 = (th1 + 2*np.pi) % (2*np.pi)
         th2 = (th2 + 2*np.pi) % (2*np.pi)
 
-        # Sort angles
-        angles = np.sort([th1, th2])
-
-        self._th1 = angles[0]
-        self._th2 = angles[1]
+        self._th1 = th1
+        self._th2 = th2
 
     def __call__(self, xi):
 
