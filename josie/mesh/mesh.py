@@ -29,6 +29,8 @@
 
 import numpy as np
 
+from .cell import Cell, GhostCell
+
 
 class Mesh:
     """ This class handles the mesh generation over a domain.
@@ -47,7 +49,7 @@ class Mesh:
         self.right = right
         self.top = top
 
-    def generate(self, num_xi, num_eta):
+    def interpolate(self, num_xi, num_eta):
         """ This methods generates the mesh within the four given
         BoundaryCurve using Transfinite Interpolation
 
@@ -55,6 +57,8 @@ class Mesh:
             num_xi: Number of elements in xi-direction
             num_eta: Number of elements in eta-direction
         """
+        self._num_xi = num_xi
+        self._num_eta = num_eta
 
         xis = np.linspace(0, 1, num_xi)
         etas = np.linspace(0, 1, num_eta)
@@ -85,4 +89,53 @@ class Mesh:
                     (1-xi)*(1-eta)*yb0 - (1-xi)*eta*yt0 - \
                     (1-eta)*xi*yb1 - xi*eta*yt1
 
-        return (x, y)
+        self._x = x
+        self._y = y
+
+    def generate(self):
+        """ This method builds the connectivity """
+        num_cells_x = self.num_xi-1
+        num_cells_y = self.num_eta-1
+        cells = np.empty((num_cells_x, num_cells_y), dtype=object)
+
+        for i in range(num_cells_x):
+            for j in range(num_cells_y):
+                cells[i, j] = Cell(
+                    (self._x[i], self._y[i]),
+                    (self._x[i+1], self._y[i]),
+                    (self._x[i+1], self._y[i+1]),
+                    (self._x[i], self._y[i+1]),
+                    i,
+                    j
+                )
+
+        for i in range(num_cells_x):
+            for j in range(num_cells_y):
+                c = cells[i, j]
+
+                # Add neighbours and handle BCs
+                try:
+                    c.w = cells[i-1, j]
+                except KeyError:
+                    # Left BC
+                    c.w = GhostCell(self.left.bc(self, c))
+
+                try:
+                    c.s = cells[i, j-1]
+                except KeyError:
+                    # Bottom BC
+                    c.s = GhostCell(self.bottom.bc(self, c))
+
+                try:
+                    c.e = cells[i+i, j]
+                except KeyError:
+                    # Right BC
+                    c.e = GhostCell(self.right.bc(self, c))
+
+                try:
+                    c.n = cells[i, j+1]
+                except KeyError:
+                    # Top BC
+                    c.n = GhostCell(self.top.bc(self, c))
+
+            self.cells = cells
