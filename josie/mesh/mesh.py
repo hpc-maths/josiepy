@@ -92,6 +92,8 @@ class Mesh:
         self._x = x
         self._y = y
 
+        return x, y
+
     def generate(self):
         """ This method builds the connectivity """
         num_cells_x = self.num_xi-1
@@ -101,10 +103,10 @@ class Mesh:
         for i in range(num_cells_x):
             for j in range(num_cells_y):
                 cells[i, j] = Cell(
+                    (self._x[i], self._y[i+1]),
                     (self._x[i], self._y[i]),
                     (self._x[i+1], self._y[i]),
                     (self._x[i+1], self._y[i+1]),
-                    (self._x[i], self._y[i+1]),
                     i,
                     j
                 )
