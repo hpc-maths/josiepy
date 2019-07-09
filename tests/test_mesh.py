@@ -4,6 +4,7 @@ import pytest
 
 from josie.geom import Line, CircleArc
 from josie.mesh import Mesh
+from josie.mesh.cell import NeighbourCell
 
 
 @pytest.fixture
@@ -27,11 +28,15 @@ def boundaries():
 def mesh(boundaries):
     left, bottom, right, top = boundaries
 
-    yield Mesh(left, bottom, right, top)
+    mesh = Mesh(left, bottom, right, top)
+    mesh.interpolate(20, 20)
+    mesh.generate()
+
+    yield mesh
 
 
 def test_interpolate(mesh, plot):
-    x, y = mesh.interpolate(20, 20)
+    x, y = (mesh._x, mesh._y)
 
     # Test all the points on the boundary are equal to the points calculated
     # directly using the BoundaryCurves
@@ -58,9 +63,21 @@ def test_interpolate(mesh, plot):
 
 
 def test_plot(mesh, plot):
-    mesh.interpolate(20, 20)
-    mesh.generate()
     if plot:
         plt.figure()
         mesh.plot()
         plt.show()
+
+
+def test_bcs(mesh):
+    for left_cell in mesh.cells[0, :]:
+        assert isinstance(left_cell.w, NeighbourCell)
+
+    for btm_cell in mesh.cells[:, 0]:
+        assert isinstance(left_cell.s, NeighbourCell)
+
+    for right_cell in mesh.cells[-1, :]:
+        assert isinstance(left_cell.e, NeighbourCell)
+
+    for top_cell in mesh.cells[-1, :]:
+        assert isinstance(left_cell.n, NeighbourCell)

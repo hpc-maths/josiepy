@@ -70,13 +70,16 @@ class Cell(GhostCell):
         return f'Cell(' \
                f'{self.nw}, {self.sw}, {self.se}, {self.ne})'
 
+    def __iter__(self):
+        return [self.w, self.s, self.e, self.n]
+
     @property
     def w(self):
         return self._w
 
     @w.setter
     def w(self, w):
-        self._w = NeigbourCell(w, self.faces[0])
+        self._w = NeighbourCell(w, self.faces[0])
 
     @property
     def s(self):
@@ -84,7 +87,7 @@ class Cell(GhostCell):
 
     @s.setter
     def s(self, s):
-        self._s = NeigbourCell(s, self.faces[1])
+        self._s = NeighbourCell(s, self.faces[1])
 
     @property
     def e(self):
@@ -92,7 +95,7 @@ class Cell(GhostCell):
 
     @e.setter
     def e(self, e):
-        self._e = NeigbourCell(e, self.faces[2])
+        self._e = NeighbourCell(e, self.faces[2])
 
     @property
     def n(self):
@@ -100,7 +103,7 @@ class Cell(GhostCell):
 
     @n.setter
     def n(self, n):
-        self._n = NeigbourCell(n, self.faces[3])
+        self._n = NeighbourCell(n, self.faces[3])
 
     def plot(self):
         for face in self.faces:
@@ -128,7 +131,7 @@ class Face:
         plt.plot([self._a[0], self._b[0]], [self._a[1], self._b[1]], 'k-')
 
 
-class NeigbourCell(GhostCell):
+class NeighbourCell(GhostCell):
     def __init__(self, cell, face):
         self.face = face
 
