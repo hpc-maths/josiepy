@@ -25,18 +25,36 @@
 # are those of the authors and should not be interpreted as representing
 # official policies, either expressed or implied, of Ruben Di Battista.
 
+import matplotlib.pyplot as plt
+import numpy as np
+
 
 class GhostCell:
-    def __init__(self, value):
+    def __init__(self, value=0):
         self.new = value
 
 
 class Cell(GhostCell):
     def __init__(self, nw, sw, se, ne, i, j, value=0):
-        self.nw = nw
-        self.sw = sw
-        self.se = se
-        self.ne = ne
+        self.nw = np.array(nw)
+        self.sw = np.array(sw)
+        self.se = np.array(se)
+        self.ne = np.array(ne)
+
+        self.faces = [
+            Face(self.nw, self.sw),
+            Face(self.sw, self.se),
+            Face(self.se, self.ne),
+            Face(self.ne, self.nw)
+        ]
+
+        # Surface of the cell
+        self.area = np.linalg.norm(
+            np.cross(
+                self.sw - self.nw,
+                self.se - self.sw
+            )
+        )/2
 
         self.centroid = (
             (nw[0] + sw[0] + se[0] + ne[0])/4,
@@ -47,3 +65,71 @@ class Cell(GhostCell):
         self.j = j
 
         super().__init__(value)
+
+    def __repr__(self):
+        return f'Cell(' \
+               f'{self.nw}, {self.sw}, {self.se}, {self.ne})'
+
+    @property
+    def w(self):
+        return self._w
+
+    @w.setter
+    def w(self, w):
+        self._w = NeigbourCell(w, self.faces[0])
+
+    @property
+    def s(self):
+        return self._s
+
+    @s.setter
+    def s(self, s):
+        self._s = NeigbourCell(s, self.faces[1])
+
+    @property
+    def e(self):
+        return self._e
+
+    @e.setter
+    def e(self, e):
+        self._e = NeigbourCell(e, self.faces[2])
+
+    @property
+    def n(self):
+        return self._n
+
+    @n.setter
+    def n(self, n):
+        self._n = NeigbourCell(n, self.faces[3])
+
+    def plot(self):
+        for face in self.faces:
+            face.plot()
+            plt.plot(self.centroid[0], self.centroid[1], 'kx', ms=5)
+
+
+class Face:
+    def __init__(self, a, b):
+        self._a = np.array(a)
+        self._b = np.array(b)
+
+        # Relative position vector
+        r = self._b - self._a
+
+        # Normal vector
+        self.normal = np.array([r[1], -r[0]])
+
+        # Normalize
+        self.normal = self.normal/np.linalg.norm(self.normal)
+
+        self.surface = np.linalg.norm(r)
+
+    def plot(self):
+        plt.plot([self._a[0], self._b[0]], [self._a[1], self._b[1]], 'k-')
+
+
+class NeigbourCell(GhostCell):
+    def __init__(self, cell, face):
+        self.face = face
+
+        super().__init__(cell.new)

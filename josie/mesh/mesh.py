@@ -96,17 +96,17 @@ class Mesh:
 
     def generate(self):
         """ This method builds the connectivity """
-        num_cells_x = self.num_xi-1
-        num_cells_y = self.num_eta-1
+        num_cells_x = self._num_xi-1
+        num_cells_y = self._num_eta-1
         cells = np.empty((num_cells_x, num_cells_y), dtype=object)
 
         for i in range(num_cells_x):
             for j in range(num_cells_y):
                 cells[i, j] = Cell(
-                    (self._x[i], self._y[i+1]),
-                    (self._x[i], self._y[i]),
-                    (self._x[i+1], self._y[i]),
-                    (self._x[i+1], self._y[i+1]),
+                    (self._x[i, j+1], self._y[i, j+1]),
+                    (self._x[i, j], self._y[i, j]),
+                    (self._x[i+1, j], self._y[i+1, j]),
+                    (self._x[i+1, j+1], self._y[i+1, j+1]),
                     i,
                     j
                 )
@@ -118,26 +118,30 @@ class Mesh:
                 # Add neighbours and handle BCs
                 try:
                     c.w = cells[i-1, j]
-                except KeyError:
+                except IndexError:
                     # Left BC
                     c.w = GhostCell(self.left.bc(self, c))
 
                 try:
                     c.s = cells[i, j-1]
-                except KeyError:
+                except IndexError:
                     # Bottom BC
                     c.s = GhostCell(self.bottom.bc(self, c))
 
                 try:
                     c.e = cells[i+i, j]
-                except KeyError:
+                except IndexError:
                     # Right BC
                     c.e = GhostCell(self.right.bc(self, c))
 
                 try:
                     c.n = cells[i, j+1]
-                except KeyError:
+                except IndexError:
                     # Top BC
                     c.n = GhostCell(self.top.bc(self, c))
 
             self.cells = cells
+
+    def plot(self):
+        for cell in self.cells.ravel():
+            cell.plot()
