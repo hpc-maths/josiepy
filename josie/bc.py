@@ -27,6 +27,10 @@
 
 import abc
 
+from enum import Enum, auto
+
+from typing import Tuple
+
 from .mesh.cell import Cell
 from .mesh.mesh import Mesh
 from .geom import BoundaryCurve
@@ -53,25 +57,42 @@ class Neumann(Dirichlet):
         return self._value + cell.new
 
 
+class Side(Enum):
+    LEFT = -1
+    BOTTOM = -1
+    RIGHT = 0
+    TOP = 0
+
+
+class Direction(Enum):
+    X = auto()
+    Y = auto()
+
+
 class Periodic(BoundaryCondition):
 
-    # First number indicates i: 0 or j:1. Second value of the tuple indicates
-    # the actual index value.
-    # TODO: probably better implemented with an enum
-    corresponding_cell_idx = {
-        'left': (0, -1),
-        'bottom': (1, -1),
-        'right': (0, 0),
-        'top': (1, 0),
-    }
-
-    def __init__(self, side: 'enum'):
+    def __init__(self, side: Side):
         self._side = side
 
     def __call__(self, mesh: Mesh, cell: Cell) -> float:
-        i, ival = corresponding_cell_idx[self._side]
 
-        if i == 0:
-            return mesh.cells[ival, cell.j].new
+        if self._side in [Side.LEFT, Side.RIGHT]:
+            return mesh.cells[self._side, cell.j].new
+        elif self._side in [Side.BOTTOM, Side.TOP]:
+            return mesh.cells[cell.i, self._side].new
         else:
-            return mesh.cells[cell.i, ival].new
+            raise ValueError(f'Unknown side. Expecting a {Side} object')
+
+
+def make_periodic(first: BoundaryCurve, second: BoundaryCurve,
+                  direction: Direction) \
+        -> Tuple[BoundaryCurve]:
+
+    if direction is Direction.X:
+        first.bc = Periodic(Side.LEFT)
+        second.bc = Periodic(Side.RIGHT)
+    elif direction is Direction.Y:
+        first.bc = Periodic(Side.BOTTOM)
+        second.bc = Periodic(Side.TOP)
+    else:
+        raise ValueError(f'Unknown direction. Expecting a {Direction} object')
