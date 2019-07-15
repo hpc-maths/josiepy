@@ -7,33 +7,6 @@ from josie.mesh import Mesh
 from josie.mesh.cell import NeighbourCell
 
 
-@pytest.fixture
-def boundaries():
-    left = Line([0, 0], [0, 1])
-    bottom = CircleArc([0, 0], [1, 0], [0.2, 0.2])
-    right = Line([1, 0], [1, 1])
-    top = Line([0, 1], [1, 1])
-
-    bc = lambda mesh, cell: 0
-
-    left.bc = bc
-    bottom.bc = bc
-    right.bc = bc
-    top.bc = bc
-
-    yield (left, bottom, right, top)
-
-
-@pytest.fixture
-def mesh(boundaries):
-    left, bottom, right, top = boundaries
-
-    mesh = Mesh(left, bottom, right, top)
-    mesh.interpolate(20, 20)
-    mesh.generate()
-
-    yield mesh
-
 
 def test_interpolate(mesh, plot):
     x, y = (mesh._x, mesh._y)
