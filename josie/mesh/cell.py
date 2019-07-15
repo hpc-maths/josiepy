@@ -48,11 +48,19 @@ class Cell(GhostCell):
             Face(self.ne, self.nw)
         ]
 
-        # Surface of the cell
+        # Surface of the cell adding up the areas of the two composing
+        # triangles (nw, sw, se) and (se, ne nw)
         self.area = np.linalg.norm(
             np.cross(
                 self.sw - self.nw,
                 self.se - self.sw
+            )
+        )/2
+
+        self.area = self.area + np.linalg.norm(
+            np.cross(
+                self.se - self.ne,
+                self.ne - self.nw
             )
         )/2
 
