@@ -3,6 +3,7 @@ import pytest
 from josie.bc import Dirichlet
 from josie.geom import Line, CircleArc
 from josie.mesh import Mesh
+from josie.solver.state import StateTemplate
 
 
 def pytest_addoption(parser):
@@ -13,13 +14,18 @@ def pytest_addoption(parser):
 
 
 @pytest.fixture
-def boundaries():
+def Q():
+    yield StateTemplate("u")
+
+
+@pytest.fixture
+def boundaries(Q):
     left = Line([0, 0], [0, 1])
     bottom = CircleArc([0, 0], [1, 0], [0.2, 0.2])
     right = Line([1, 0], [1, 1])
     top = Line([0, 1], [1, 1])
 
-    bc = Dirichlet(0)
+    bc = Dirichlet(Q(0))
 
     left.bc = bc
     bottom.bc = bc

@@ -28,14 +28,16 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
+from josie.solver.state import State
+
 
 class GhostCell:
-    def __init__(self, value=0):
+    def __init__(self, value: State):
         self.new = value
 
 
 class Cell(GhostCell):
-    def __init__(self, nw, sw, se, ne, i, j, value=0):
+    def __init__(self, nw, sw, se, ne, i, j, value=None):
         self.nw = np.array(nw)
         self.sw = np.array(sw)
         self.se = np.array(se)

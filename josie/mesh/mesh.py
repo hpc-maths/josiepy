@@ -29,7 +29,7 @@
 
 import numpy as np
 
-from .cell import Cell, GhostCell
+from .cell import Cell
 
 
 class Mesh:
@@ -59,6 +59,8 @@ class Mesh:
         """
         self._num_xi = num_xi
         self._num_eta = num_eta
+        self.num_cells_x = num_xi - 1
+        self.num_cells_y = num_eta - 1
 
         xis = np.linspace(0, 1, num_xi)
         etas = np.linspace(0, 1, num_eta)
@@ -96,12 +98,10 @@ class Mesh:
 
     def generate(self):
         """ This method builds the connectivity """
-        num_cells_x = self._num_xi-1
-        num_cells_y = self._num_eta-1
-        cells = np.empty((num_cells_x, num_cells_y), dtype=object)
+        cells = np.empty((self.num_cells_x, self.num_cells_y), dtype=object)
 
-        for i in range(num_cells_x):
-            for j in range(num_cells_y):
+        for i in range(self.num_cells_x):
+            for j in range(self.num_cells_y):
                 cells[i, j] = Cell(
                     (self._x[i, j+1], self._y[i, j+1]),
                     (self._x[i, j], self._y[i, j]),
@@ -110,35 +110,6 @@ class Mesh:
                     i,
                     j
                 )
-
-        for i in range(num_cells_x):
-            for j in range(num_cells_y):
-                c = cells[i, j]
-
-                # Add neighbours and handle BCs
-                try:
-                    c.w = cells[i-1, j]
-                except IndexError:
-                    # Left BC
-                    c.w = GhostCell(self.left.bc(self, c))
-
-                try:
-                    c.s = cells[i, j-1]
-                except IndexError:
-                    # Bottom BC
-                    c.s = GhostCell(self.bottom.bc(self, c))
-
-                try:
-                    c.e = cells[i+i, j]
-                except IndexError:
-                    # Right BC
-                    c.e = GhostCell(self.right.bc(self, c))
-
-                try:
-                    c.n = cells[i, j+1]
-                except IndexError:
-                    # Top BC
-                    c.n = GhostCell(self.top.bc(self, c))
 
             self.cells = cells
 

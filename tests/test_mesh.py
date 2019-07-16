@@ -1,11 +1,5 @@
 import matplotlib.pyplot as plt
 import numpy as np
-import pytest
-
-from josie.geom import Line, CircleArc
-from josie.mesh import Mesh
-from josie.mesh.cell import NeighbourCell
-
 
 
 def test_interpolate(mesh, plot):
@@ -40,17 +34,3 @@ def test_plot(mesh, plot):
         plt.figure()
         mesh.plot()
         plt.show()
-
-
-def test_bcs(mesh):
-    for left_cell in mesh.cells[0, :]:
-        assert isinstance(left_cell.w, NeighbourCell)
-
-    for btm_cell in mesh.cells[:, 0]:
-        assert isinstance(left_cell.s, NeighbourCell)
-
-    for right_cell in mesh.cells[-1, :]:
-        assert isinstance(left_cell.e, NeighbourCell)
-
-    for top_cell in mesh.cells[-1, :]:
-        assert isinstance(left_cell.n, NeighbourCell)
