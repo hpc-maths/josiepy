@@ -79,9 +79,9 @@ class Periodic(BoundaryCondition):
     def __call__(self, mesh: Mesh, cell: Cell) -> float:
 
         if self._side in [Side.LEFT, Side.RIGHT]:
-            return mesh.cells[self._side, cell.j].new
+            return mesh.cells[self._side.value, cell.j].value
         elif self._side in [Side.BOTTOM, Side.TOP]:
-            return mesh.cells[cell.i, self._side].new
+            return mesh.cells[cell.i, self._side.value].value
         else:
             raise ValueError(f'Unknown side. Expecting a {Side} object')
 
@@ -98,3 +98,5 @@ def make_periodic(first: BoundaryCurve, second: BoundaryCurve,
         second.bc = Periodic(Side.TOP)
     else:
         raise ValueError(f'Unknown direction. Expecting a {Direction} object')
+
+    return first, second

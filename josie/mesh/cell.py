@@ -33,7 +33,7 @@ from josie.solver.state import State
 
 class GhostCell:
     def __init__(self, value: State):
-        self.new = value
+        self.value = value
 
 
 class Cell(GhostCell):
@@ -52,14 +52,14 @@ class Cell(GhostCell):
 
         # Surface of the cell adding up the areas of the two composing
         # triangles (nw, sw, se) and (se, ne nw)
-        self.area = np.linalg.norm(
+        self.volume = np.linalg.norm(
             np.cross(
                 self.sw - self.nw,
                 self.se - self.sw
             )
         )/2
 
-        self.area = self.area + np.linalg.norm(
+        self.volume = self.volume + np.linalg.norm(
             np.cross(
                 self.se - self.ne,
                 self.ne - self.nw
@@ -81,7 +81,10 @@ class Cell(GhostCell):
                f'{self.nw}, {self.sw}, {self.se}, {self.ne})'
 
     def __iter__(self):
-        return [self.w, self.s, self.e, self.n]
+        return iter([self.w, self.s, self.e, self.n])
+
+    def update(self):
+        self.old = self.value
 
     @property
     def w(self):
@@ -115,6 +118,9 @@ class Cell(GhostCell):
     def n(self, n):
         self._n = NeighbourCell(n, self.faces[3])
 
+    def points(self):
+        return [self.nw, self.sw, self.se, self.ne]
+
     def plot(self):
         for face in self.faces:
             face.plot()
@@ -141,8 +147,11 @@ class Face:
         plt.plot([self._a[0], self._b[0]], [self._a[1], self._b[1]], 'k-')
 
 
-class NeighbourCell(GhostCell):
-    def __init__(self, cell, face):
+class NeighbourCell:
+    def __init__(self, cell: Cell, face: Face):
         self.face = face
+        self.cell = cell
 
-        super().__init__(cell.new)
+    @property
+    def value(self):
+        return self.cell.value
