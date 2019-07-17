@@ -24,15 +24,17 @@
 # The views and conclusions contained in the software and documentation
 # are those of the authors and should not be interpreted as representing
 # official policies, either expressed or implied, of Ruben Di Battista.
-
 import matplotlib.pyplot as plt
 import numpy as np
 
-from josie.solver.state import State
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from josie.solver.state import State
 
 
 class GhostCell:
-    def __init__(self, value: State):
+    def __init__(self, value: 'State'):
         self.value = value
 
 

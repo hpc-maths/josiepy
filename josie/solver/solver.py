@@ -1,18 +1,23 @@
+from __future__ import annotations
+
 import numpy as np
 
-from typing import Callable
+from typing import Callable, TYPE_CHECKING
 
 from tvtk.api import tvtk, write_data
 # from mayavi import mlab
 
-from josie.mesh import Mesh
-from josie.mesh.cell import Cell, GhostCell
+from josie.mesh import GhostCell
 from .state import State
 from .problem import Problem
 
+if TYPE_CHECKING:
+    from josie.mesh import Mesh
+    from josie.mesh.cell import Cell
+
 
 class Solver:
-    def __init__(self, mesh: Mesh, problem: Problem):
+    def __init__(self, mesh: 'Mesh', problem: Problem):
         self.mesh = mesh
         self.problem = problem
 

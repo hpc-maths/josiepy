@@ -29,33 +29,34 @@ import abc
 
 from enum import Enum, auto
 
-from typing import Tuple
+from typing import Tuple, TYPE_CHECKING
 
 from .mesh.cell import Cell
 from .mesh.mesh import Mesh
 from .geom import BoundaryCurve
 
-from josie.solver.state import State
+if TYPE_CHECKING:
+    from josie.solver.state import State
 
 
 class BoundaryCondition(metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
-    def __call__(self, mesh: Mesh, cell: Cell) -> State:
+    def __call__(self, mesh: Mesh, cell: Cell) -> 'State':
         raise NotImplementedError
 
 
 class Dirichlet(BoundaryCondition):
-    def __init__(self, value: State):
+    def __init__(self, value: 'State'):
         self._value = value
 
-    def __call__(self, mesh: Mesh, cell: Cell) -> State:
+    def __call__(self, mesh: Mesh, cell: Cell) -> 'State':
         return 2*self._value - cell.new
 
 
 class Neumann(Dirichlet):
 
-    def __call__(self, mesh: Mesh, cell: Cell) -> State:
+    def __call__(self, mesh: Mesh, cell: Cell) -> 'State':
         return self._value + cell.new
 
 
