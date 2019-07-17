@@ -14,7 +14,7 @@ def test_square_centroid(tol):
     )
 
     assert np.array_equal(c.centroid, np.array((0, 0)))
-    assert c.area - 4 < tol
+    assert c.volume - 4 < tol
 
 
 def test_non_equilateral_cell(tol):
@@ -39,4 +39,4 @@ def test_non_equilateral_cell(tol):
     )/2
 
     assert np.array_equal(c.centroid, centroid)
-    assert c.area == area
+    assert c.volume == area
