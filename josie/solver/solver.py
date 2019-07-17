@@ -4,8 +4,6 @@ import numpy as np
 
 from typing import Callable, TYPE_CHECKING
 
-from tvtk.api import tvtk, write_data
-# from mayavi import mlab
 
 from josie.mesh import GhostCell
 from .state import State
@@ -62,21 +60,32 @@ class Solver:
                     # Top BC
                     c.n = GhostCell(self.mesh.top.bc(self.mesh, c))
 
-    def solve(self, final_time, dt, scheme):
+    def step(self, dt, scheme):
+        for cell in self.mesh.cells.ravel():
+            cell.update()
+            fluxes = scheme(cell)
+            cell.value = cell.old - dt/cell.volume*fluxes
+
+    def solve(self, final_time, dt, scheme, animate=False, write=False):
+        if animate:
+            self._init_show()
         t = 0
         i = 0
 
         while t < final_time:
-            self.save(f't_{i:02d}.vtk')
             t = t+dt
             i = i+1
 
-            for cell in self.mesh.cells.ravel():
-                cell.update()
-                fluxes = scheme(cell)
-                cell.value = cell.old - dt/cell.volume*fluxes
+            if animate:
+                self.animate()
 
-    def save(self, filename):
+            self.step(dt, scheme)
+
+            if write:
+                self.save(f't_{i:02d}.vtk')
+
+    def _to_mayavi(self):
+        from tvtk.api import tvtk
         # Rearrange points
         points = np.vstack((self.mesh._x.ravel(), self.mesh._y.ravel())).T
         points = np.pad(points, ((0, 0), (0, 1)), 'constant')
@@ -95,15 +104,35 @@ class Solver:
 
         sgrid.cell_data.scalars = cell_data
 
+        return sgrid
+
+    def save(self, filename):
+        from tvtk.api import write_data
+        sgrid = self._to_mayavi()
         write_data(sgrid, filename)
 
-    # def plot(self):
-        # mlab.figure(bgcolor=(1, 1, 1), fgcolor=(0, 0, 0),
-        #             figure=sgrid.class_name[3:])
-        # surf = mlab.pipeline.surface(sgrid, opacity=0.1)
-        # mlab.pipeline.surface(mlab.pipeline.extract_edges(surf),
-        #                       color=(0, 0, 0), )
+    def _init_show(self):
+        from mayavi import mlab
+        sgrid = self._to_mayavi()
 
-        # print(mlab.view())
-        # mlab.view(azimuth=0, elevation=0)
-        # mlab.show()
+        mlab.figure(bgcolor=(1, 1, 1), fgcolor=(0, 0, 0),
+                    figure=sgrid.class_name[3:])
+        surf = mlab.pipeline.surface(sgrid, opacity=0.1)
+        mlab.pipeline.surface(mlab.pipeline.extract_edges(surf),
+                              color=(0, 0, 0), )
+
+        mlab.view(azimuth=0, elevation=0)
+
+        self._surf = surf
+        self._sgrid = sgrid
+
+    def animate(self):
+        cell_data = np.empty((len(self.mesh.cells.ravel()),
+                             len(self.problem.Q.fields)))
+
+        for i, cell in enumerate(self.mesh.cells.ravel()):
+            cell_data[i, :] = cell.value
+
+        self._sgrid.cell_data.scalars = cell_data
+        self._sgrid.modified()
+        yield

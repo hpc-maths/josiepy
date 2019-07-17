@@ -31,6 +31,7 @@ REQUIRED = [
 EXTRAS = {
     # 'fancy feature': ['django'],
     'dev': ['pytest', 'flake8'],
+    'examples': ['jupyter', 'ipywidgets', 'ipyevents']
 }
 
 # The rest you shouldn't have to touch too much :)
