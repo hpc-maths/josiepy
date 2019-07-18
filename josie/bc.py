@@ -51,13 +51,13 @@ class Dirichlet(BoundaryCondition):
         self._value = value
 
     def __call__(self, mesh: Mesh, cell: Cell) -> 'State':
-        return 2*self._value - cell.new
+        return 2*self._value - cell.value
 
 
 class Neumann(Dirichlet):
 
     def __call__(self, mesh: Mesh, cell: Cell) -> 'State':
-        return self._value + cell.new
+        return self._value + cell.value
 
 
 class Side(Enum):

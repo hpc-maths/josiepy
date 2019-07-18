@@ -1,2 +1,3 @@
 *.egg-info/
 *.vtk
+/examples/.ipynb_checkpoints
