@@ -114,5 +114,21 @@ class Mesh:
             self.cells = cells
 
     def plot(self):
+        import matplotlib.pyplot as plt
+
+        from matplotlib.patches import Polygon
+        from matplotlib.collections import PatchCollection
+
+        fig, ax = plt.subplots()
+
+        cells = []
+        centroids = []
         for cell in self.cells.ravel():
-            cell.plot()
+            cells.append(Polygon(np.array(cell.points())))
+            centroids.append(cell.centroid)
+
+        centroids = np.asarray(centroids)
+
+        patch_coll = PatchCollection(cells, facecolors="None", edgecolors='k')
+        ax.add_collection(patch_coll)
+        ax.plot(centroids[:, 0], centroids[:, 1], 'ko', ms=1)
