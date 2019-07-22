@@ -22,43 +22,79 @@ class Solver:
     def init(self, init_fun: Callable[[Cell], State]):
         num_cells_x = self.mesh.num_cells_x
         num_cells_y = self.mesh.num_cells_y
+
+        # First set all the values for the interal cells
+        for c in self.mesh.cells.ravel():
+            c.value = init_fun(c)
+
         for i in range(num_cells_x):
             for j in range(num_cells_y):
                 c = self.mesh.cells[i, j]
-                c.value = init_fun(c)
 
-                # Add neighbours and handle BCs
-                try:
+                # Left BC
+                if i == 0:
+                    if self.mesh.left.bc is not None:
+                        c.w = GhostCell(self.mesh.left.bc(self.mesh, c))
+                        # Right neighbour
+                        neigh = self.mesh.cells[i+1, j]
+                        c.e = neigh
+                    else:
+                        c.e = None
+                        c.w = None
+
+                # Right BC
+                elif i == (num_cells_x - 1):
+                    if self.mesh.right.bc is not None:
+                        c.e = GhostCell(self.mesh.right.bc(self.mesh, c))
+                        # Left neighbour
+                        neigh = self.mesh.cells[i-1, j]
+                        c.w = neigh
+                    else:
+                        c.e = None
+                        c.w = None
+
+                # Normal Cell
+                else:
+                    # Left neighbour
                     neigh = self.mesh.cells[i-1, j]
-                    neigh.value = init_fun(neigh)
                     c.w = neigh
-                except IndexError:
-                    # Left BC
-                    c.w = GhostCell(self.mesh.left.bc(self.mesh, c))
 
-                try:
-                    neigh = self.mesh.cells[i, j-1]
-                    neigh.value = init_fun(neigh)
-                    c.s = neigh
-                except IndexError:
-                    # Bottom BC
-                    c.s = GhostCell(self.mesh.bottom.bc(self.mesh, c))
-
-                try:
+                    # Right neighbour
                     neigh = self.mesh.cells[i+1, j]
-                    neigh.value = init_fun(neigh)
                     c.e = neigh
-                except IndexError:
-                    # Right BC
-                    c.e = GhostCell(self.mesh.right.bc(self.mesh, c))
 
-                try:
+                # Bottom BC
+                if j == 0:
+                    if self.mesh.bottom.bc is not None:
+                        c.s = GhostCell(self.mesh.bottom.bc(self.mesh, c))
+                        # Top neighbour
+                        neigh = self.mesh.cells[i, j+1]
+                        c.n = neigh
+                    else:
+                        c.n = None
+                        c.s = None
+
+                # Top BC
+                elif j == (num_cells_y - 1):
+                    if self.mesh.top.bc is not None:
+                        c.n = GhostCell(self.mesh.top.bc(self.mesh, c))
+                        # Bottom neighbour
+                        neigh = self.mesh.cells[i, j-1]
+                        c.s = neigh
+                    else:
+                        c.n = None
+                        c.s = None
+
+                # Normal Cell
+                else:
+
+                    # Top neighbour
                     neigh = self.mesh.cells[i, j+1]
-                    neigh.value = init_fun(neigh)
                     c.n = neigh
-                except IndexError:
-                    # Top BC
-                    c.n = GhostCell(self.mesh.top.bc(self.mesh, c))
+
+                    # Bottom neighbour
+                    neigh = self.mesh.cells[i, j-1]
+                    c.s = neigh
 
     def step(self, dt, scheme):
         for cell in self.mesh.cells.ravel():

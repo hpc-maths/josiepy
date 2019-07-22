@@ -83,7 +83,10 @@ class Cell(GhostCell):
                f'{self.nw}, {self.sw}, {self.se}, {self.ne})'
 
     def __iter__(self):
-        return iter([self.w, self.s, self.e, self.n])
+        all_neigh = [self.w, self.s, self.e, self.n]
+        filtered = [neigh for neigh in all_neigh if neigh is not None]
+
+        return iter(filtered)
 
     def update(self):
         self.old = self.value
@@ -94,7 +97,10 @@ class Cell(GhostCell):
 
     @w.setter
     def w(self, w):
-        self._w = NeighbourCell(w, self.faces[0])
+        if w is not None:
+            self._w = NeighbourCell(w, self.faces[0])
+        else:
+            self._w = None
 
     @property
     def s(self):
@@ -102,7 +108,10 @@ class Cell(GhostCell):
 
     @s.setter
     def s(self, s):
-        self._s = NeighbourCell(s, self.faces[1])
+        if s is not None:
+            self._s = NeighbourCell(s, self.faces[1])
+        else:
+            self._s = None
 
     @property
     def e(self):
@@ -110,7 +119,10 @@ class Cell(GhostCell):
 
     @e.setter
     def e(self, e):
-        self._e = NeighbourCell(e, self.faces[2])
+        if e is not None:
+            self._e = NeighbourCell(e, self.faces[2])
+        else:
+            self._e = None
 
     @property
     def n(self):
@@ -118,7 +130,10 @@ class Cell(GhostCell):
 
     @n.setter
     def n(self, n):
-        self._n = NeighbourCell(n, self.faces[3])
+        if n is not None:
+            self._n = NeighbourCell(n, self.faces[3])
+        else:
+            self._n = None
 
     def points(self):
         return [self.nw, self.sw, self.se, self.ne]

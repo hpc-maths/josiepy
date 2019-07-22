@@ -1,7 +1,7 @@
 import pytest
 
-from josie.bc import make_periodic, Direction, Neumann
-from josie.geom import Line, CircleArc
+from josie.bc import make_periodic, Direction
+from josie.geom import Line
 from josie.mesh import Mesh
 from josie.solver.state import StateTemplate
 
@@ -19,9 +19,8 @@ def Q():
 
 
 @pytest.fixture
-def boundaries(Q):
+def boundaries():
     left = Line([0, 0], [0, 1])
-    # bottom = CircleArc([0, 0], [1, 0], [0.2, 0.2])
     bottom = Line([0, 0], [1, 0])
     right = Line([1, 0], [1, 1])
     top = Line([0, 1], [1, 1])
@@ -33,11 +32,36 @@ def boundaries(Q):
 
 
 @pytest.fixture
+def boundaries_1D():
+    left = Line([0, 0], [0, 1])
+    bottom = Line([0, 0], [1, 0])
+    right = Line([1, 0], [1, 1])
+    top = Line([0, 1], [1, 1])
+
+    left, right = make_periodic(left, right, Direction.X)
+    top.bc = None
+    bottom.bc = None
+
+    yield (left, bottom, right, top)
+
+
+@pytest.fixture
 def mesh(boundaries):
     left, bottom, right, top = boundaries
 
     mesh = Mesh(left, bottom, right, top)
     mesh.interpolate(20, 20)
+    mesh.generate()
+
+    yield mesh
+
+
+@pytest.fixture
+def mesh_1D(boundaries_1D):
+    left, bottom, right, top = boundaries_1D
+
+    mesh = Mesh(left, bottom, right, top)
+    mesh.interpolate(40, 2)
     mesh.generate()
 
     yield mesh

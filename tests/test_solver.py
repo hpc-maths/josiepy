@@ -3,7 +3,7 @@ import pytest
 
 from josie.solver.solver import Solver
 from josie.solver.state import StateTemplate, State
-from josie.mesh.cell import NeighbourCell, GhostCell
+from josie.mesh.cell import NeighbourCell
 from josie.solver.problem import Problem
 
 
@@ -19,6 +19,19 @@ def advection(mesh):
             return cls.V*Q
 
     yield Solver(mesh, Advection)
+
+
+@pytest.fixture
+def advection_1D(mesh_1D):
+    class Advection(Problem):
+        Q = StateTemplate("u")
+        V = np.array([1, 0])
+
+        @classmethod
+        def flux(cls, Q: State) -> State:
+            return cls.V*Q
+
+    yield Solver(mesh_1D, Advection)
 
 
 @pytest.fixture
@@ -39,9 +52,6 @@ def test_init(advection, init_fun):
     advection.init(init_fun)
 
     def assert_init(cell):
-        if isinstance(cell, GhostCell):
-            return True
-
         xc, _ = cell.centroid
 
         if xc > 0.45:
@@ -61,8 +71,35 @@ def test_init(advection, init_fun):
     for right_cell in advection.mesh.cells[-1, :]:
         assert isinstance(left_cell.e, NeighbourCell)
 
-    for top_cell in advection.mesh.cells[-1, :]:
+    for top_cell in advection.mesh.cells[:, -1]:
         assert isinstance(left_cell.n, NeighbourCell)
+
+
+def test_init_1D(advection_1D, init_fun):
+    advection_1D.init(init_fun)
+
+    def assert_init(cell):
+        xc, _ = cell.centroid
+
+        if xc > 0.45:
+            assert np.array_equal(cell.value, advection_1D.problem.Q(1))
+        else:
+            assert np.array_equal(cell.value, advection_1D.problem.Q(0))
+
+    for cell in advection_1D.mesh.cells.ravel():
+        assert_init(cell)
+
+    for left_cell in advection_1D.mesh.cells[0, :]:
+        assert left_cell.n is None
+
+    for btm_cell in advection_1D.mesh.cells[:, 0]:
+        assert isinstance(left_cell.w, NeighbourCell)
+
+    for right_cell in advection_1D.mesh.cells[-1, :]:
+        assert left_cell.s is None
+
+    for top_cell in advection_1D.mesh.cells[:, -1]:
+        assert isinstance(left_cell.e, NeighbourCell)
 
 
 def test_neigh_state(advection, init_fun):
