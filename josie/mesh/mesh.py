@@ -29,6 +29,8 @@
 
 import numpy as np
 
+from typing import Tuple
+
 from .cell import Cell
 
 
@@ -49,21 +51,22 @@ class Mesh:
         self.right = right
         self.top = top
 
-    def interpolate(self, num_xi, num_eta):
+    def interpolate(self, num_cells_x: int, num_cells_y: int) \
+            -> Tuple[np.ndarray]:
         """ This methods generates the mesh within the four given
         BoundaryCurve using Transfinite Interpolation
 
         Args:
-            num_xi: Number of elements in xi-direction
-            num_eta: Number of elements in eta-direction
+            num_cells_x: Number of cells in x-direction
+            num_cells_y: Number of cells in y-direction
         """
-        self._num_xi = num_xi
-        self._num_eta = num_eta
-        self.num_cells_x = num_xi - 1
-        self.num_cells_y = num_eta - 1
+        self._num_xi = num_cells_x + 1
+        self._num_eta = num_cells_y + 1
+        self.num_cells_x = num_cells_x
+        self.num_cells_y = num_cells_y
 
-        xis = np.linspace(0, 1, num_xi)
-        etas = np.linspace(0, 1, num_eta)
+        xis = np.linspace(0, 1, self._num_xi)
+        etas = np.linspace(0, 1, self._num_eta)
 
         x = np.empty((len(xis), len(etas)))
         y = np.empty((len(xis), len(etas)))

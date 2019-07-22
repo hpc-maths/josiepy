@@ -7,7 +7,7 @@ def test_interpolate(mesh, plot):
 
     # Test all the points on the boundary are equal to the points calculated
     # directly using the BoundaryCurves
-    xis = np.linspace(0, 1, 20)
+    xis = np.linspace(0, 1, mesh._num_xi)
     xl, yl = mesh.left(xis)
     xr, yr = mesh.right(xis)
     xt, yt = mesh.top(xis)
