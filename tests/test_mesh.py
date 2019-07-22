@@ -31,6 +31,5 @@ def test_interpolate(mesh, plot):
 
 def test_plot(mesh, plot):
     if plot:
-        plt.figure()
         mesh.plot()
         plt.show()

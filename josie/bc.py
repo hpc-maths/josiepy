@@ -31,7 +31,7 @@ from enum import Enum, auto
 
 from typing import Tuple, TYPE_CHECKING
 
-from .mesh.cell import Cell
+from .mesh.cell import Cell, GhostCell
 from .mesh.mesh import Mesh
 from .geom import BoundaryCurve
 
@@ -42,7 +42,7 @@ if TYPE_CHECKING:
 class BoundaryCondition(metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
-    def __call__(self, mesh: Mesh, cell: Cell) -> 'State':
+    def __call__(self, mesh: Mesh, cell: Cell) -> 'Cell':
         raise NotImplementedError
 
 
@@ -50,14 +50,14 @@ class Dirichlet(BoundaryCondition):
     def __init__(self, value: 'State'):
         self._value = value
 
-    def __call__(self, mesh: Mesh, cell: Cell) -> 'State':
-        return 2*self._value - cell.value
+    def __call__(self, mesh: Mesh, cell: Cell) -> 'Cell':
+        return GhostCell(2*self._value - cell.value)
 
 
 class Neumann(Dirichlet):
 
-    def __call__(self, mesh: Mesh, cell: Cell) -> 'State':
-        return self._value + cell.value
+    def __call__(self, mesh: Mesh, cell: Cell) -> 'Cell':
+        return GhostCell(self._value + cell.value)
 
 
 class Side(Enum):
@@ -77,12 +77,12 @@ class Periodic(BoundaryCondition):
     def __init__(self, side: Side):
         self._side = side
 
-    def __call__(self, mesh: Mesh, cell: Cell) -> float:
+    def __call__(self, mesh: Mesh, cell: Cell) -> 'Cell':
 
         if self._side in [Side.LEFT, Side.RIGHT]:
-            return mesh.cells[self._side.value, cell.j].value
+            return mesh.cells[self._side.value, cell.j]
         elif self._side in [Side.BOTTOM, Side.TOP]:
-            return mesh.cells[cell.i, self._side.value].value
+            return mesh.cells[cell.i, self._side.value]
         else:
             raise ValueError(f'Unknown side. Expecting a {Side} object')
 

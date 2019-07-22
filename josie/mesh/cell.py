@@ -141,7 +141,7 @@ class Cell(GhostCell):
     def plot(self):
         for face in self.faces:
             face.plot()
-            plt.plot(self.centroid[0], self.centroid[1], 'kx', ms=5)
+        plt.plot(self.centroid[0], self.centroid[1], 'kx', ms=5)
 
 
 class Face:

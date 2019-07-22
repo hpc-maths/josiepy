@@ -34,7 +34,7 @@ class Solver:
                 # Left BC
                 if i == 0:
                     if self.mesh.left.bc is not None:
-                        c.w = GhostCell(self.mesh.left.bc(self.mesh, c))
+                        c.w = self.mesh.left.bc(self.mesh, c)
                         # Right neighbour
                         neigh = self.mesh.cells[i+1, j]
                         c.e = neigh
@@ -45,7 +45,7 @@ class Solver:
                 # Right BC
                 elif i == (num_cells_x - 1):
                     if self.mesh.right.bc is not None:
-                        c.e = GhostCell(self.mesh.right.bc(self.mesh, c))
+                        c.e = self.mesh.right.bc(self.mesh, c)
                         # Left neighbour
                         neigh = self.mesh.cells[i-1, j]
                         c.w = neigh
@@ -66,7 +66,7 @@ class Solver:
                 # Bottom BC
                 if j == 0:
                     if self.mesh.bottom.bc is not None:
-                        c.s = GhostCell(self.mesh.bottom.bc(self.mesh, c))
+                        c.s = self.mesh.bottom.bc(self.mesh, c)
                         # Top neighbour
                         neigh = self.mesh.cells[i, j+1]
                         c.n = neigh
@@ -77,7 +77,7 @@ class Solver:
                 # Top BC
                 elif j == (num_cells_y - 1):
                     if self.mesh.top.bc is not None:
-                        c.n = GhostCell(self.mesh.top.bc(self.mesh, c))
+                        c.n = self.mesh.top.bc(self.mesh, c)
                         # Bottom neighbour
                         neigh = self.mesh.cells[i, j-1]
                         c.s = neigh

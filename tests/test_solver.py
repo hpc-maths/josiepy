@@ -64,6 +64,7 @@ def test_init(advection, init_fun):
 
     for left_cell in advection.mesh.cells[0, :]:
         assert isinstance(left_cell.w, NeighbourCell)
+        assert left_cell.w.cell == advection.mesh.cells[-1, left_cell.j]
 
     for btm_cell in advection.mesh.cells[:, 0]:
         assert isinstance(left_cell.s, NeighbourCell)
