@@ -27,7 +27,7 @@
 
 import abc
 
-from enum import Enum, auto
+from aenum import Enum, NoAlias, auto
 
 from typing import Tuple, TYPE_CHECKING
 
@@ -40,6 +40,15 @@ if TYPE_CHECKING:
 
 
 class BoundaryCondition(metaclass=abc.ABCMeta):
+    """ A BoundaryCondition is implemented as a callable that returns an
+    equivalent cell that is associated as a NeighbourCell to the cells on the
+    boundary.
+
+    This returned cell can be an actual `Cell` as in the case
+    of Periodic, that returns the corresponding cell on the opposite boundary,
+    or a GhostCell, that means a cell that only stores a value that is then
+    used by the numerical scheme.
+    """
 
     @abc.abstractmethod
     def __call__(self, mesh: Mesh, cell: Cell) -> 'Cell':
@@ -47,6 +56,30 @@ class BoundaryCondition(metaclass=abc.ABCMeta):
 
 
 class Dirichlet(BoundaryCondition):
+    r""" A Dirichlet BoundaryCondition is a BoundaryCondition that fixes a
+    value of the State on the boundary.
+
+    Assuming we want to impose the value :math:`Q = Q_D` on the (left, as an
+    example) boundary, we can assume that the value on the boundary is
+    approximated by:
+
+    .. math::
+
+    \frac{Q_{0,j} + Q_\text{ghost}}{2} = Q_D
+
+    That means we can impose the BoundaryCondition assigning the value of
+
+    .. math::
+    Q_\text{ghost} = 2Q_D - \frac{Q_{0,j}}
+
+    to the ghost cell.
+
+    Parameters
+    ----------
+    value
+        The value of the state to be imposed on the boundary
+    """
+
     def __init__(self, value: 'State'):
         self._value = value
 
@@ -55,12 +88,39 @@ class Dirichlet(BoundaryCondition):
 
 
 class Neumann(Dirichlet):
+    r""" A Neumann BoundaryCondition is a BoundaryCondition that fixes a
+    value of the gradient of the State on the boundary.
+
+    Assuming we want to impose the value of the gradient :math:`\frac{\partial
+    Q}{\partial \hat{\mathbf{n}}} = Q_N`of the state on the (left, as an
+    example) boundary, we can assume that the value of the gradient on the
+    boundary is approximated by:
+
+    .. math::
+
+    \frac{Q_{0,j} - Q_\text{ghost}}{\Delta x} = Q_N
+
+    That means we can impose the BoundaryCondition assigning the value of
+
+    .. math::
+    Q_\text{ghost} = \frac{Q_{0,j}} - Q_N
+
+    to the ghost cell (assuming a :math:`\Delta x = 1`)
+
+    Parameters
+    ----------
+    value
+        The value of the state to be imposed on the boundary
+    """
 
     def __call__(self, mesh: Mesh, cell: Cell) -> 'Cell':
-        return GhostCell(self._value + cell.value)
+        return GhostCell(cell.value - self._value)
 
 
-class Side(Enum):
+class Side(Enum, settings=NoAlias):
+    """ A Enum encapsulating the 4 possibilities of a Periodic
+    BoundaryCondition """
+
     LEFT = -1
     BOTTOM = -1
     RIGHT = 0
@@ -68,11 +128,30 @@ class Side(Enum):
 
 
 class Direction(Enum):
+    """ An Enum encapsulating the direction of a Periodic BoundaryCondition
+    """
     X = auto()
     Y = auto()
 
 
 class Periodic(BoundaryCondition):
+    r""" A Periodic BoundaryCondition is a BoundaryCondition that connects
+    one side of the domain to the other. In general is more straighforward
+    to use the `make_periodic` function on a couple of BoundaryCurve that
+    needs to be linked periodically
+
+    That means the neighbour cells of the cells on one domain are the cells
+    on the other side of the domain. In other words, as an example, given a
+    cell on the left boundary, identified by the indices :math:`i,j = (0, j)`,
+    i.e. :math:`C_{0,j}`, its west neighbour cell needs to be :math:`C_{N, j}`,
+    being :math:`N` the number of cells along the :math:`x`-direction (i.e.
+    for increasing index :math:`i`)
+
+    Parameters
+    ----------
+    side
+        The side on which the Periodic BC is configured
+    """
 
     def __init__(self, side: Side):
         self._side = side
@@ -90,6 +169,26 @@ class Periodic(BoundaryCondition):
 def make_periodic(first: BoundaryCurve, second: BoundaryCurve,
                   direction: Direction) \
         -> Tuple[BoundaryCurve]:
+    """ This handy function takes as arguments two opposed BoundaryCurve and
+    configures them correctly to provide periodic behaviour.
+
+    Parameters
+    ----------
+    first
+        The first BoundaryCurve to link
+    second
+        The second BoundaryCurve to link
+    direction
+        The direction on which the two BoundaryCurve are periodically
+        connected
+
+    Returns
+    -------
+    first
+        The first BoundaryCurve whose `bc` attribute is correctly configured
+    second
+        The second BoundaryCurve whose `bc` attribute is correctly configured
+    """
 
     if direction is Direction.X:
         first.bc = Periodic(Side.LEFT)

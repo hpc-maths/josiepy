@@ -5,7 +5,6 @@ import numpy as np
 from typing import Callable, TYPE_CHECKING
 
 
-from josie.mesh import GhostCell
 from .state import State
 from .problem import Problem
 
