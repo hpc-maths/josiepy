@@ -16,7 +16,8 @@ def init(x: np.ndarray):
 
     return u
 
-def flux(u: np.ndarray, a:np.ndarray):
+
+def flux(u: np.ndarray, a: np.ndarray):
     return np.multiply(a, u)
 
 
@@ -55,13 +56,6 @@ def upwind(u: np.ndarray, a: np.ndarray):
     return au
 
 
-# :: Configuration ::
-nx = 1000
-tf = 5
-CFL = 0.9
-
-
-# The velocity can be a function of space and time
 def advection_velocity(t, x, tf):
     f_x = np.ones(x.shape)
     f_t = np.sin(4*np.pi*t/tf)
@@ -69,58 +63,59 @@ def advection_velocity(t, x, tf):
     # return np.ones(x.shape)
     return np.outer(f_t, f_x)
 
-# :: End Configuration ::
+
+def main(nx, tf, CFL):
+    x = np.linspace(0, 1, nx)
+    dx = x[1] - x[0]
+
+    # Use a temporary dt to get the max of the advection velocity
+    time = np.arange(0, tf, dx)
+    temp_a = np.abs(np.max(advection_velocity(time, x, tf)))
+    dt = CFL*dx/np.abs(temp_a)
+
+    # Recompute the time with CFL
+    time = np.arange(0, tf, dt)
+    time_plot = np.linspace(0, tf, 100)
+    u = init(x)
+
+    # Add periodic BC
+    u = np.hstack((u[-1], u, u[0]))
+    u_new = np.empty(u.shape)
+
+    # Allocate a
+    a = np.empty(u.shape)
+
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+    ims = []
+
+    # Plot time instant
+    it_plot = 0
+
+    for t in time:
+        # Time dependent advection velocity
+        a[1:-1] = advection_velocity(t, x, tf)
+
+        # Periodic BC
+        a[0] = a[-2]
+        a[-1] = a[1]
+
+        # State update
+        u_new[1:-1] = u[1:-1] - dt/dx*upwind(u, a)
+
+        # Periodic BC
+        u_new[0] = u_new[-2]
+        u_new[-1] = u[1]
+
+        if t >= time_plot[it_plot]:
+            im, = ax.plot(x[::10], u_new[1:-1:10], 'ko-')
+            ims.append([im])
+            it_plot = it_plot + 1
+        u = u_new
+
+    _ = ArtistAnimation(fig, ims, interval=50)
+    plt.show()
 
 
-x = np.linspace(0, 1, nx)
-dx = x[1] - x[0]
-
-# Use a temporary dt to get the max of the advection velocity
-time = np.arange(0, tf, dx)
-temp_a = np.abs(np.max(advection_velocity(time, x, tf)))
-dt = CFL*dx/np.abs(temp_a)
-
-# Recompute the time with CFL
-time = np.arange(0, tf, dt)
-time_plot = np.linspace(0, tf, 100)
-u = init(x)
-
-
-# Add periodic BC
-u = np.hstack((u[-1], u, u[0]))
-u_new = np.empty(u.shape)
-
-# Allocate a
-a = np.empty(u.shape)
-
-
-fig = plt.figure()
-ax = fig.add_subplot(111)
-ims = []
-
-# Plot time instant
-it_plot = 0
-for t in time:
-
-    # Time dependent advection velocity
-    a[1:-1] = advection_velocity(t, x, tf)
-
-    # Periodic BC
-    a[0] = a[-2]
-    a[-1] = a[1]
-
-    # State update
-    u_new[1:-1] = u[1:-1] - dt/dx*upwind(u, a)
-
-    # Periodic BC
-    u_new[0] = u_new[-2]
-    u_new[-1] = u[1]
-
-    if t >= time_plot[it_plot]:
-        im, = ax.plot(x[::10], u_new[1:-1:10], 'ko-')
-        ims.append([im])
-        it_plot = it_plot + 1
-    u = u_new
-
-ani = ArtistAnimation(fig, ims, interval=50)
-plt.show()
+if __name__ == "__main__":
+    main(500, 4, 0.9)
