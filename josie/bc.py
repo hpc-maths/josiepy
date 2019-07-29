@@ -120,7 +120,7 @@ class Neumann(Dirichlet):
     """
 
     def __call__(self, mesh: Mesh, cell: Cell) -> 'GhostCell':
-        return GhostCell(cell.value - self._value)
+        return GhostCell(cell.value - self._value)  # type: ignore
 
 
 class Side(Enum, settings=NoAlias):

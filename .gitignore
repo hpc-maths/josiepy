@@ -5,6 +5,7 @@
 
 
 # Testing stuff
+htmlcov/
 .coverage
 .mypy_cache/
 .pytest_cache/
