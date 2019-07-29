@@ -18,18 +18,16 @@ def test_interpolate(mesh, plot):
     assert np.allclose(x[:, 0], xb) and np.allclose(y[:, 0], yb)
     assert np.allclose(x[:, -1], xt) and np.allclose(y[:, -1], yt)
 
-    if plot:
-        plt.figure()
-        plt.plot(x, y, 'k.')
-        mesh.left.plot()
-        mesh.bottom.plot()
-        mesh.right.plot()
-        mesh.top.plot()
-        plt.axis('equal')
-        plt.show(block=False)
+    plt.figure()
+    plt.plot(x, y, 'k.')
+    mesh.left.plot()
+    mesh.bottom.plot()
+    mesh.right.plot()
+    mesh.top.plot()
+    plt.axis('equal')
+    plt.show(block=False)
 
 
 def test_plot(mesh, plot):
-    if plot:
-        mesh.plot()
-        plt.show()
+    mesh.plot()
+    plt.show()

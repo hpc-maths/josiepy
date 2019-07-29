@@ -39,8 +39,11 @@ def mesh(boundaries):
     yield mesh
 
 
-@pytest.fixture
+@pytest.fixture(scope='session', autouse=True)
 def plot(request):
+    if not(request.config.getoption("--plot")):
+        import matplotlib
+        matplotlib.use('Template')
     yield request.config.getoption("--plot")
 
 
