@@ -27,7 +27,6 @@
 
 import abc
 
-from aenum import Enum, NoAlias, auto
 
 from typing import Tuple, TYPE_CHECKING
 
@@ -37,6 +36,13 @@ from .geom import BoundaryCurve
 
 if TYPE_CHECKING:
     from josie.solver.state import State
+
+    # This is a trick to enable mypy to evaluate the Enum as a standard
+    # library Enum for type checking but we use `aenum` in the running code
+    from enum import Enum, auto
+    NoAlias = object()
+else:
+    from aenum import Enum, NoAlias, auto
 
 
 class BoundaryCondition(metaclass=abc.ABCMeta):
@@ -51,7 +57,7 @@ class BoundaryCondition(metaclass=abc.ABCMeta):
     """
 
     @abc.abstractmethod
-    def __call__(self, mesh: Mesh, cell: Cell) -> 'Cell':
+    def __call__(self, mesh: Mesh, cell: Cell) -> 'GhostCell':
         raise NotImplementedError
 
 
@@ -83,8 +89,8 @@ class Dirichlet(BoundaryCondition):
     def __init__(self, value: 'State'):
         self._value = value
 
-    def __call__(self, mesh: Mesh, cell: Cell) -> 'Cell':
-        return GhostCell(2*self._value - cell.value)
+    def __call__(self, mesh: Mesh, cell: Cell) -> 'GhostCell':
+        return GhostCell(2*self._value - cell.value)  # type: ignore
 
 
 class Neumann(Dirichlet):
@@ -113,7 +119,7 @@ class Neumann(Dirichlet):
         The value of the state to be imposed on the boundary
     """
 
-    def __call__(self, mesh: Mesh, cell: Cell) -> 'Cell':
+    def __call__(self, mesh: Mesh, cell: Cell) -> 'GhostCell':
         return GhostCell(cell.value - self._value)
 
 
@@ -168,7 +174,7 @@ class Periodic(BoundaryCondition):
 
 def make_periodic(first: BoundaryCurve, second: BoundaryCurve,
                   direction: Direction) \
-        -> Tuple[BoundaryCurve]:
+        -> Tuple[BoundaryCurve, BoundaryCurve]:
     """ This handy function takes as arguments two opposed BoundaryCurve and
     configures them correctly to provide periodic behaviour.
 

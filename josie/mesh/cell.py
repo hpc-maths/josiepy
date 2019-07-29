@@ -27,10 +27,13 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Tuple, Union
 
 if TYPE_CHECKING:
     from josie.solver.state import State
+
+
+PointType = Union[Tuple[float, float], np.ndarray]
 
 
 class GhostCell:
@@ -39,11 +42,15 @@ class GhostCell:
 
 
 class Cell(GhostCell):
-    def __init__(self, nw, sw, se, ne, i, j, value=None):
-        self.nw = np.array(nw)
-        self.sw = np.array(sw)
-        self.se = np.array(se)
-        self.ne = np.array(ne)
+    def __init__(self,
+                 nw: PointType, sw: PointType,
+                 se: PointType, ne: PointType,
+                 i: int, j: int, value: 'State'):
+
+        self.nw = np.asarray(nw)
+        self.sw = np.asarray(sw)
+        self.se = np.asarray(se)
+        self.ne = np.asarray(ne)
 
         self.faces = [
             Face(self.nw, self.sw),

@@ -35,6 +35,11 @@ import abc
 import matplotlib.pyplot as plt
 import numpy as np
 
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from josie.bc import BoundaryCondition
+
 
 def map01to(x, a, b):
     """ Maps x in [0, 1] to [a, b] """
@@ -48,6 +53,14 @@ class BoundaryCurve(metaclass=abc.ABCMeta):
     the :math:`(x,y)` values of the curve for a given :math:`\xi`
     parameter value.
     """
+
+    @property
+    def bc(self):
+        return self._bc
+
+    @bc.setter
+    def bc(self, bc: 'BoundaryCondition'):
+        self._bc = bc
 
     @abc.abstractmethod
     def __call__(self, xi):
