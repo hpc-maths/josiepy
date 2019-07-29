@@ -19,6 +19,12 @@ def Q(request):
     yield request.param()
 
 
+def test_wrong_number_of_fields():
+    Q = StateTemplate('rhoU', 'rhoV', 'p')
+    with pytest.raises(ValueError):
+        Q(0, 0, 0, 0)
+
+
 def test_get_attributes(Q):
     assert Q.rhoU == 0
     assert Q.rhoV == 0
@@ -26,7 +32,6 @@ def test_get_attributes(Q):
 
 
 def test_set_attributes(Q):
-
     Q.p = 1.5
 
     assert Q.p == 1.5

@@ -33,8 +33,9 @@ import numpy as np
 from typing import Callable, TYPE_CHECKING
 
 
-from .state import State
+from .exceptions import InvalidMesh
 from .problem import Problem
+from .state import State
 
 if TYPE_CHECKING:
     from josie.mesh import Mesh
@@ -77,8 +78,14 @@ class Solver:
                         neigh = self.mesh.cells[i-1, j]
                         c.w = neigh
                     else:
-                        c.e = None
-                        c.w = None
+                        # If we hit this, it means a 1D mesh in y direction has
+                        # been defined but with more than one row of cells in
+                        # the x direction. This is not supported.
+                        raise InvalidMesh(
+                            "You defined a 1D mesh in the y direction since "
+                            "the top and bottom BC are `None`. But you "
+                            "initialized a mesh with more that 1 cell in "
+                            "the y direction")
 
                 # Normal Cell
                 else:
@@ -109,8 +116,14 @@ class Solver:
                         neigh = self.mesh.cells[i, j-1]
                         c.s = neigh
                     else:
-                        c.n = None
-                        c.s = None
+                        # If we hit this, it means a 1D mesh in x direction has
+                        # been defined but with more than one row of cells in
+                        # the y direction. This is not supported.
+                        raise InvalidMesh(
+                            "You defined a 1D mesh in the x direction since "
+                            "the top and bottom BC are `None`. But you "
+                            "initialized a mesh with more that 1 cell in "
+                            "the y direction")
 
                 # Normal Cell
                 else:

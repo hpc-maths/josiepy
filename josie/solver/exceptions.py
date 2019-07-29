@@ -1,0 +1,2 @@
+class InvalidMesh(Exception):
+    pass

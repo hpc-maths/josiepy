@@ -38,7 +38,7 @@ import numpy as np
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from josie.bc import BoundaryCondition
+    from josie.bc import BoundaryCondition  # pragma: no cover
 
 
 def map01to(x, a, b):
@@ -76,7 +76,7 @@ class BoundaryCurve(metaclass=abc.ABCMeta):
                 BoundaryCurve computed for the `xi` values
         """
 
-        raise NotImplementedError
+        raise NotImplementedError  # pragma: no cover
 
     def plot(self, resolution=50):
         """ This method actually plots the BoundaryCurve

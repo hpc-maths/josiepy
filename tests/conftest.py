@@ -1,7 +1,7 @@
 import pytest
 
 from josie.bc import make_periodic, Direction
-from josie.geom import Line
+from josie.geom import CircleArc, Line
 from josie.mesh import Mesh
 
 
@@ -12,10 +12,13 @@ def pytest_addoption(parser):
     )
 
 
-@pytest.fixture
-def boundaries():
+@pytest.fixture(params=(
+    Line([0, 0], [1, 0]),
+    CircleArc([0, 0], [1, 0], [0.2, 0.2])
+))
+def boundaries(request):
     left = Line([0, 0], [0, 1])
-    bottom = Line([0, 0], [1, 0])
+    bottom = request.param
     right = Line([1, 0], [1, 1])
     top = Line([0, 1], [1, 1])
 
