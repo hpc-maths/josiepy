@@ -1,4 +1,10 @@
 *.egg-info/
 *.vtk
 /examples/.ipynb_checkpoints
+
+
+
+# Testing stuff
 .coverage
+.mypy_cache/
+.pytest_cache/
