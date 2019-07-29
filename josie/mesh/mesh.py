@@ -52,7 +52,7 @@ class Mesh:
         self.top = top
 
     def interpolate(self, num_cells_x: int, num_cells_y: int) \
-            -> Tuple[np.ndarray]:
+            -> Tuple[np.ndarray, np.ndarray]:
         """ This methods generates the mesh within the four given
         BoundaryCurve using Transfinite Interpolation
 
