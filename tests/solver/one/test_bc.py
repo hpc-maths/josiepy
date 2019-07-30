@@ -9,26 +9,8 @@ def test_invalid_mesh_x(boundaries, solver, init_fun):
     left, bottom, right, top = boundaries
 
     mesh = Mesh(left, bottom, right, top)
-    mesh.interpolate(40, 2)
-    mesh.generate()
-
-    solver.mesh = mesh
-
     with pytest.raises(InvalidMesh):
-        solver.init(lambda c: solver.problem.Q(0))
-
-
-def test_invalid_mesh_y(boundaries_y, solver, init_fun):
-    left, bottom, right, top = boundaries_y
-
-    mesh = Mesh(left, bottom, right, top)
-    mesh.interpolate(2, 40)
-    mesh.generate()
-
-    solver.mesh = mesh
-
-    with pytest.raises(InvalidMesh):
-        solver.init(lambda c: solver.problem.Q(0))
+        mesh.interpolate(40, 2)
 
 
 def test_periodic(solver):
