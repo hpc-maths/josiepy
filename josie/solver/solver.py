@@ -32,8 +32,8 @@ import numpy as np
 
 from typing import Callable, TYPE_CHECKING
 
+from josie.exceptions import InvalidMesh
 
-from .exceptions import InvalidMesh
 from .problem import Problem
 from .state import State
 
@@ -138,9 +138,11 @@ class Solver:
 
     def step(self, dt, scheme):
         for cell in self.mesh.cells.ravel():
-            cell.update()
             fluxes = scheme(cell)
-            cell.value = cell.old - dt/cell.volume*fluxes
+            cell.new = cell.value - dt/cell.volume*fluxes
+
+        for cell in self.mesh.cells.ravel():
+            cell.update()
 
     def solve(self, final_time, dt, scheme, animate=False, write=False):
         if animate:
