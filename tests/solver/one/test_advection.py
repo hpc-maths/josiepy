@@ -16,7 +16,7 @@ class Advection(Problem):
     Q = StateTemplate('u')
 
     # Advection velocity in x-direction
-    V = np.array([1, 0])
+    V = np.array([-1, 0])
 
     @classmethod
     def flux(cls, Q: State) -> np.ndarray:
@@ -66,14 +66,14 @@ def test_against_real_1D(solver, plot, tol):
         u = u.flatten()
 
         # Reinterpolate on the same x
-        # u = np.interp(x_1d, x, u)
-        # err = u - solution[i, :]
+        u = np.interp(x_1d, x, u)
+        err = u - solution[i, :]
 
-        im1, = plt.plot(x, u, 'ro-')
-        im2, = plt.plot(x_1d, solution[i, :], 'ks-')
-        ims.append([im1, im2])
-        # im1, = plt.plot(x_1d, err, 'ks-')
-        # ims.append([im1])
+        # im1, = plt.plot(x, u, 'ro-')
+        # im2, = plt.plot(x_1d, solution[i, :], 'ks-')
+        # ims.append([im1, im2])
+        im1, = plt.plot(x_1d, err, 'ks-')
+        ims.append([im1])
         solver.step(dt, upwind)
 
     _ = ArtistAnimation(fig, ims, interval=300)

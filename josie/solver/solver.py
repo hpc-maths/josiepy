@@ -144,6 +144,11 @@ class Solver:
         for cell in self.mesh.cells.ravel():
             cell.update()
 
+        self.post_step()
+
+    def post_step(self):
+        pass
+
     def solve(self, final_time, dt, scheme, animate=False, write=False):
         if animate:
             self._init_show()

@@ -54,7 +54,7 @@ def upwind(u: np.ndarray, a: np.ndarray):
 
 
 def advection_velocity(t, x, tf):
-    f_x = np.ones(x.shape)
+    f_x = -np.ones(x.shape)
     f_t = np.ones(t.shape)
 
     return np.outer(f_t, f_x)
