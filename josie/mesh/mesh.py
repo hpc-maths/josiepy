@@ -31,17 +31,24 @@ import numpy as np
 
 from typing import Tuple
 
+from josie.exceptions import InvalidMesh
+
 from .cell import Cell
 
 
 class Mesh:
     """ This class handles the mesh generation over a domain.
 
-    Parameters:
-        left: The left BoundaryCurve
-        bottom: The bottom BoundaryCurve
-        right: The right BoundaryCurve
-        top: The right BoundaryCurve
+    Parameters
+    ----------
+    left
+        The left BoundaryCurve
+    bottom
+        The bottom BoundaryCurve
+    right
+        The right BoundaryCurve
+    top
+        The right BoundaryCurve
 
     """
 
@@ -50,6 +57,12 @@ class Mesh:
         self.bottom = bottom
         self.right = right
         self.top = top
+
+        self._1D = False
+
+        # If the top.bc and bottom.bc are None, that means we are in 1D
+        if [self.top.bc, self.bottom.bc].count(None) == 2:
+            self._1D = True
 
     def interpolate(self, num_cells_x: int, num_cells_y: int) \
             -> Tuple[np.ndarray, np.ndarray]:
@@ -60,6 +73,7 @@ class Mesh:
             num_cells_x: Number of cells in x-direction
             num_cells_y: Number of cells in y-direction
         """
+
         self._num_xi = num_cells_x + 1
         self._num_eta = num_cells_y + 1
         self.num_cells_x = num_cells_x
@@ -96,6 +110,30 @@ class Mesh:
 
         self._x = x
         self._y = y
+
+        # If we're doing a 1D simulation, we need to check that in the y
+        # direction we have only one cell
+        if self._1D:
+            if self.num_cells_y > 1:
+                raise InvalidMesh(
+                    "The bottom and top BC are `None`. That means that you're "
+                    "requesting a 1D simulation, hence in the y-direction you "
+                    "need to set just 1 cell"
+                )
+
+            same_y = np.all((self._y[:, 0] - self._y[0, 0]) < 1E-12)
+            same_y = same_y & np.all((self._y[:, 1] - self._y[0, 1]) < 1E-12)
+            if not(same_y):
+                raise InvalidMesh(
+                    "For a 1D simulation the top and bottom BoundaryCurve "
+                    "needs to be a Line (i.e.  having same y-coordinate)"
+                )
+
+            # Let's scale in the y-direction to match dx in x-direction. This
+            # is needed in order to have 2D flux to work also in 1D
+            dx = self._x[1, 0] - self._x[0, 0]
+            scale_y = self._y[0, 1]/dx
+            self._y[:, 1] = self._y[:, 1]/scale_y
 
         return x, y
 

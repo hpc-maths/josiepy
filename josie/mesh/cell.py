@@ -96,7 +96,7 @@ class Cell(GhostCell):
         return iter(filtered)
 
     def update(self):
-        self.old = self.value
+        self.value = self.new
 
     @property
     def w(self):
