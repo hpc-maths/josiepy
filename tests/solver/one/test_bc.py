@@ -2,7 +2,7 @@ import pytest
 
 from josie.mesh.mesh import Mesh
 from josie.mesh.cell import NeighbourCell
-from josie.solver.exceptions import InvalidMesh
+from josie.exceptions import InvalidMesh
 
 
 def test_invalid_mesh_x(boundaries, solver, init_fun):
