@@ -54,14 +54,15 @@ def upwind(u: np.ndarray, a: np.ndarray):
 
 
 def advection_velocity(t, x, tf):
-    f_x = -np.ones(x.shape)
+    f_x = np.ones(x.shape)
     f_t = np.ones(t.shape)
 
     return np.outer(f_t, f_x)
 
 
 def main(nx, tf, CFL, plot=False):
-    x = np.linspace(0, 1, nx)
+    dx = 1/nx
+    x = np.arange(0+dx/2, 1, dx)
     dx = x[1] - x[0]
 
     # Use a temporary dt to get the max of the advection velocity

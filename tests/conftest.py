@@ -33,7 +33,7 @@ def mesh(boundaries):
     left, bottom, right, top = boundaries
 
     mesh = Mesh(left, bottom, right, top)
-    mesh.interpolate(20, 20)
+    mesh.interpolate(4, 4)
     mesh.generate()
 
     yield mesh

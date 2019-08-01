@@ -30,3 +30,17 @@ def test_periodic(solver):
 
     for top_cell in solver.mesh.cells[:, -1]:
         assert top_cell.n is None
+
+
+def test_periodic_state(solver):
+    """ Just testing that updating the values of the cells that are interlinked
+    as periodic, we get the actual state and not the previous one """
+
+    first_cell = solver.mesh.cells[0, 0]
+    first_cell.value = 42.19
+
+    last_cell = solver.mesh.cells[-1, 0]
+    last_cell.value = 19.42
+
+    assert last_cell.e.value == 42.19
+    assert first_cell.w.value == 19.42
