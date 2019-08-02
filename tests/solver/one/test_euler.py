@@ -60,106 +60,107 @@ class EulerSolver(Solver):
             cell.value[4:] = np.array([rhoe, U, V, p, c])
 
 
-left = Line([0, 0], [0, 1])
-bottom = Line([0, 0], [1, 0])
-right = Line([1, 0], [1, 1])
-top = Line([0, 1], [1, 1])
+def test_toro_1(plot):
+    left = Line([0, 0], [0, 1])
+    bottom = Line([0, 0], [1, 0])
+    right = Line([1, 0], [1, 1])
+    top = Line([0, 1], [1, 1])
 
-# BC
-rhoL = 1.0
-uL = 0.0
-vL = 0.0
-pL = 1.0
-rhoeL = Euler.eos.rhoe_from_rho_p(rhoL, pL)
-EL = rhoeL/rhoL + 0.5*(uL**2 + vL**2)
-cL = Euler.eos.sound_velocity(rhoL, pL)
+    # BC
+    rhoL = 1.0
+    uL = 0.0
+    vL = 0.0
+    pL = 1.0
+    rhoeL = Euler.eos.rhoe_from_rho_p(rhoL, pL)
+    EL = rhoeL/rhoL + 0.5*(uL**2 + vL**2)
+    cL = Euler.eos.sound_velocity(rhoL, pL)
 
-rhoR = 0.125
-uR = 0.0
-vR = 0.0
-pR = 0.1
-rhoeR = Euler.eos.rhoe_from_rho_p(rhoR, pR)
-ER = rhoeR/rhoR + 0.5*(uR**2 + vR**2)
-cR = Euler.eos.sound_velocity(rhoR, pR)
+    rhoR = 0.125
+    uR = 0.0
+    vR = 0.0
+    pR = 0.1
+    rhoeR = Euler.eos.rhoe_from_rho_p(rhoR, pR)
+    ER = rhoeR/rhoR + 0.5*(uR**2 + vR**2)
+    cR = Euler.eos.sound_velocity(rhoR, pR)
 
-Q_left = Euler.Q(rhoL, rhoL*uL, rhoL*vL, rhoL*EL, rhoeL, uL, vL, pL, cL)
-Q_right = Euler.Q(rhoR, rhoR*uR, rhoR*vR, rhoR*ER, rhoeR, uR, vR, pR, cR)
+    Q_left = Euler.Q(rhoL, rhoL*uL, rhoL*vL, rhoL*EL, rhoeL, uL, vL, pL, cL)
+    Q_right = Euler.Q(rhoR, rhoR*uR, rhoR*vR, rhoR*ER, rhoeR, uR, vR, pR, cR)
 
-left.bc = Dirichlet(Q_left)
-right.bc = Dirichlet(Q_right)
-top.bc = None
-bottom.bc = None
+    left.bc = Dirichlet(Q_left)
+    right.bc = Dirichlet(Q_right)
+    top.bc = None
+    bottom.bc = None
 
-mesh = Mesh(left, bottom, right, top)
-mesh.interpolate(500, 1)
-mesh.generate()
+    mesh = Mesh(left, bottom, right, top)
+    mesh.interpolate(500, 1)
+    mesh.generate()
 
+    def init_fun(cell):
+        xc, _ = cell.centroid
 
-def init_fun(cell):
-    xc, _ = cell.centroid
+        if xc > 0.5:
+            return Q_right
+        else:
+            return Q_left
 
-    if xc > 0.5:
-        return Q_right
-    else:
-        return Q_left
+    solver = EulerSolver(mesh, Euler)
+    solver.init(init_fun)
 
+    x = [cell.centroid[0] for cell in solver.mesh.cells.ravel()]
+    Q = [cell.value for cell in solver.mesh.cells.ravel()]
 
-solver = EulerSolver(mesh, Euler)
-solver.init(init_fun)
+    def rusanov(cell):
+        Q = Euler.Q(0, 0, 0, 0, 0, 0, 0, 0, 0)
+        # First four variables of the total state are the conservative
+        # variables (rho, rhoU, rhoV, rhoE)
+        Q_cons = Q[:4]
 
-x = [cell.centroid[0] for cell in solver.mesh.cells.ravel()]
-Q = [cell.value for cell in solver.mesh.cells.ravel()]
+        Q_cell = cell.value
+        Q_cell_cons = Q_cell[:4]
 
+        for neigh in cell:
+            # Geometry
+            norm = neigh.face.normal
+            S = neigh.face.surface
 
-def rusanov(cell):
-    Q = Euler.Q(0, 0, 0, 0, 0, 0, 0, 0, 0)
-    # First four variables of the total state are the conservative
-    # variables (rho, rhoU, rhoV, rhoE)
-    Q_cons = Q[:4]
+            Q_neigh = neigh.value
+            Q_neigh_cons = Q_neigh[:4]
 
-    Q_cell = cell.value
-    Q_cell_cons = Q_cell[:4]
+            sigma = np.max((
+                np.abs(Q_cell.U) + Q_cell.c,
+                np.abs(Q_neigh.U) + Q_neigh.c
+            ))
 
-    for neigh in cell:
-        # Geometry
-        norm = neigh.face.normal
-        S = neigh.face.surface
+            flux = Euler.flux
 
-        Q_neigh = neigh.value
-        Q_neigh_cons = Q_neigh[:4]
+            F = 0.5*(flux(Q_cell) + flux(Q_neigh)).dot(norm) - \
+                0.5*sigma*(Q_neigh_cons - Q_cell_cons)
 
-        sigma = np.max((
-            np.abs(Q_cell.U) + Q_cell.c,
-            np.abs(Q_neigh.U) + Q_neigh.c
-        ))
+            Q_cons = Q_cons + F*S
 
-        flux = Euler.flux
+        Q[:4] = Q_cons
 
-        F = 0.5*(flux(Q_cell) + flux(Q_neigh)).dot(norm) - \
-            0.5*sigma*(Q_neigh_cons - Q_cell_cons)
+        return Q
 
-        Q_cons = Q_cons + F*S
+    dt = 8E-4
+    time = np.arange(0, 0.25, dt)
 
-    Q[:4] = Q_cons
+    if plot:
+        ims = []
+        fig = plt.figure()
 
-    return Q
+    for t in time:
+        print(t)
+        x = np.asarray([cell.centroid[0] for cell in
+                        solver.mesh.cells.ravel()])
+        Q = np.asarray([cell.value for cell in solver.mesh.cells.ravel()])
 
+        if plot:
+            im1, = plt.plot(x, Q[:, 0], 'k-')
+            ims.append([im1])
 
-dt = 8E-4
-time = np.arange(0, 0.25, dt)
+        solver.step(dt, rusanov)
 
-ims = []
-fig = plt.figure()
-
-for t in time:
-    print(t)
-    x = np.asarray([cell.centroid[0] for cell in solver.mesh.cells.ravel()])
-    Q = np.asarray([cell.value for cell in solver.mesh.cells.ravel()])
-
-    im1, = plt.plot(x, Q[:, 0], 'k-')
-
-    ims.append([im1])
-    solver.step(dt, rusanov)
-
-_ = ArtistAnimation(fig, ims, interval=50)
-plt.show()
+    if plot:
+        _ = ArtistAnimation(fig, ims, interval=50)
+        plt.show()
