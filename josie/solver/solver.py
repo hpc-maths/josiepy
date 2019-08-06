@@ -34,7 +34,6 @@ from typing import Callable, TYPE_CHECKING
 
 from josie.exceptions import InvalidMesh
 
-from .problem import Problem
 from .state import State
 
 if TYPE_CHECKING:
@@ -43,9 +42,8 @@ if TYPE_CHECKING:
 
 
 class Solver:
-    def __init__(self, mesh: 'Mesh', problem: Problem):
+    def __init__(self, mesh: 'Mesh'):
         self.mesh = mesh
-        self.problem = problem
 
     def init(self, init_fun: Callable[[Cell], State]):
         num_cells_x = self.mesh.num_cells_x

@@ -26,14 +26,33 @@
 # official policies, either expressed or implied, of Ruben Di Battista.
 import numpy as np
 
-from josie.solver.state import State
+from typing import TYPE_CHECKING
+
+from josie.solver import Solver
+
+from .eos import EOS
+
+if TYPE_CHECKING:
+    from josie.mesh import Mesh
 
 
-def flux(Q: State) -> np.ndarray:
+class EulerSolver(Solver):
+    """ This class accepts as input also the EOS """
+    # TODO: Add CFL handling
 
-    return np.array([
-        [Q.rhoU, Q.rhoV],
-        [Q.rhoU*Q.U + Q.p, Q.rhoU*Q.V],
-        [Q.rhoV*Q.U, Q.rhoV*Q.V + Q.p],
-        [(Q.rhoE + Q.p)*Q.U, (Q.rhoE + Q.p)*Q.V]
-    ])
+    def __init__(self, mesh: 'Mesh', eos: EOS):
+        self.eos = eos
+
+        super().__init__(mesh)
+
+    def post_step(self):
+        for cell in self.mesh.cells.ravel():
+            Q = cell.value
+            rho = Q.rho
+            U = Q.rhoU/rho
+            V = Q.rhoV/rho
+            rhoe = Q.rhoE - 0.5*rho*(U**2 + V**2)
+            e = rhoe/rho
+            p = self.eos.p_from_rho_e(rho, e)
+            c = self.eos.sound_velocity(rho, p)
+            cell.value[4:] = np.array([rhoe, U, V, p, c])
