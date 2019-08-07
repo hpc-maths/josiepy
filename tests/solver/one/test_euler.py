@@ -148,6 +148,9 @@ def test_toro_1(plot):
     if plot:
         ims = []
         fig = plt.figure()
+        ax1 = plt.subplot(131)
+        ax2 = plt.subplot(132)
+        ax3 = plt.subplot(133)
 
     for t in time:
         print(t)
@@ -156,8 +159,19 @@ def test_toro_1(plot):
         Q = np.asarray([cell.value for cell in solver.mesh.cells.ravel()])
 
         if plot:
-            im1, = plt.plot(x, Q[:, 0], 'k-')
-            ims.append([im1])
+            im1, = ax1.plot(x, Q[:, 0], 'k-')
+            ax1.set_xlabel('x')
+            ax1.set_ylabel(r'$\rho$')
+
+            im2, = ax2.plot(x, Q[:, 5], 'k-')
+            ax2.set_xlabel('x')
+            ax2.set_ylabel('U')
+
+            im3, = ax3.plot(x, Q[:, 7], 'k-')
+            ax3.set_xlabel('x')
+            ax3.set_ylabel('p')
+
+            ims.append([im1, im2, im3])
 
         solver.step(dt, rusanov)
 
