@@ -75,15 +75,15 @@ def test_toro_1(plot):
                                solver.mesh.cells.ravel()])
 
         if plot:
-            im1, = ax1.plot(x, Q[:, 0], 'k-')
+            im1, = ax1.plot(x, Q_result[:, 0], 'k-')
             ax1.set_xlabel('x')
             ax1.set_ylabel(r'$\rho$')
 
-            im2, = ax2.plot(x, Q[:, 5], 'k-')
+            im2, = ax2.plot(x, Q_result[:, 5], 'k-')
             ax2.set_xlabel('x')
             ax2.set_ylabel('U')
 
-            im3, = ax3.plot(x, Q[:, 7], 'k-')
+            im3, = ax3.plot(x, Q_result[:, 7], 'k-')
             ax3.set_xlabel('x')
             ax3.set_ylabel('p')
 
