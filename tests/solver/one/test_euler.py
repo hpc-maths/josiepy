@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
+import pytest
 
 from matplotlib.animation import ArtistAnimation
 
@@ -8,8 +9,67 @@ from josie.geom import Line
 from josie.mesh import Mesh
 from josie.solver.euler import rusanov, Q, EulerSolver, PerfectGas
 
+riemann_states = [
+    {
+        'rhoL': 1.0,
+        'uL': 0.0,
+        'vL': 0,
+        'pL': 1.0,
+        'rhoR': 0.125,
+        'uR': 0,
+        'vR': 0,
+        'pR': 0.1,
+        'dt': 8E-4,
+    },
+    {
+        'rhoL': 1.0,
+        'uL': -2,
+        'vL': 0,
+        'pL': 0.4,
+        'rhoR': 1.0,
+        'uR': 2.0,
+        'vR': 0,
+        'pR': 0.4,
+        'dt': 1E-4,
+    },
+    {
+        'rhoL': 1.0,
+        'uL': 0,
+        'vL': 0,
+        'pL': 1000,
+        'rhoR': 1.0,
+        'uR': 0,
+        'vR': 0,
+        'pR': 0.01,
+        'dt': 1E-5,
+    },
+    {
+        'rhoL': 5.99924,
+        'uL': 19.5975,
+        'vL': 0,
+        'pL': 460.894,
+        'rhoR': 5.9924,
+        'uR': -6.19633,
+        'vR': 0,
+        'pR': 46.0950,
+        'dt': 1E-5,
+    },
+    {
+        'rhoL': 1.0,
+        'uL': -19.59745,
+        'vL': 0,
+        'pL': 1000,
+        'rhoR': 1.0,
+        'uR': -19.59745,
+        'vR': 0,
+        'pR': 0.01,
+        'dt': 1E-5,
+    }
+]
 
-def test_toro_1(plot):
+
+@pytest.mark.parametrize("riemann_problem", riemann_states)
+def test_toro_1(riemann_problem, plot):
     left = Line([0, 0], [0, 1])
     bottom = Line([0, 0], [1, 0])
     right = Line([1, 0], [1, 1])
@@ -18,18 +78,18 @@ def test_toro_1(plot):
     eos = PerfectGas(gamma=1.4)
 
     # BC
-    rhoL = 1.0
-    uL = 0.0
-    vL = 0.0
-    pL = 1.0
+    rhoL = riemann_problem['rhoL']
+    uL = riemann_problem['uL']
+    vL = riemann_problem['vL']
+    pL = riemann_problem['pL']
     rhoeL = eos.rhoe_from_rho_p(rhoL, pL)
     EL = rhoeL/rhoL + 0.5*(uL**2 + vL**2)
     cL = eos.sound_velocity(rhoL, pL)
 
-    rhoR = 0.125
-    uR = 0.0
-    vR = 0.0
-    pR = 0.1
+    rhoR = riemann_problem['rhoR']
+    uR = riemann_problem['uR']
+    vR = riemann_problem['vR']
+    pR = riemann_problem['pR']
     rhoeR = eos.rhoe_from_rho_p(rhoR, pR)
     ER = rhoeR/rhoR + 0.5*(uR**2 + vR**2)
     cR = eos.sound_velocity(rhoR, pR)
@@ -57,7 +117,7 @@ def test_toro_1(plot):
     solver = EulerSolver(mesh, eos)
     solver.init(init_fun)
 
-    dt = 8E-4
+    dt = riemann_problem['dt']
     time = np.arange(0, 0.25, dt)
 
     if plot:
@@ -94,3 +154,4 @@ def test_toro_1(plot):
     if plot:
         _ = ArtistAnimation(fig, ims, interval=50)
         plt.show()
+        plt.close()

@@ -27,7 +27,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-from typing import TYPE_CHECKING, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Tuple, Union
 
 if TYPE_CHECKING:
     from josie.solver.state import State  # noqa: F401
@@ -37,7 +37,7 @@ PointType = Union[Tuple[float, float], np.ndarray]
 
 
 class GhostCell:
-    def __init__(self, value: Optional['State'] = None):
+    def __init__(self, value: 'State'):
         self.value = value
 
 
@@ -45,7 +45,7 @@ class Cell(GhostCell):
     def __init__(self,
                  nw: PointType, sw: PointType,
                  se: PointType, ne: PointType,
-                 i: int, j: int, value: Optional['State'] = None):
+                 i: int, j: int, value: 'State'):
 
         self.nw = np.asarray(nw)
         self.sw = np.asarray(sw)

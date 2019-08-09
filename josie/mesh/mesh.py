@@ -149,7 +149,8 @@ class Mesh:
                     (self._x[i+1, j], self._y[i+1, j]),
                     (self._x[i+1, j+1], self._y[i+1, j+1]),
                     i,
-                    j
+                    j,
+                    None
                 )
 
             self.cells = cells
