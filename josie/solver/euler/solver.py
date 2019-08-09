@@ -31,6 +31,7 @@ from typing import TYPE_CHECKING
 from josie.solver import Solver
 
 from .eos import EOS
+from .state import Q
 
 if TYPE_CHECKING:
     from josie.mesh import Mesh
@@ -43,7 +44,7 @@ class EulerSolver(Solver):
     def __init__(self, mesh: 'Mesh', eos: EOS):
         self.eos = eos
 
-        super().__init__(mesh)
+        super().__init__(mesh, Q)
 
     def post_step(self):
         for cell in self.mesh.cells.ravel():

@@ -34,7 +34,7 @@ from typing import Callable, TYPE_CHECKING
 
 from josie.exceptions import InvalidMesh
 
-from .state import State
+from .state import State, StateTemplate
 
 if TYPE_CHECKING:
     from josie.mesh import Mesh
@@ -42,8 +42,9 @@ if TYPE_CHECKING:
 
 
 class Solver:
-    def __init__(self, mesh: 'Mesh'):
+    def __init__(self, mesh: 'Mesh', Q: 'StateTemplate'):
         self.mesh = mesh
+        self.Q = Q
 
     def init(self, init_fun: Callable[[Cell], State]):
         num_cells_x = self.mesh.num_cells_x
@@ -136,9 +137,16 @@ class Solver:
 
     def step(self, dt, scheme):
         for cell in self.mesh.cells.ravel():
-            fluxes = scheme(cell)
+            fluxes = self.Q.zeros()
+
+            # Loop over the neighbours of a cell
+            for neigh in cell:
+                fluxes += scheme(cell, neigh)
+
+            # New cell value
             cell.new = cell.value - dt/cell.volume*fluxes
 
+        # After all the cells are update, apply the modification
         for cell in self.mesh.cells.ravel():
             cell.update()
 

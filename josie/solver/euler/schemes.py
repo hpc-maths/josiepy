@@ -27,13 +27,13 @@
 
 import numpy as np
 
-from josie.mesh.cell import Cell
+from josie.mesh.cell import Cell, NeighbourCell
 
 from .state import Q as Q_factory
 from .problem import flux
 
 
-def rusanov(cell: Cell):
+def rusanov(cell: Cell, neigh: NeighbourCell):
     Q = Q_factory(0, 0, 0, 0, 0, 0, 0, 0, 0)
     # First four variables of the total state are the conservative
     # variables (rho, rhoU, rhoV, rhoE)
@@ -42,23 +42,23 @@ def rusanov(cell: Cell):
     Q_cell = cell.value
     Q_cell_cons = Q_cell[:4]
 
-    for neigh in cell:
-        # Geometry
-        norm = neigh.face.normal
-        S = neigh.face.surface
+    # Geometry
+    norm = neigh.face.normal
+    S = neigh.face.surface
 
-        Q_neigh = neigh.value
-        Q_neigh_cons = Q_neigh[:4]
+    Q_neigh = neigh.value
+    Q_neigh_cons = Q_neigh[:4]
 
-        sigma = np.max((
-            np.abs(Q_cell.U) + Q_cell.c,
-            np.abs(Q_neigh.U) + Q_neigh.c
-        ))
+    sigma = np.max((
+        np.abs(Q_cell.U) + Q_cell.c,
+        np.abs(Q_neigh.U) + Q_neigh.c
+    ))
 
-        F = 0.5*(flux(Q_cell) + flux(Q_neigh)).dot(norm) - \
-            0.5*sigma*(Q_neigh_cons - Q_cell_cons)
+    # Rusanov scheme here
+    F = 0.5*(flux(Q_cell) + flux(Q_neigh)).dot(norm) - \
+        0.5*sigma*(Q_neigh_cons - Q_cell_cons)
 
-        Q_cons = Q_cons + F*S
+    Q_cons = Q_cons + F*S
 
     Q[:4] = Q_cons
 

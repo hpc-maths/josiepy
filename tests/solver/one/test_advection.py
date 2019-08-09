@@ -23,20 +23,19 @@ class Advection(Problem):
         return cls.V*Q
 
 
-def upwind(cell):
+def upwind(cell, neigh):
     Q = Advection.Q(0)
 
-    for neigh in cell:
-        norm = neigh.face.normal
-        flux = Advection.flux
-        S = neigh.face.surface
+    norm = neigh.face.normal
+    flux = Advection.flux
+    S = neigh.face.surface
 
-        un = Advection.V.dot(norm)
+    un = Advection.V.dot(norm)
 
-        if un >= 0:
-            Q = Q + flux(cell.value).dot(norm)*S
-        else:
-            Q = Q + flux(neigh.value).dot(norm)*S
+    if un >= 0:
+        Q = Q + flux(cell.value).dot(norm)*S
+    else:
+        Q = Q + flux(neigh.value).dot(norm)*S
 
     return Q
 
@@ -45,7 +44,7 @@ def upwind(cell):
 def solver(mesh, init_fun):
     mesh.interpolate(100, 1)
     mesh.generate()
-    solver = Solver(mesh, Advection)
+    solver = Solver(mesh, Advection.Q)
     solver.init(init_fun)
 
     yield solver
@@ -67,7 +66,7 @@ def test_against_real_1D(solver, plot, tol):
         x = np.asarray([cell.centroid[0] for cell in
                         solver.mesh.cells.ravel()])
         u = np.asarray([cell.value for cell in solver.mesh.cells.ravel()])
-        u = u.flatten()
+        u = u.ravel()
 
         err = u - solution[i, :]
 

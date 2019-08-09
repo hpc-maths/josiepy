@@ -88,8 +88,17 @@ class StateTemplate:
             raise ValueError(f"This state has {len(self.fields)} fields. "
                              "You need to provide the same amount of values")
 
+        return self._init_state(*values)
+
+    def _init_state(self, *values):
         d = OrderedDict(zip(self.fields, values))
         return State(**d)
+
+    def zeros(self):
+        """ This method returns a state filled with zeros """
+        values = [0]*len(self.fields)
+
+        return self._init_state(*values)
 
 
 class State(np.ndarray):
