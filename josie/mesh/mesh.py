@@ -52,7 +52,7 @@ class Mesh:
 
     """
 
-    def __init__(self, left, bottom, right, top):
+    def __init__(self, left, bottom, right, top, cell_type=Cell):
         self.left = left
         self.bottom = bottom
         self.right = right
@@ -60,8 +60,15 @@ class Mesh:
 
         self._1D = False
 
-        # If the top.bc and bottom.bc are None, that means we are in 1D
-        if [self.top.bc, self.bottom.bc].count(None) == 2:
+        # If the top.bc and bottom.bc are None, that means we are in 1D.
+        # Both of them must be None
+        none_count = [self.top.bc, self.bottom.bc].count(None)
+        if none_count >= 1:
+            if not(none_count) == 2:
+                raise InvalidMesh("You have the top or the bottom BC that is "
+                                  "`None`, but not the other one. In order to "
+                                  "perform a 1D simulation, both of them must "
+                                  "be set to `None`")
             self._1D = True
 
     def interpolate(self, num_cells_x: int, num_cells_y: int) \
@@ -79,34 +86,29 @@ class Mesh:
         self.num_cells_x = num_cells_x
         self.num_cells_y = num_cells_y
 
-        xis = np.linspace(0, 1, self._num_xi)
-        etas = np.linspace(0, 1, self._num_eta)
+        XIS, ETAS = np.ogrid[0:1:self._num_xi*1j, 0:1:self._num_eta*1j]
 
-        x = np.empty((len(xis), len(etas)))
-        y = np.empty((len(xis), len(etas)))
+        x = np.empty((self._num_xi, self._num_eta))
+        y = np.empty((self._num_xi, self._num_eta))
 
-        for i, xi in enumerate(xis):
-            for j, eta in enumerate(etas):
-                xl, yl = self.left(eta)
-                xr, yr = self.right(eta)
-                xb, yb = self.bottom(xi)
-                xt, yt = self.top(xi)
-                xb0, yb0 = self.bottom(0)
-                xb1, yb1 = self.bottom(1)
-                xt0, yt0 = self.top(0)
-                xt1, yt1 = self.top(1)
+        XL, YL = self.left(ETAS)
+        XR, YR = self.right(ETAS)
+        XB, YB = self.bottom(XIS)
+        XT, YT = self.top(XIS)
+        XB0, YB0 = self.bottom(0)
+        XB1, YB1 = self.bottom(1)
+        XT0, YT0 = self.top(0)
+        XT1, YT1 = self.top(1)
 
-                x[i, j] = \
-                    (1-xi)*xl + xi*xr + \
-                    (1-eta)*xb + eta*xt - \
-                    (1-xi)*(1-eta)*xb0 - (1-xi)*eta*xt0 - \
-                    (1-eta)*xi*xb1 - xi*eta*xt1
+        x = (1-XIS)*XL + XIS*XR + \
+            (1-ETAS)*XB + ETAS*XT - \
+            (1-XIS)*(1-ETAS)*XB0 - (1-XIS)*ETAS*XT0 - \
+            (1-ETAS)*XIS*XB1 - XIS*ETAS*XT1
 
-                y[i, j] = \
-                    (1-xi)*yl + xi*yr + \
-                    (1-eta)*yb + eta*yt - \
-                    (1-xi)*(1-eta)*yb0 - (1-xi)*eta*yt0 - \
-                    (1-eta)*xi*yb1 - xi*eta*yt1
+        y = (1-XIS)*YL + XIS*YR + \
+            (1-ETAS)*YB + ETAS*YT - \
+            (1-XIS)*(1-ETAS)*YB0 - (1-XIS)*ETAS*YT0 - \
+            (1-ETAS)*XIS*YB1 - XIS*ETAS*YT1
 
         self._x = x
         self._y = y
@@ -138,7 +140,9 @@ class Mesh:
         return x, y
 
     def generate(self):
-        """ This method builds the connectivity """
+        """ This methods build the geometrical information and the connectivity
+        associated to the mesh.
+        """
         cells = np.empty((self.num_cells_x, self.num_cells_y), dtype=object)
 
         for i in range(self.num_cells_x):
