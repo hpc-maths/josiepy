@@ -2,7 +2,7 @@ import pytest
 
 from josie.bc import make_periodic, Direction
 from josie.geom import Line
-from josie.mesh import Mesh
+from josie.mesh import Mesh, SimpleCell
 
 
 @pytest.fixture
@@ -41,6 +41,6 @@ def mesh(boundaries):
 
     mesh = Mesh(left, bottom, right, top)
     mesh.interpolate(40, 1)
-    mesh.generate()
+    mesh.generate(SimpleCell)
 
     yield mesh

@@ -24,158 +24,292 @@
 # The views and conclusions contained in the software and documentation
 # are those of the authors and should not be interpreted as representing
 # official policies, either expressed or implied, of Ruben Di Battista.
-import matplotlib.pyplot as plt
+import abc
+
 import numpy as np
 
+from enum import Enum
 from typing import TYPE_CHECKING, Tuple, Union
+
 
 if TYPE_CHECKING:
     from josie.solver.state import State  # noqa: F401
+    from josie.mesh import Mesh  # noqa: F401  # noqa: F401
 
 
 PointType = Union[Tuple[float, float], np.ndarray]
 
 
-class GhostCell:
-    def __init__(self, value: 'State'):
-        self.value = value
+class Dimensionality(Enum):
+    TWO = 2,
+    THREE = 3
 
 
-class Cell(GhostCell):
-    def __init__(self,
-                 nw: PointType, sw: PointType,
-                 se: PointType, ne: PointType,
-                 i: int, j: int, value: 'State'):
+class Cell(metaclass=abc.ABCMeta):
+    """ This is a class interface representing a generic cell of a
+    :class:`Mesh`.
 
-        self.nw = np.asarray(nw)
-        self.sw = np.asarray(sw)
-        self.se = np.asarray(se)
-        self.ne = np.asarray(ne)
+    A cell is defined by the number of points (:attr:`num_points`) that are
+    needed to properly define it and the number of degrees of freedom
+    (:attr:`num_dofs`) actually availbe within it. It needs to provide also the
+    methods to compute geometrical informations (e.g. its volume, normals, face
+    area, etc...).
 
-        self.faces = [
-            Face(self.nw, self.sw),
-            Face(self.sw, self.se),
-            Face(self.se, self.ne),
-            Face(self.ne, self.nw)
-        ]
+    Attributes
+    ---------
+    num_points: int
+        The number of points needed to describe the cell
+    num_dofs: int
+        The number of degrees of freedom stored in the cell
+    dims: Dimensionality
+        Dimensionality of the cell.
+    """
 
-        # Surface of the cell adding up the areas of the two composing
-        # triangles (nw, sw, se) and (se, ne nw)
-        self.volume = np.linalg.norm(
+    @abc.abstractproperty
+    @property
+    def num_points(self):
+        raise NotImplementedError
+
+    @abc.abstractproperty
+    @property
+    def num_dofs(self):
+        raise NotImplementedError
+
+    @classmethod
+    @abc.abstractclassmethod
+    def centroid(cls, nw: PointType, sw: PointType, se: PointType,
+                 ne: PointType) -> PointType:
+        """ Compute the centroid of the cell """
+
+    @classmethod
+    @abc.abstractclassmethod
+    def volume(cls, nw: PointType, sw: PointType, se: PointType,
+               ne: PointType) -> float:
+        """ Compute the volume of a cell from its points.
+        """
+        raise NotImplementedError
+
+    @classmethod
+    @abc.abstractclassmethod
+    def face_surface(cls, p0: PointType, p1: PointType) -> float:
+        """ Compute the surface of a face from its points.
+        """
+        raise NotImplementedError
+
+    @classmethod
+    @abc.abstractclassmethod
+    def face_normal(cls, p0: PointType, p1: PointType) -> np.ndarray:
+        """ Compute the normal vector to a face.
+        """
+        raise NotImplementedError
+
+    @classmethod
+    @abc.abstractclassmethod
+    def create_connectivity(cls, mesh: 'Mesh'):
+        """ This method creates the connectivity from the given points of
+        a mesh. It modifies attributes of the :class:`Mesh` instance.
+
+        It takes into account the nature of the cell composing the
+        mesh, e.g. quadrangles.
+
+        Parameters
+        ----------
+        x
+            x-coordinates of the points of the mesh
+        y
+            y-coordinates of the points of the mesh
+
+        """
+        raise NotImplementedError
+
+
+class SimpleCell(Cell):
+    """ This class describes the classical type of 2D quadrangular cell that
+    stores the :class:`State` value in its centroid. The cell needs 4 points
+    to be defined and has 1 degree of freedom.
+
+    nw     ne
+    *-------*
+    |       |
+    |   *   |
+    |   c   |
+    *-------*
+    sw     se
+
+    """
+
+    num_dofs = 1
+    num_points = 4
+    dims = Dimensionality.TWO
+
+    @classmethod
+    def centroid(cls, nw: PointType, sw: PointType, se: PointType,
+                 ne: PointType) -> PointType:
+        """ This class method computes the centroid of a cell from its points.
+
+        The centroid is computed as the mean value of the for points
+
+
+        Parameters
+        ----------
+        nw
+            The North-West point of the cell
+        sw
+            The South-West point of the cell
+        se
+            The South-East point of the cell
+        ne
+            The North-East point of the cell
+
+
+        Returns
+        -------
+        centroid
+            The centroid coordinates
+
+        """
+        nw = np.asarray(nw)
+        sw = np.asarray(sw)
+        se = np.asarray(se)
+        ne = np.asarray(ne)
+
+        return (nw + sw + se + ne)/4
+
+    @classmethod
+    def volume(cls, nw: PointType, sw: PointType, se: PointType,
+               ne: PointType) -> float:
+        """ This class method computes the volume of a cell from its points.
+
+        The surface is computed calculating the surface of the two triangles
+        made by the two triplets of its points and summing them up.
+
+        Parameters
+        ----------
+        nw
+            The North-West point of the cell
+        sw
+            The South-West point of the cell
+        se
+            The South-East point of the cell
+        ne
+            The North-East point of the cell
+
+        Returns
+        -------
+        volume: The volume of the cell
+
+        """
+
+        nw = np.asarray(nw)
+        sw = np.asarray(sw)
+        se = np.asarray(se)
+        ne = np.asarray(ne)
+
+        volume = np.linalg.norm(
             np.cross(
-                self.sw - self.nw,
-                self.se - self.sw
+                sw - nw,
+                se - sw
             )
         )/2
 
-        self.volume = self.volume + np.linalg.norm(
+        volume = volume + np.linalg.norm(
             np.cross(
-                self.se - self.ne,
-                self.ne - self.nw
+                se - ne,
+                ne - nw
             )
         )/2
 
-        self.centroid = (
-            (nw[0] + sw[0] + se[0] + ne[0])/4,
-            (nw[1] + sw[1] + se[1] + ne[1])/4,
-        )
+        return volume
 
-        self.i = i
-        self.j = j
+    @classmethod
+    def face_surface(cls, p0: PointType, p1: PointType) -> float:
+        """ This class method computes the surface of a face from its points.
 
-        super().__init__(value)
+        The surface is simply the norm of the vector that is made by the two
+        given points of the face (being in 2D).
 
-    def __repr__(self):
-        return f'Cell(' \
-               f'{self.nw}, {self.sw}, {self.se}, {self.ne})'
+        Parameters
+        ----------
+        p0
+            The first point of the face
+        p1
+            The second point of the face
 
-    def __iter__(self):
-        all_neigh = [self.w, self.s, self.e, self.n]
-        filtered = [neigh for neigh in all_neigh if neigh is not None]
+        Returns:
+            surface: The "surface" (i.e. the length) of the face
+        """
+        p0 = np.asarray(p0)
+        p1 = np.asarray(p1)
 
-        return iter(filtered)
+        return np.linalg.norm(p0 - p1)
 
-    def update(self):
-        self.value = self.new
+    @classmethod
+    def face_normal(cls, p0: PointType, p1: PointType) -> np.ndarray:
+        r""" This class method computes the normal to a face from its points.
 
-    @property
-    def w(self):
-        return self._w
+        The normal is computed as the ortogonal vector to the vector made
+        by the two given points obtained doing a CCW rotation
 
-    @w.setter
-    def w(self, w):
-        if w is not None:
-            self._w = NeighbourCell(w, self.faces[0])
-        else:
-            self._w = None
+        .. todo::
+        Add image with TiKz
 
-    @property
-    def s(self):
-        return self._s
+        Parameters
+        ----------
+        p0
+            The first point of the face
+        p1
+            The second point of the face
 
-    @s.setter
-    def s(self, s):
-        if s is not None:
-            self._s = NeighbourCell(s, self.faces[1])
-        else:
-            self._s = None
+        Returns
+        -------
+        normal
+            The normal vector to the face
+        """
+        p0 = np.asarray(p0)
+        p1 = np.asarray(p1)
 
-    @property
-    def e(self):
-        return self._e
+        r = p1 - p0
 
-    @e.setter
-    def e(self, e):
-        if e is not None:
-            self._e = NeighbourCell(e, self.faces[2])
-        else:
-            self._e = None
+        normal = np.array([r[1], -r[0]])
 
-    @property
-    def n(self):
-        return self._n
+        return normal/np.linalg.norm(normal)
 
-    @n.setter
-    def n(self, n):
-        if n is not None:
-            self._n = NeighbourCell(n, self.faces[3])
-        else:
-            self._n = None
+    @classmethod
+    def create_connectivity(cls, mesh: 'Mesh'):
 
-    def points(self):
-        return [self.nw, self.sw, self.se, self.ne]
+        num_cells_x = mesh.num_cells_x
+        num_cells_y = mesh.num_cells_y
+        x = mesh._x
+        y = mesh._y
 
-    def plot(self):
-        for face in self.faces:
-            face.plot()
-        plt.plot(self.centroid[0], self.centroid[1], 'kx', ms=5)
+        # This are the centroids of the cells. For cell i, j the third
+        # dimension contain the coordinates of each centroid of a cell.
+        # So in the SimpleCell case, each cell stored one DOF, so
+        # it has a 3rd dimension of 1 (== num_dofs) and a 4th dimension
+        # equal to 2 (since each coordinate point has x, y coordinates)
+        mesh.points = np.empty((num_cells_x, num_cells_y, cls.num_points, 2))
+        mesh.centroids = np.empty((num_cells_x, num_cells_y, 2))
+        mesh.volumes = np.empty((num_cells_x, num_cells_y))
+        mesh.normals = np.empty_like(mesh.points)
+        mesh.surfaces = np.empty((num_cells_x, num_cells_y, cls.num_points))
 
+        for i in range(num_cells_x):
+            for j in range(num_cells_y):
+                p0 = np.asarray((x[i, j+1], y[i, j+1]))
+                p1 = np.asarray((x[i, j], y[i, j]))
+                p2 = np.asarray((x[i+1, j], y[i+1, j]))
+                p3 = np.asarray((x[i+1, j+1], y[i+1, j+1]))
 
-class Face:
-    def __init__(self, a, b):
-        self._a = np.array(a)
-        self._b = np.array(b)
+                mesh.points[i, j, :, :] = np.vstack((p0, p1, p2, p3))  # type: ignore # noqa: E501
+                mesh.centroids[i, j, :] = cls.centroid(p0, p1, p2, p3)  # type: ignore # noqa: E501
+                mesh.volumes[i, j] = cls.volume(p0, p1, p2, p3)  # type: ignore # noqa: E501
 
-        # Relative position vector
-        r = self._b - self._a
+                mesh.surfaces[i, j, 0] = cls.face_surface(p0, p1)  # type: ignore # noqa: E501
+                mesh.surfaces[i, j, 1] = cls.face_surface(p1, p2)  # type: ignore # noqa: E501
+                mesh.surfaces[i, j, 2] = cls.face_surface(p2, p3)  # type: ignore # noqa: E501
+                mesh.surfaces[i, j, 3] = cls.face_surface(p0, p3)  # type: ignore # noqa: E501
 
-        # Normal vector
-        self.normal = np.array([r[1], -r[0]])
-
-        # Normalize
-        self.normal = self.normal/np.linalg.norm(self.normal)
-
-        self.surface = np.linalg.norm(r)
-
-    def plot(self):
-        plt.plot([self._a[0], self._b[0]], [self._a[1], self._b[1]], 'k-')
-
-
-class NeighbourCell:
-    def __init__(self, cell: Cell, face: Face):
-        self.face = face
-        self.cell = cell
-
-    @property
-    def value(self):
-        return self.cell.value
+                mesh.normals[i, j, 0, :] = cls.face_normal(p0, p1)  # type: ignore # noqa: E501
+                mesh.normals[i, j, 1, :] = cls.face_normal(p1, p2)  # type: ignore # noqa: E501
+                mesh.normals[i, j, 2, :] = cls.face_normal(p2, p3)  # type: ignore # noqa: E501
+                mesh.normals[i, j, 3, :] = cls.face_normal(p0, p3)  # type: ignore # noqa: E501

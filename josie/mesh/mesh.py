@@ -29,9 +29,10 @@
 
 import numpy as np
 
-from typing import Tuple
+from typing import Optional, Tuple, Type
 
 from josie.exceptions import InvalidMesh
+from josie.geom import BoundaryCurve
 
 from .cell import Cell
 
@@ -50,15 +51,55 @@ class Mesh:
     top
         The right BoundaryCurve
 
+    Attributes
+    ----------
+    left
+        The left BoundaryCurve
+    bottom
+        The bottom BoundaryCurve
+    right
+        The right BoundaryCurve
+    top
+        The right BoundaryCurve
+    oneD: bool
+        A flag to indicate if the mesh is 1D or not
+    centroids: np.ndarray
+        An array containing the centroid of the cells. It has the dimensions of
+        [`num_cells_x`*`num_cells_y`]
+    volumes: np.ndarray
+        An array containing the volumes of the cells. It has the dimensions of
+        [`num_cells_x`*`num_cells_y`]
+    surfaces: np.ndarray
+        An array containing the surfaces of the cells. It has the dimensions of
+        [`num_cells_x`*`num_cells_y`*`num_points`] where `num_points` depends
+        on the :class:`Cell` type provided
+    values: np.ndarray
+        An array containing the state hold by each cell. It has the dimensions
+        [`num_cells_x`*`num_cells_y`*`num_state_fields`] where
+        `num_state_fields` depends on the specific state. This attribute is
+        created later on by :class:`Solver` during the initialisation phase
+    points: np.ndarray
+        An array containing the points that constitute a cell. It has the
+        dimensions of [`num_cells_x`*`num_cells_y`*`num_points`] where
+        `num_points` is the number of points specific to a cell (e.g. for a
+        :class:`SimpleCell`, that is 2D quadrangle, the points are 4)
     """
 
-    def __init__(self, left, bottom, right, top, cell_type=Cell):
+    def __init__(self, left: BoundaryCurve, bottom: BoundaryCurve, right:
+                 BoundaryCurve, top: BoundaryCurve):
         self.left = left
         self.bottom = bottom
         self.right = right
         self.top = top
 
-        self._1D = False
+        self.centroids: Optional[np.ndarray] = None
+        self.volumes: Optional[np.ndarray] = None
+        self.points: Optional[np.ndarray] = None
+        self.surfaces: Optional[np.ndarray] = None
+        self.normals: Optional[np.ndarray] = None
+        self.values: Optional[np.ndarray] = None
+
+        self.oneD = False
 
         # If the top.bc and bottom.bc are None, that means we are in 1D.
         # Both of them must be None
@@ -69,7 +110,7 @@ class Mesh:
                                   "`None`, but not the other one. In order to "
                                   "perform a 1D simulation, both of them must "
                                   "be set to `None`")
-            self._1D = True
+            self.oneD = True
 
     def interpolate(self, num_cells_x: int, num_cells_y: int) \
             -> Tuple[np.ndarray, np.ndarray]:
@@ -86,7 +127,9 @@ class Mesh:
         self.num_cells_x = num_cells_x
         self.num_cells_y = num_cells_y
 
-        XIS, ETAS = np.ogrid[0:1:self._num_xi*1j, 0:1:self._num_eta*1j]
+        # This is the vectorized form of a double loop on xi and eta
+        # to apply the TFI
+        XIS, ETAS = np.ogrid[0:1:self._num_xi*1j, 0:1:self._num_eta*1j]  # type: ignore # noqa: E501
 
         x = np.empty((self._num_xi, self._num_eta))
         y = np.empty((self._num_xi, self._num_eta))
@@ -115,7 +158,7 @@ class Mesh:
 
         # If we're doing a 1D simulation, we need to check that in the y
         # direction we have only one cell
-        if self._1D:
+        if self.oneD:
             if self.num_cells_y > 1:
                 raise InvalidMesh(
                     "The bottom and top BC are `None`. That means that you're "
@@ -137,27 +180,14 @@ class Mesh:
             scale_y = self._y[0, 1]/dx
             self._y[:, 1] = self._y[:, 1]/scale_y
 
-        return x, y
+        return self._x, self._y
 
-    def generate(self):
+    def generate(self, cell_type: Type[Cell]):
         """ This methods build the geometrical information and the connectivity
         associated to the mesh.
         """
-        cells = np.empty((self.num_cells_x, self.num_cells_y), dtype=object)
 
-        for i in range(self.num_cells_x):
-            for j in range(self.num_cells_y):
-                cells[i, j] = Cell(
-                    (self._x[i, j+1], self._y[i, j+1]),
-                    (self._x[i, j], self._y[i, j]),
-                    (self._x[i+1, j], self._y[i+1, j]),
-                    (self._x[i+1, j+1], self._y[i+1, j+1]),
-                    i,
-                    j,
-                    None
-                )
-
-            self.cells = cells
+        cell_type.create_connectivity(self)
 
     def plot(self):
         import matplotlib.pyplot as plt
@@ -168,13 +198,10 @@ class Mesh:
         fig, ax = plt.subplots()
 
         cells = []
-        centroids = []
-        for cell in self.cells.ravel():
-            cells.append(Polygon(np.array(cell.points())))
-            centroids.append(cell.centroid)
-
-        centroids = np.asarray(centroids)
+        for i in range(self.num_cells_x):
+            for j in range(self.num_cells_y):
+                cells.append(Polygon(self.points[i, j, :, :]))
 
         patch_coll = PatchCollection(cells, facecolors="None", edgecolors='k')
         ax.add_collection(patch_coll)
-        ax.plot(centroids[:, 0], centroids[:, 1], 'ko', ms=1)
+        ax.plot(self.centroids[:, :, 0], self.centroids[:, :, 1], 'ko', ms=1)

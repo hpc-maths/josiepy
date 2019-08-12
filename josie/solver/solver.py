@@ -30,15 +30,12 @@ from __future__ import annotations
 
 import numpy as np
 
-from typing import Callable, TYPE_CHECKING
+from typing import Callable, NoReturn, TYPE_CHECKING
 
-from josie.exceptions import InvalidMesh
-
-from .state import State, StateTemplate
+from .state import StateTemplate
 
 if TYPE_CHECKING:
     from josie.mesh import Mesh
-    from josie.mesh.cell import Cell
 
 
 class Solver:
@@ -46,110 +43,91 @@ class Solver:
         self.mesh = mesh
         self.Q = Q
 
-    def init(self, init_fun: Callable[[Cell], State]):
+    def init(self, init_fun: Callable[[Solver], NoReturn]):
         num_cells_x = self.mesh.num_cells_x
         num_cells_y = self.mesh.num_cells_y
+        state_size = len(self.Q.fields)
 
-        # First set all the values for the interal cells
-        for c in self.mesh.cells.ravel():
-            c.value = init_fun(c)
+        # First set all the values for the internal cells
+        # The actual values are a view of only the internal cells
+        self.values = np.empty((num_cells_x, num_cells_y, state_size))
+        init_fun(self)
 
-        for i in range(num_cells_x):
-            for j in range(num_cells_y):
-                c = self.mesh.cells[i, j]
+        # In order to apply BC, we create an array per each side of the domain
+        # storing the State values of the ghost cells. This allows to assign
+        # to them a view of the internal values array (self.values) by the
+        # Periodic BoundaryCondition in such a way that, when internal values
+        # are updated by the simulation, also the values of the ghost cells
+        # are in sync since they are just memory "references"
+        self.left_ghost = np.empty((num_cells_y, state_size))
+        self.right_ghost = np.empty_like(self.left_ghost)
 
-                # Left BC
-                if i == 0:
-                    if self.mesh.left.bc is not None:
-                        c.w = self.mesh.left.bc(self.mesh, c)
-                        # Right neighbour
-                        neigh = self.mesh.cells[i+1, j]
-                        c.e = neigh
-                    else:
-                        c.e = None
-                        c.w = None
+        # Left BC: Create the left layer of ghost cells
+        self.left_ghost = self.mesh.left.bc(
+            self, self.mesh.centroids[0, :],  # type: ignore
+            self.values[0, :])  # type: ignore
 
-                # Right BC
-                elif i == (num_cells_x - 1):
-                    if self.mesh.right.bc is not None:
-                        c.e = self.mesh.right.bc(self.mesh, c)
-                        # Left neighbour
-                        neigh = self.mesh.cells[i-1, j]
-                        c.w = neigh
-                    else:
-                        # If we hit this, it means a 1D mesh in y direction has
-                        # been defined but with more than one row of cells in
-                        # the x direction. This is not supported.
-                        raise InvalidMesh(
-                            "You defined a 1D mesh in the y direction since "
-                            "the top and bottom BC are `None`. But you "
-                            "initialized a mesh with more that 1 cell in "
-                            "the y direction")
+        # Right BC
+        self.right_ghost = self.mesh.right.bc(
+            self, self.mesh.centroids[-1, :],  # type: ignore
+            self.values[-1, :])  # type: ignore
 
-                # Normal Cell
-                else:
-                    # Left neighbour
-                    neigh = self.mesh.cells[i-1, j]
-                    c.w = neigh
+        if not(self.mesh.oneD):
+            self.btm_ghost = np.empty((num_cells_x, state_size))
+            self.top_ghost = np.empty_like(self.btm_ghost)
 
-                    # Right neighbour
-                    neigh = self.mesh.cells[i+1, j]
-                    c.e = neigh
+            # Bottom BC
+            self.btm_ghost = self.mesh.bottom.bc(
+                self, self.mesh.centroids[:, 0],  # type: ignore
+                self.values[:, 0])  # type: ignore
 
-                # Bottom BC
-                if j == 0:
-                    if self.mesh.bottom.bc is not None:
-                        c.s = self.mesh.bottom.bc(self.mesh, c)
-                        # Top neighbour
-                        neigh = self.mesh.cells[i, j+1]
-                        c.n = neigh
-                    else:
-                        c.n = None
-                        c.s = None
+            # Top BC
+            self.top_ghost = self.mesh.top.bc(
+                self, self.mesh.centroids[:, -1],  # type: ignore
+                self.values[:, -1])  # type: ignore
 
-                # Top BC
-                elif j == (num_cells_y - 1):
-                    if self.mesh.top.bc is not None:
-                        c.n = self.mesh.top.bc(self.mesh, c)
-                        # Bottom neighbour
-                        neigh = self.mesh.cells[i, j-1]
-                        c.s = neigh
-                    else:
-                        # If we hit this, it means a 1D mesh in x direction has
-                        # been defined but with more than one row of cells in
-                        # the y direction. This is not supported.
-                        raise InvalidMesh(
-                            "You defined a 1D mesh in the x direction since "
-                            "the top and bottom BC are `None`. But you "
-                            "initialized a mesh with more that 1 cell in "
-                            "the y direction")
+    def step(self, dt: float,
+             scheme: Callable[[np.ndarray, np.ndarray], np.ndarray]):
+        """ This method advances one step in time (for the moment using an
+        explicit Euler scheme for time integration, but in future we will
+        provide a way to give arbitrary time schemes)
 
-                # Normal Cell
-                else:
+        Parameters
+        ----------
+        dt
+            Time increment of the step
+        scheme
+            A callable representime the space scheme to use
 
-                    # Top neighbour
-                    neigh = self.mesh.cells[i, j+1]
-                    c.n = neigh
+        """
 
-                    # Bottom neighbour
-                    neigh = self.mesh.cells[i, j-1]
-                    c.s = neigh
+        # We accumulate the fluxes for each set of neighbours
+        fluxes = np.zeros_like(self.values)
 
-    def step(self, dt, scheme):
-        for cell in self.mesh.cells.ravel():
-            fluxes = self.Q.zeros()
+        # Left Neighbours
+        neighs = np.concatenate((self.left_ghost[:, :, np.newaxis],
+                                 self.values[:-1, :]))
+        fluxes += scheme(self.values, neighs, self.mesh.normals[:, :, 0, :],
+                         self.mesh.surfaces)
 
-            # Loop over the neighbours of a cell
-            for neigh in cell:
-                fluxes += scheme(cell, neigh)
+        # Right Neighbours
+        neighs = np.concatenate((self.values[1:, :],
+                                 self.right_ghost[:, :, np.newaxis]))
+        fluxes += scheme(self.values, neighs, self.mesh.normals[:, :, 1, :],
+                         self.mesh.surfaces)
 
-            # New cell value
-            cell.new = cell.value - dt/cell.volume*fluxes
+        if not(self.mesh.oneD):
+            # Top Neighbours
+            neighs = np.hstack((self.top_ghost, self.values[:, :-1]))
+            fluxes += scheme(self.mesh, self.value, neighs)
 
-        # After all the cells are update, apply the modification
-        for cell in self.mesh.cells.ravel():
-            cell.update()
+            # Bottom Neighbours
+            neighs = np.hstack((self.values[:, 1:], self.btm_ghost))
+            fluxes += scheme(self.mesh, self.value, neighs)
 
+        self.values = self.values - dt/self.mesh.volumes*fluxes
+
+        # Let's put here an handy post step if needed after the values update
         self.post_step()
 
     def post_step(self):

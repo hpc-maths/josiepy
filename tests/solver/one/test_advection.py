@@ -6,44 +6,47 @@ from matplotlib.animation import ArtistAnimation
 
 from .adv1d import main as main_1d
 
+from josie.mesh import Mesh, SimpleCell
+from josie.solver.state import StateTemplate
 from josie.solver.problem import Problem
 from josie.solver.solver import Solver
-from josie.solver.state import StateTemplate, State
 
 
 class Advection(Problem):
-    # Scalar advection
     Q = StateTemplate('u')
-
     # Advection velocity in x-direction
     V = np.array([1, 0])
 
     @classmethod
-    def flux(cls, Q: State) -> np.ndarray:
-        return cls.V*Q
+    def flux(cls, state_array: np.ndarray) -> np.ndarray:
+        # I multiply each element of the given state array by the velocity
+        # vector. I obtain an Nx2 array where each row is the flux on each
+        # cell
+        return cls.V*state_array[:, np.newaxis]
 
 
-def upwind(cell, neigh):
-    Q = Advection.Q(0)
+def upwind(values: np.ndarray, neigh_values: np.ndarray,
+           normals: np.ndarray, surfaces: np.ndarray):
+    F = np.zeros_like(values)
 
-    norm = neigh.face.normal
     flux = Advection.flux
-    S = neigh.face.surface
 
     un = Advection.V.dot(norm)
 
+    # Here the einsum is equivalent to a dot product element by element
+    # of flux and norm
     if un >= 0:
-        Q = Q + flux(cell.value).dot(norm)*S
+        F = F + np.einsum('ij,ij->i', flux(values), normals)*surfaces
     else:
-        Q = Q + flux(neigh.value).dot(norm)*S
+        F = F + np.einsum('ij,ij->i', flux(neigh_values), normals)*surfaces
 
-    return Q
+    return F
 
 
 @pytest.fixture
 def solver(mesh, init_fun):
     mesh.interpolate(100, 1)
-    mesh.generate()
+    mesh.generate(SimpleCell)
     solver = Solver(mesh, Advection.Q)
     solver.init(init_fun)
 
@@ -63,10 +66,10 @@ def test_against_real_1D(solver, plot, tol):
     ims = []
 
     for i, t in enumerate(time):
-        x = np.asarray([cell.centroid[0] for cell in
-                        solver.mesh.cells.ravel()])
-        u = np.asarray([cell.value for cell in solver.mesh.cells.ravel()])
-        u = u.ravel()
+        x = solver.mesh.centroids[:, :, 0]
+        x = x.reshape(x.size)
+        u = solver.values[:, :, 0]
+        u = u.reshape(u.size)
 
         err = u - solution[i, :]
 

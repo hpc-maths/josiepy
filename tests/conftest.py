@@ -3,6 +3,7 @@ import pytest
 from josie.bc import make_periodic, Direction
 from josie.geom import CircleArc, Line
 from josie.mesh import Mesh
+from josie.mesh import SimpleCell
 
 
 def pytest_addoption(parser):
@@ -34,7 +35,7 @@ def mesh(boundaries):
 
     mesh = Mesh(left, bottom, right, top)
     mesh.interpolate(10, 10)
-    mesh.generate()
+    mesh.generate(SimpleCell)
 
     yield mesh
 

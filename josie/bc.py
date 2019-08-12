@@ -26,12 +26,11 @@
 # official policies, either expressed or implied, of Ruben Di Battista.
 
 import abc
-
+import numpy as np
 
 from typing import Tuple, TYPE_CHECKING
 
-from .mesh.cell import Cell, GhostCell
-from .mesh.mesh import Mesh
+from josie.solver.solver import Solver
 from .geom import BoundaryCurve
 
 if TYPE_CHECKING:
@@ -47,17 +46,34 @@ else:
 
 class BoundaryCondition(metaclass=abc.ABCMeta):
     """ A BoundaryCondition is implemented as a callable that returns an
-    equivalent cell that is associated as a NeighbourCell to the cells on the
-    boundary.
+    equivalent cell value for each cell given to it.
 
-    This returned cell can be an actual `Cell` as in the case
-    of Periodic, that returns the corresponding cell on the opposite boundary,
-    or a GhostCell, that means a cell that only stores a value that is then
-    used by the numerical scheme.
+    This returned values can be an actual values that ensure the value of the
+    :class:`State` or of its gradient, or they can just be "pointers" to
+    internal cells as in the case of of Periodic, that returns the
+    corresponding cell on the opposite boundary.
     """
 
     @abc.abstractmethod
-    def __call__(self, mesh: Mesh, cell: Cell) -> 'GhostCell':
+    def __call__(self, solver: Solver, centroids: np.ndarray,
+                 values: np.ndarray, t: float = 0) -> np.ndarray:
+        """
+        Parameters
+        ----------
+        mesh
+            The mesh object that can be useful to use other cells of the mesh
+            (probably needed only for Periodic)
+        centroids
+            An array containing the cell centroids of the cells on the boundary
+            which this BoundaryCondition is applied to
+        values
+            An array containing the cell :class:`State` values of the cells
+            on the boundary which this BoundaryCondition is applied to
+        t
+            The time instant to which this BoundaryCondition must be evaluated
+            (useful for time-dependent BCs)
+
+        """
         raise NotImplementedError
 
 
@@ -89,8 +105,10 @@ class Dirichlet(BoundaryCondition):
     def __init__(self, value: 'State'):
         self._value = value
 
-    def __call__(self, mesh: Mesh, cell: Cell) -> 'GhostCell':
-        return GhostCell(2*self._value - cell.value)  # type: ignore
+    def __call__(self, solver: Solver, centroids: np.ndarray,
+                 values: np.ndarray, t: float = 0) -> np.ndarray:
+
+        return 2*self._value - values
 
 
 class Neumann(Dirichlet):
@@ -119,8 +137,9 @@ class Neumann(Dirichlet):
         The value of the state to be imposed on the boundary
     """
 
-    def __call__(self, mesh: Mesh, cell: Cell) -> 'GhostCell':
-        return GhostCell(cell.value - self._value)  # type: ignore
+    def __call__(self, solver: Solver, centroids: np.ndarray,
+                 values: np.ndarray, t: float = 0) -> np.ndarray:
+        return values - self._value
 
 
 class Side(Enum, settings=NoAlias):
@@ -162,12 +181,13 @@ class Periodic(BoundaryCondition):
     def __init__(self, side: Side):
         self._side = side
 
-    def __call__(self, mesh: Mesh, cell: Cell) -> 'Cell':
+    def __call__(self, solver: Solver, centroids: np.ndarray,
+                 values: np.ndarray, t: float = 0) -> np.ndarray:
 
         if self._side in [Side.LEFT, Side.RIGHT]:
-            return mesh.cells[self._side.value, cell.j]
+            return solver.values[self._side.value, :]
         elif self._side in [Side.BOTTOM, Side.TOP]:
-            return mesh.cells[cell.i, self._side.value]
+            return solver.values[:, self._side.value]
         else:
             raise ValueError(f'Unknown side. Expecting a {Side} object')
 
