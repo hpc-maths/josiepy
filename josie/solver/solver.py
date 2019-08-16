@@ -40,10 +40,68 @@ if TYPE_CHECKING:
 
 class Solver:
     def __init__(self, mesh: 'Mesh', Q: 'StateTemplate'):
+        """ This class is used to solve a problem governed by PDEs.
+
+        The internal state of the mesh is stored in :attr:`values`, while the
+        values of the ghost cells (used to apply the
+        :class:`BoundaryCondition`) are stored respectively in
+        :attr:`left_ghost`, :attr:`btm_ghost`, :attr:`right_ghost`,
+        :attr:`top_ghost`. They're all numpy arrays.
+
+        Parameters
+        ----------
+        mesh
+            An instance of the mesh to compute the solution on
+        Q
+            A :class:`StateTemplate` representing the variables of the problem
+            to be solved
+
+        Attributes
+        ----------
+        values
+            An array of dimensions (num_cells_x, num_cells_y, state_size)
+            storing the value of the :class:`State` for each cell of the
+            :class:`Mesh`
+        left_ghost
+            An array of dimensions (num_cells_y, state_size) storing the values
+            of the :class:`State` on the ghost cells that are used to apply
+            the :class:`BoundaryCondition` for the left boundary
+        btm_ghost
+            An array of dimensions (num_cells_y, state_size) storing the values
+            of the :class:`State` on the ghost cells that are used to apply
+            the :class:`BoundaryCondition` for the bottom boundary
+        right_ghost
+            An array of dimensions (num_cells_y, state_size) storing the values
+            of the :class:`State` on the ghost cells that are used to apply
+            the :class:`BoundaryCondition` for the right boundary
+        top_ghost
+            An array of dimensions (num_cells_y, state_size) storing the values
+            of the :class:`State` on the ghost cells that are used to apply
+            the :class:`BoundaryCondition` for the top boundary
+        """
+
         self.mesh = mesh
         self.Q = Q
 
+        # Initializing empty arrays for type checking
+        self.values: np.ndarray = np.empty(0)
+        self.left_ghost: np.ndarray = np.empty(0)
+        self.right_ghost: np.ndarray = np.empty(0)
+        self.top_ghost: np.ndarray = np.empty(0)
+        self.btm_ghost: np.ndarray = np.empty(0)
+
     def init(self, init_fun: Callable[[Solver], NoReturn]):
+        """
+        This method initialize the internal values of the cells of the
+        :class:`Mesh` and the values of the ghost cells that apply the
+        :class:`BoundaryCondition` for each boundary of the domain
+
+        Parameters
+        ---------
+        init_fun
+            The function to use to initialize the value in the domain
+
+        """
         num_cells_x = self.mesh.num_cells_x
         num_cells_y = self.mesh.num_cells_y
         state_size = len(self.Q.fields)
@@ -87,10 +145,38 @@ class Solver:
                 self.values[:, -1])  # type: ignore
 
     def step(self, dt: float,
-             scheme: Callable[[np.ndarray, np.ndarray], np.ndarray]):
+             scheme: Callable[[np.ndarray, np.ndarray, np.ndarray, np.ndarray],
+                              np.ndarray]):
         """ This method advances one step in time (for the moment using an
         explicit Euler scheme for time integration, but in future we will
         provide a way to give arbitrary time schemes)
+
+        A `scheme` callable gets as input the internal values of the cells, the
+        neighbour values, the normals associated to the neighbours and the
+        value of the face surfaces. A `scheme` generally has to be coded as a
+        1D scheme that operates only on the *right* neighbour. It is then
+        called (in 2D) 4 times, one for each set of neighbours (left, bottom,
+        right, top).  As an example, when called for the right neighbours, the
+        data structures sent to the `scheme` callable for `values` and
+        `neigh_values` are:
+
+        values:>
+        +---------------+---------------+---------------+
+        | `values[0,2]` | `values[1,2]` | `values[2,2]` |
+        +---------------+---------------+---------------+
+        | `values[0,1]` | `values[1,1]` | `values[2,1]` |
+        +---------------+---------------+---------------+
+        | `values[0,0]` | `values[1,0]` | `values[2,0]` |
+        +---------------+---------------+---------------+
+
+        neighbours:>
+        +---------------+---------------+------------------+
+        | `values[1,2]` | `values[2,2]` | `right_ghost[2]` |
+        +---------------+---------------+------------------+
+        | `values[1,1]` | `values[2,1]` | `right_ghost[1]` |
+        +---------------+---------------+------------------+
+        | `values[1,0]` | `values[2,0]` | `right_ghost[0]` |
+        +---------------+---------------+------------------+
 
         Parameters
         ----------
@@ -100,7 +186,6 @@ class Solver:
             A callable representime the space scheme to use
 
         """
-
         # We accumulate the fluxes for each set of neighbours
         fluxes = np.zeros_like(self.values)
 
@@ -108,24 +193,33 @@ class Solver:
         neighs = np.concatenate((self.left_ghost[:, :, np.newaxis],
                                  self.values[:-1, :]))
         fluxes += scheme(self.values, neighs, self.mesh.normals[:, :, 0, :],
-                         self.mesh.surfaces)
+                         self.mesh.surfaces[:, :, 0])
 
         # Right Neighbours
         neighs = np.concatenate((self.values[1:, :],
                                  self.right_ghost[:, :, np.newaxis]))
-        fluxes += scheme(self.values, neighs, self.mesh.normals[:, :, 1, :],
-                         self.mesh.surfaces)
+
+        fluxes += scheme(self.values, neighs, self.mesh.normals[:, :, 2, :],
+                         self.mesh.surfaces[:, :, 2])
 
         if not(self.mesh.oneD):
             # Top Neighbours
-            neighs = np.hstack((self.top_ghost, self.values[:, :-1]))
-            fluxes += scheme(self.mesh, self.value, neighs)
+            neighs = np.concatenate((self.top_ghost[:, :, np.newaxis],
+                                     self.values[:, :-1]))
+            fluxes += scheme(self.values, neighs,
+                             self.mesh.normals[:, :, 3, :],
+                             self.mesh.surfaces[:, :, 3])
 
             # Bottom Neighbours
-            neighs = np.hstack((self.values[:, 1:], self.btm_ghost))
-            fluxes += scheme(self.mesh, self.value, neighs)
+            neighs = np.concatenate((self.values[:, 1:],
+                                     self.btm_ghost[:, :, np.newaxis]))
+            fluxes += scheme(self.values, neighs,
+                             self.mesh.normals[:, :, 1, :],
+                             self.mesh.surfaces[:, :, 1])
 
-        self.values = self.values - dt/self.mesh.volumes*fluxes
+        self.values -= \
+            np.einsum('ijk,ik->ij',
+                      fluxes, dt/self.mesh.volumes)[:, np.newaxis, :]
 
         # Let's put here an handy post step if needed after the values update
         self.post_step()

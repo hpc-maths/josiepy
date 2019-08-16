@@ -73,11 +73,6 @@ class Mesh:
         An array containing the surfaces of the cells. It has the dimensions of
         [`num_cells_x`*`num_cells_y`*`num_points`] where `num_points` depends
         on the :class:`Cell` type provided
-    values: np.ndarray
-        An array containing the state hold by each cell. It has the dimensions
-        [`num_cells_x`*`num_cells_y`*`num_state_fields`] where
-        `num_state_fields` depends on the specific state. This attribute is
-        created later on by :class:`Solver` during the initialisation phase
     points: np.ndarray
         An array containing the points that constitute a cell. It has the
         dimensions of [`num_cells_x`*`num_cells_y`*`num_points`] where
@@ -97,7 +92,6 @@ class Mesh:
         self.points: Optional[np.ndarray] = None
         self.surfaces: Optional[np.ndarray] = None
         self.normals: Optional[np.ndarray] = None
-        self.values: Optional[np.ndarray] = None
 
         self.oneD = False
 
