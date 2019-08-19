@@ -27,8 +27,6 @@ REQUIRED = [
     'matplotlib',
     'mayavi',
     'numpy',
-    'numba',
-    'scipy'
 ]
 
 # What packages are optional?
@@ -46,6 +44,10 @@ EXTRAS = {
         'ipyevents',
         'scipy',
         'nbdime'
+    ],
+    'opt': [
+        'numba',
+        'scipy'
     ]
 }
 
