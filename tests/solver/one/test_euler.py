@@ -19,7 +19,6 @@ riemann_states = [
         "uR": 0,
         "vR": 0,
         "pR": 0.1,
-        "dt": 8e-4,
     },
     {
         "rhoL": 1.0,
@@ -30,7 +29,6 @@ riemann_states = [
         "uR": 2.0,
         "vR": 0,
         "pR": 0.4,
-        "dt": 1e-4,
     },
     {
         "rhoL": 1.0,
@@ -41,7 +39,6 @@ riemann_states = [
         "uR": 0,
         "vR": 0,
         "pR": 0.01,
-        "dt": 1e-5,
     },
     {
         "rhoL": 5.99924,
@@ -52,7 +49,6 @@ riemann_states = [
         "uR": -6.19633,
         "vR": 0,
         "pR": 46.0950,
-        "dt": 1e-5,
     },
     {
         "rhoL": 1.0,
@@ -63,7 +59,6 @@ riemann_states = [
         "uR": -19.59745,
         "vR": 0,
         "pR": 0.01,
-        "dt": 1e-5,
     },
 ]
 
@@ -115,8 +110,9 @@ def test_toro(riemann_problem, plot):
     solver = EulerSolver(mesh, eos)
     solver.init(init_fun)
 
-    dt = riemann_problem["dt"]
-    time = np.arange(0, 0.25, dt)
+    final_time = 0.25
+    t = 0
+    CFL = 0.85
 
     if plot:
         ims = []
@@ -125,7 +121,7 @@ def test_toro(riemann_problem, plot):
         ax2 = plt.subplot(132)
         ax3 = plt.subplot(133)
 
-    for t in time:
+    while t <= final_time:
         x = solver.mesh.centroids[:, :, 0]
         x = x.reshape(x.size)
 
@@ -153,7 +149,11 @@ def test_toro(riemann_problem, plot):
 
             ims.append([im1, im2, im3])
 
+        dt = solver.CFL(CFL)
         solver.step(dt, rusanov)
+
+        t += dt
+        print(f"Time: {t}, dt: {dt}")
 
     if plot:
         _ = ArtistAnimation(fig, ims, interval=50)

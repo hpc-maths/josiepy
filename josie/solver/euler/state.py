@@ -24,10 +24,19 @@
 # The views and conclusions contained in the software and documentation
 # are those of the authors and should not be interpreted as representing
 # official policies, either expressed or implied, of Ruben Di Battista.
+r"""
+We create one big state that contains the actual conservative variables that
+are used in the flux together with the "auxiliary" variables that are instead
+needed, for example, to compute the speed of sound.
+rho: density
+rhoE: total energy multiplied by the density
+rhoe: internal energy multiplied by the density
+U: x-velocity
+V: y-velocity
+p: pressure
+c: sound velocity
+"""
 
 from josie.solver.state import StateTemplate
 
-# We create one big state that contains the actual conservative variables that
-# are used in the flux together with the "auxiliary" variables that are instead
-# needed, for example, to compute
 Q = StateTemplate("rho", "rhoU", "rhoV", "rhoE", "rhoe", "U", "V", "p", "c")

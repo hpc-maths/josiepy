@@ -24,9 +24,9 @@
 # The views and conclusions contained in the software and documentation
 # are those of the authors and should not be interpreted as representing
 # official policies, either expressed or implied, of Ruben Di Battista.
-
-
 from __future__ import annotations
+
+import abc
 
 import numpy as np
 
@@ -38,7 +38,7 @@ if TYPE_CHECKING:
     from josie.mesh import Mesh
 
 
-class Solver:
+class Solver(metaclass=abc.ABCMeta):
     def __init__(self, mesh: "Mesh", Q: "StateTemplate"):
         """ This class is used to solve a problem governed by PDEs.
 
@@ -253,15 +253,44 @@ class Solver:
         self.post_step()
 
     def post_step(self):
+        """ This method can be used to post-process the data after that the
+        flux update took place.
+
+        For example it is used in the :class:`EulerSolver` in order to retrieve
+        the auxiliary variables, from the conservative ones, using the
+        :class:`EOS`
+        """
         pass
 
-    def solve(self, final_time, dt, scheme, animate=False, write=False):
+    @abc.abstractmethod
+    def CFL(self, value: float) -> float:
+        """ This method returns the optimal `dt` value that fulfills the CFL
+        condition for the concrete :class:`Solver` and the given scheme
+
+        Parameters
+        ----------
+        value
+            The value of the CFL number to enforce
+
+        Returns
+        -------
+        dt
+            The Optimal `dt` fulfilling the CFL condition for the given
+            CFL number
+        """
+
+        raise NotImplementedError
+
+    def solve(self, final_time, CFL, scheme, animate=False, write=False):
         if animate:
             self._init_show()
+
         t = 0
         i = 0
 
         while t < final_time:
+            dt = self.CFL(CFL)
+
             t = t + dt
             i = i + 1
 
