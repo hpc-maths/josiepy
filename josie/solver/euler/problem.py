@@ -26,14 +26,54 @@
 # official policies, either expressed or implied, of Ruben Di Battista.
 import numpy as np
 
-from josie.solver.state import State
 
+def flux(state_array: np.ndarray) -> np.ndarray:
+    r""" This returns the tensor representing the flux for an Euler problem
 
-def flux(Q: State) -> np.ndarray:
+    Parameters
+    ----------
+    state_array
+        A :class:`np.ndarray` that has dimension [Nx * Ny * 9] containing the
+        values for all the states in all the mesh points
 
-    return np.array([
-        [Q.rhoU, Q.rhoV],
-        [Q.rhoU*Q.U + Q.p, Q.rhoU*Q.V],
-        [Q.rhoV*Q.U, Q.rhoV*Q.V + Q.p],
-        [(Q.rhoE + Q.p)*Q.U, (Q.rhoE + Q.p)*Q.V]
-    ])
+    Returns
+    ---------
+    F
+        An array of dimension [Nx * Ny * 4 * 2], i.e. an array that of each
+        x cell and y cell stores the 4*2 flux tensor
+        The flux tensor is:
+        ..math::
+
+        \begin{bmatrix}
+            \rho u & \rho v \\
+            \rho u^2 & \rho uv \\
+            \rho vu * \rho v^ 2
+        \end{bmatrix}
+    """
+
+    num_cells_x, num_cells_y, _ = state_array.shape
+
+    F = np.empty(num_cells_x, num_cells_y, 4, 2)
+
+    rhoU = state_array[:, :, 0]
+    rhoV = state_array[:, :, 1]
+    rhoE = state_array[:, :, 3]
+    U = state_array[:, :, 5]
+    V = state_array[:, :, 6]
+    p = state_array[:, :, 7]
+
+    rhoUU = np.multiply(rhoU, U)
+    rhoUV = np.multiply(rhoU, V)
+    rhoVV = np.multiplu(rhoV, V)
+    rhoVU = np.multiply(rhoV, U)
+
+    F[:, :, 0, 0] = rhoU
+    F[:, :, 0, 1] = rhoV
+    F[:, :, 1, 0] = rhoUU + p
+    F[:, :, 1, 1] = rhoUV
+    F[:, :, 2, 0] = rhoVU
+    F[:, :, 2, 1] = rhoVV + p
+    F[:, :, 3, 0] = np.multiply(rhoE + p, U)
+    F[:, :, 3, 1] = np.multiply(rhoE + p, V)
+
+    return F

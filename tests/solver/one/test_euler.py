@@ -69,7 +69,7 @@ riemann_states = [
 
 
 @pytest.mark.parametrize("riemann_problem", riemann_states)
-def test_toro_1(riemann_problem, plot):
+def test_toro(riemann_problem, plot):
     left = Line([0, 0], [0, 1])
     bottom = Line([0, 0], [1, 0])
     right = Line([1, 0], [1, 1])

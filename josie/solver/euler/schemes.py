@@ -27,39 +27,59 @@
 
 import numpy as np
 
-from josie.mesh.cell import Cell, NeighbourCell
-
-from .state import Q as Q_factory
 from .problem import flux
 
 
-def rusanov(cell: Cell, neigh: NeighbourCell):
-    Q = Q_factory(0, 0, 0, 0, 0, 0, 0, 0, 0)
+def rusanov(
+    values: np.ndarray,
+    neigh_values: np.ndarray,
+    normals: np.ndarray,
+    surfaces: np.ndarray,
+):
+    """ This schemes implements the Rusanov scheme. See :cite: `rusanov` for
+    a detaile view on compressible schemes
+
+    Parameters
+    ----------
+    values
+        A :class:`np.ndarray` that has dimension [Nx * Ny * 9] containing the
+        values for all the states in all the mesh points
+    neigh_values
+        A :class:`np.ndarray` that has the same dimension of `values`. It
+        contains the corresponding neighbour values of the statestored in
+        `values`, i.e. the neighbour of `values[i]` is `neigh_values[i]`
+    normals
+        A :class:`np.ndarray` that has the dimensions [Nx * Ny * 2] containing
+        the values of the normals to the face connecting the cell to its
+        neighbour
+    surfaces
+        A :class:`np.ndarray` that has the dimensions [Nx * Ny] containing the
+        values of the face surfaces of the face connecting the cell to is
+        neighbour
+    """
+
     # First four variables of the total state are the conservative
     # variables (rho, rhoU, rhoV, rhoE)
-    Q_cons = Q[:4]
+    values_cons = values[:, :, :4]
+    neigh_values_cons = neigh_values[:, :, :4]
 
-    Q_cell = cell.value
-    Q_cell_cons = Q_cell[:4]
+    UV = values[:, :, 5:7]
+    UV_neigh = values[:, :, 5:7]
 
-    # Geometry
-    norm = neigh.face.normal
-    S = neigh.face.surface
+    # Find the normal velocity
+    U = np.einsum("ijk,ijk->ij", UV, normals)
+    U_neigh = np.einsum("ijk,ijk->ij", UV_neigh, normals)
 
-    Q_neigh = neigh.value
-    Q_neigh_cons = Q_neigh[:4]
+    c = values[:, :, 8]
 
-    sigma = np.max((
-        np.abs(Q_cell.U) + Q_cell.c,
-        np.abs(Q_neigh.U) + Q_neigh.c
-    ))
+    # Array to find the sigma value. It has dimensions [Nx * Ny * 2]
+    sigma_array = np.concatenate((np.abs(U) + c, np.abs(U_neigh) + c), axis=-1)
+    sigma = np.max(sigma_array, axis=-1)
 
-    # Rusanov scheme here
-    F = 0.5*(flux(Q_cell) + flux(Q_neigh)).dot(norm) - \
-        0.5*sigma*(Q_neigh_cons - Q_cell_cons)
+    DeltaF = 0.5 * (flux(values_cons) + flux(neigh_values_cons))
+    # This is the flux tensor dot the normal
+    DeltaF = np.einsum("ijkl,ijl->ijk", DeltaF, normals)
 
-    Q_cons = Q_cons + F*S
+    DeltaQ = 0.5 * np.multiply(sigma, neigh_values_cons - neigh_values_cons)
 
-    Q[:4] = Q_cons
-
-    return Q
+    return DeltaF - DeltaQ
