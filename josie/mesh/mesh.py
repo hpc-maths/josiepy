@@ -80,8 +80,13 @@ class Mesh:
         :class:`SimpleCell`, that is 2D quadrangle, the points are 4)
     """
 
-    def __init__(self, left: BoundaryCurve, bottom: BoundaryCurve, right:
-                 BoundaryCurve, top: BoundaryCurve):
+    def __init__(
+        self,
+        left: BoundaryCurve,
+        bottom: BoundaryCurve,
+        right: BoundaryCurve,
+        top: BoundaryCurve,
+    ):
         self.left = left
         self.bottom = bottom
         self.right = right
@@ -99,15 +104,18 @@ class Mesh:
         # Both of them must be None
         none_count = [self.top.bc, self.bottom.bc].count(None)
         if none_count >= 1:
-            if not(none_count) == 2:
-                raise InvalidMesh("You have the top or the bottom BC that is "
-                                  "`None`, but not the other one. In order to "
-                                  "perform a 1D simulation, both of them must "
-                                  "be set to `None`")
+            if not (none_count) == 2:
+                raise InvalidMesh(
+                    "You have the top or the bottom BC that is "
+                    "`None`, but not the other one. In order to "
+                    "perform a 1D simulation, both of them must "
+                    "be set to `None`"
+                )
             self.oneD = True
 
-    def interpolate(self, num_cells_x: int, num_cells_y: int) \
-            -> Tuple[np.ndarray, np.ndarray]:
+    def interpolate(
+        self, num_cells_x: int, num_cells_y: int
+    ) -> Tuple[np.ndarray, np.ndarray]:
         """ This methods generates the mesh within the four given
         BoundaryCurve using Transfinite Interpolation
 
@@ -123,7 +131,9 @@ class Mesh:
 
         # This is the vectorized form of a double loop on xi and eta
         # to apply the TFI
-        XIS, ETAS = np.ogrid[0:1:self._num_xi*1j, 0:1:self._num_eta*1j]  # type: ignore # noqa: E501
+        XIS, ETAS = np.ogrid[
+            0 : 1 : self._num_xi * 1j, 0 : 1 : self._num_eta * 1j
+        ]  # type: ignore # noqa: E501
 
         x = np.empty((self._num_xi, self._num_eta))
         y = np.empty((self._num_xi, self._num_eta))
@@ -137,15 +147,27 @@ class Mesh:
         XT0, YT0 = self.top(0)
         XT1, YT1 = self.top(1)
 
-        x = (1-XIS)*XL + XIS*XR + \
-            (1-ETAS)*XB + ETAS*XT - \
-            (1-XIS)*(1-ETAS)*XB0 - (1-XIS)*ETAS*XT0 - \
-            (1-ETAS)*XIS*XB1 - XIS*ETAS*XT1
+        x = (
+            (1 - XIS) * XL
+            + XIS * XR
+            + (1 - ETAS) * XB
+            + ETAS * XT
+            - (1 - XIS) * (1 - ETAS) * XB0
+            - (1 - XIS) * ETAS * XT0
+            - (1 - ETAS) * XIS * XB1
+            - XIS * ETAS * XT1
+        )
 
-        y = (1-XIS)*YL + XIS*YR + \
-            (1-ETAS)*YB + ETAS*YT - \
-            (1-XIS)*(1-ETAS)*YB0 - (1-XIS)*ETAS*YT0 - \
-            (1-ETAS)*XIS*YB1 - XIS*ETAS*YT1
+        y = (
+            (1 - XIS) * YL
+            + XIS * YR
+            + (1 - ETAS) * YB
+            + ETAS * YT
+            - (1 - XIS) * (1 - ETAS) * YB0
+            - (1 - XIS) * ETAS * YT0
+            - (1 - ETAS) * XIS * YB1
+            - XIS * ETAS * YT1
+        )
 
         self._x = x
         self._y = y
@@ -160,9 +182,9 @@ class Mesh:
                     "need to set just 1 cell"
                 )
 
-            same_y = np.all((self._y[:, 0] - self._y[0, 0]) < 1E-12)
-            same_y = same_y & np.all((self._y[:, 1] - self._y[0, 1]) < 1E-12)
-            if not(same_y):
+            same_y = np.all((self._y[:, 0] - self._y[0, 0]) < 1e-12)
+            same_y = same_y & np.all((self._y[:, 1] - self._y[0, 1]) < 1e-12)
+            if not (same_y):
                 raise InvalidMesh(
                     "For a 1D simulation the top and bottom BoundaryCurve "
                     "needs to be a Line (i.e.  having same y-coordinate)"
@@ -171,8 +193,8 @@ class Mesh:
             # Let's scale in the y-direction to match dx in x-direction. This
             # is needed in order to have 2D flux to work also in 1D
             dx = self._x[1, 0] - self._x[0, 0]
-            scale_y = self._y[0, 1]/dx
-            self._y[:, 1] = self._y[:, 1]/scale_y
+            scale_y = self._y[0, 1] / dx
+            self._y[:, 1] = self._y[:, 1] / scale_y
 
         return self._x, self._y
 
@@ -196,6 +218,6 @@ class Mesh:
             for j in range(self.num_cells_y):
                 cells.append(Polygon(self.points[i, j, :, :]))
 
-        patch_coll = PatchCollection(cells, facecolors="None", edgecolors='k')
+        patch_coll = PatchCollection(cells, facecolors="None", edgecolors="k")
         ax.add_collection(patch_coll)
-        ax.plot(self.centroids[:, :, 0], self.centroids[:, :, 1], 'ko', ms=1)
+        ax.plot(self.centroids[:, :, 0], self.centroids[:, :, 1], "ko", ms=1)

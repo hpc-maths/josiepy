@@ -29,7 +29,6 @@ import numpy as np
 
 
 class EOS(metaclass=abc.ABCMeta):
-
     @abc.abstractmethod
     def rhoe_from_rho_p(self, rho: float, p: float):
         raise NotImplementedError
@@ -64,13 +63,13 @@ class PerfectGas(EOS):
     def rhoe_from_rho_p(self, rho: float, p: float):
         """ This returns the internal energy multiplied by the density"""
 
-        return p/(self.gamma - 1)
+        return p / (self.gamma - 1)
 
     def p_from_rho_e(self, rho: float, e: float):
         """ This returns the pressure from internal energy and density """
-        return (self.gamma - 1)*rho*e
+        return (self.gamma - 1) * rho * e
 
     def sound_velocity(self, rho: float, p: float):
         """ This returns the sound velocity from density and pressure"""
 
-        return np.sqrt(self.gamma*p/rho)
+        return np.sqrt(self.gamma * p / rho)

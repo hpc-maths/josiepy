@@ -41,7 +41,7 @@ PointType = Union[Tuple[float, float], np.ndarray]
 
 
 class Dimensionality(Enum):
-    TWO = 2,
+    TWO = (2,)
     THREE = 3
 
 
@@ -77,14 +77,16 @@ class Cell(metaclass=abc.ABCMeta):
 
     @classmethod
     @abc.abstractclassmethod
-    def centroid(cls, nw: PointType, sw: PointType, se: PointType,
-                 ne: PointType) -> PointType:
+    def centroid(
+        cls, nw: PointType, sw: PointType, se: PointType, ne: PointType
+    ) -> PointType:
         """ Compute the centroid of the cell """
 
     @classmethod
     @abc.abstractclassmethod
-    def volume(cls, nw: PointType, sw: PointType, se: PointType,
-               ne: PointType) -> float:
+    def volume(
+        cls, nw: PointType, sw: PointType, se: PointType, ne: PointType
+    ) -> float:
         """ Compute the volume of a cell from its points.
         """
         raise NotImplementedError
@@ -105,7 +107,7 @@ class Cell(metaclass=abc.ABCMeta):
 
     @classmethod
     @abc.abstractclassmethod
-    def create_connectivity(cls, mesh: 'Mesh'):
+    def create_connectivity(cls, mesh: "Mesh"):
         """ This method creates the connectivity from the given points of
         a mesh. It modifies attributes of the :class:`Mesh` instance.
 
@@ -143,8 +145,9 @@ class SimpleCell(Cell):
     dims = Dimensionality.TWO
 
     @classmethod
-    def centroid(cls, nw: PointType, sw: PointType, se: PointType,
-                 ne: PointType) -> PointType:
+    def centroid(
+        cls, nw: PointType, sw: PointType, se: PointType, ne: PointType
+    ) -> PointType:
         """ This class method computes the centroid of a cell from its points.
 
         The centroid is computed as the mean value of the for points
@@ -173,11 +176,12 @@ class SimpleCell(Cell):
         se = np.asarray(se)
         ne = np.asarray(ne)
 
-        return (nw + sw + se + ne)/4
+        return (nw + sw + se + ne) / 4
 
     @classmethod
-    def volume(cls, nw: PointType, sw: PointType, se: PointType,
-               ne: PointType) -> float:
+    def volume(
+        cls, nw: PointType, sw: PointType, se: PointType, ne: PointType
+    ) -> float:
         """ This class method computes the volume of a cell from its points.
 
         The surface is computed calculating the surface of the two triangles
@@ -205,19 +209,9 @@ class SimpleCell(Cell):
         se = np.asarray(se)
         ne = np.asarray(ne)
 
-        volume = np.linalg.norm(
-            np.cross(
-                sw - nw,
-                se - sw
-            )
-        )/2
+        volume = np.linalg.norm(np.cross(sw - nw, se - sw)) / 2
 
-        volume = volume + np.linalg.norm(
-            np.cross(
-                se - ne,
-                ne - nw
-            )
-        )/2
+        volume = volume + np.linalg.norm(np.cross(se - ne, ne - nw)) / 2
 
         return volume
 
@@ -272,10 +266,10 @@ class SimpleCell(Cell):
 
         normal = np.array([r[1], -r[0]])
 
-        return normal/np.linalg.norm(normal)
+        return normal / np.linalg.norm(normal)
 
     @classmethod
-    def create_connectivity(cls, mesh: 'Mesh'):
+    def create_connectivity(cls, mesh: "Mesh"):
 
         num_cells_x = mesh.num_cells_x
         num_cells_y = mesh.num_cells_y
@@ -295,21 +289,43 @@ class SimpleCell(Cell):
 
         for i in range(num_cells_x):
             for j in range(num_cells_y):
-                p0 = np.asarray((x[i, j+1], y[i, j+1]))
+                p0 = np.asarray((x[i, j + 1], y[i, j + 1]))
                 p1 = np.asarray((x[i, j], y[i, j]))
-                p2 = np.asarray((x[i+1, j], y[i+1, j]))
-                p3 = np.asarray((x[i+1, j+1], y[i+1, j+1]))
+                p2 = np.asarray((x[i + 1, j], y[i + 1, j]))
+                p3 = np.asarray((x[i + 1, j + 1], y[i + 1, j + 1]))
 
-                mesh.points[i, j, :, :] = np.vstack((p0, p1, p2, p3))  # type: ignore # noqa: E501
-                mesh.centroids[i, j, :] = cls.centroid(p0, p1, p2, p3)  # type: ignore # noqa: E501
-                mesh.volumes[i, j] = cls.volume(p0, p1, p2, p3)  # type: ignore # noqa: E501
+                mesh.points[i, j, :, :] = np.vstack(
+                    (p0, p1, p2, p3)
+                )  # type: ignore # noqa: E501
+                mesh.centroids[i, j, :] = cls.centroid(
+                    p0, p1, p2, p3
+                )  # type: ignore # noqa: E501
+                mesh.volumes[i, j] = cls.volume(
+                    p0, p1, p2, p3
+                )  # type: ignore # noqa: E501
 
-                mesh.surfaces[i, j, 0] = cls.face_surface(p0, p1)  # type: ignore # noqa: E501
-                mesh.surfaces[i, j, 1] = cls.face_surface(p1, p2)  # type: ignore # noqa: E501
-                mesh.surfaces[i, j, 2] = cls.face_surface(p2, p3)  # type: ignore # noqa: E501
-                mesh.surfaces[i, j, 3] = cls.face_surface(p0, p3)  # type: ignore # noqa: E501
+                mesh.surfaces[i, j, 0] = cls.face_surface(
+                    p0, p1
+                )  # type: ignore # noqa: E501
+                mesh.surfaces[i, j, 1] = cls.face_surface(
+                    p1, p2
+                )  # type: ignore # noqa: E501
+                mesh.surfaces[i, j, 2] = cls.face_surface(
+                    p2, p3
+                )  # type: ignore # noqa: E501
+                mesh.surfaces[i, j, 3] = cls.face_surface(
+                    p0, p3
+                )  # type: ignore # noqa: E501
 
-                mesh.normals[i, j, 0, :] = cls.face_normal(p0, p1)  # type: ignore # noqa: E501
-                mesh.normals[i, j, 1, :] = cls.face_normal(p1, p2)  # type: ignore # noqa: E501
-                mesh.normals[i, j, 2, :] = cls.face_normal(p2, p3)  # type: ignore # noqa: E501
-                mesh.normals[i, j, 3, :] = cls.face_normal(p0, p3)  # type: ignore # noqa: E501
+                mesh.normals[i, j, 0, :] = cls.face_normal(
+                    p0, p1
+                )  # type: ignore # noqa: E501
+                mesh.normals[i, j, 1, :] = cls.face_normal(
+                    p1, p2
+                )  # type: ignore # noqa: E501
+                mesh.normals[i, j, 2, :] = cls.face_normal(
+                    p2, p3
+                )  # type: ignore # noqa: E501
+                mesh.normals[i, j, 3, :] = cls.face_normal(
+                    p0, p3
+                )  # type: ignore # noqa: E501

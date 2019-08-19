@@ -41,6 +41,7 @@ class _StateDescriptor:
         The index of the element in the numpy array to be accessed with
 
     """
+
     def __init__(self, i):
         self.i = i
 
@@ -84,9 +85,11 @@ class StateTemplate:
         self.fields = fields
 
     def __call__(self, *values):
-        if not(len(values) == len(self.fields)):
-            raise ValueError(f"This state has {len(self.fields)} fields. "
-                             "You need to provide the same amount of values")
+        if not (len(values) == len(self.fields)):
+            raise ValueError(
+                f"This state has {len(self.fields)} fields. "
+                "You need to provide the same amount of values"
+            )
 
         return self._init_state(*values)
 
@@ -96,7 +99,7 @@ class StateTemplate:
 
     def zeros(self):
         """ This method returns a state filled with zeros """
-        values = [0]*len(self.fields)
+        values = [0] * len(self.fields)
 
         return self._init_state(*values)
 

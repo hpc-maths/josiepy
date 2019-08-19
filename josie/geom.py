@@ -44,7 +44,7 @@ if TYPE_CHECKING:
 def map01to(x, a, b):
     """ Maps x in [0, 1] to [a, b] """
 
-    return (b - a)*x + a
+    return (b - a) * x + a
 
 
 class BoundaryCurve(metaclass=abc.ABCMeta):
@@ -59,7 +59,7 @@ class BoundaryCurve(metaclass=abc.ABCMeta):
         return self._bc
 
     @bc.setter
-    def bc(self, bc: 'BoundaryCondition'):
+    def bc(self, bc: "BoundaryCondition"):
         self._bc = bc
 
     @abc.abstractmethod
@@ -93,7 +93,7 @@ class BoundaryCurve(metaclass=abc.ABCMeta):
 
         X, Y = self(xi)
 
-        plt.plot(X, Y, 'o-')
+        plt.plot(X, Y, "o-")
 
 
 class Line(BoundaryCurve):
@@ -109,8 +109,8 @@ class Line(BoundaryCurve):
         self._p2 = p2
 
     def __call__(self, xi):
-        x = (1-xi)*self._p1[0] + xi*self._p2[0]
-        y = (1-xi)*self._p1[1] + xi*self._p2[1]
+        x = (1 - xi) * self._p1[0] + xi * self._p2[0]
+        y = (1 - xi) * self._p1[1] + xi * self._p2[1]
 
         return (x, y)
 
@@ -132,40 +132,38 @@ class CircleArc(BoundaryCurve):
         self._p3 = p3
 
         # Find the circle passing by the three points
-        A = np.array([
-            [p1[0], p1[1], 1],
-            [p2[0], p2[1], 1],
-            [p3[0], p3[1], 1]
-        ])
+        A = np.array([[p1[0], p1[1], 1], [p2[0], p2[1], 1], [p3[0], p3[1], 1]])
 
-        b = -np.array([
-            p1[0]**2 + p1[1]**2,
-            p2[0]**2 + p2[1]**2,
-            p3[0]**2 + p3[1]**2
-        ])
+        b = -np.array(
+            [
+                p1[0] ** 2 + p1[1] ** 2,
+                p2[0] ** 2 + p2[1] ** 2,
+                p3[0] ** 2 + p3[1] ** 2,
+            ]
+        )
 
         X = np.linalg.solve(A, b)
 
         # Center coordinates
-        self._c = np.array([-X[0]/2, -X[1]/2])
+        self._c = np.array([-X[0] / 2, -X[1] / 2])
 
         self._r1 = self._p1 - self._c
         self._r2 = self._p2 - self._c
         self._r = np.linalg.norm(self._r1)
 
         # Starting angles
-        cos1 = self._r1[0]/self._r
-        cos2 = self._r2[0]/self._r
+        cos1 = self._r1[0] / self._r
+        cos2 = self._r2[0] / self._r
 
-        sin1 = self._r1[1]/self._r
-        sin2 = self._r2[1]/self._r
+        sin1 = self._r1[1] / self._r
+        sin2 = self._r2[1] / self._r
 
         th1 = np.arctan2(sin1, cos1)
         th2 = np.arctan2(sin2, cos2)
 
         # Need to renormalize between [0, 2pi]
-        th1 = (th1 + 2*np.pi) % (2*np.pi)
-        th2 = (th2 + 2*np.pi) % (2*np.pi)
+        th1 = (th1 + 2 * np.pi) % (2 * np.pi)
+        th2 = (th2 + 2 * np.pi) % (2 * np.pi)
 
         self._th1 = th1
         self._th2 = th2
@@ -175,5 +173,7 @@ class CircleArc(BoundaryCurve):
         # Remap to the correct angle range
         xi = map01to(xi, self._th1, self._th2)
 
-        return (self._c[0] + self._r*np.cos(xi),
-                self._c[1] + self._r*np.sin(xi))
+        return (
+            self._c[0] + self._r * np.cos(xi),
+            self._c[1] + self._r * np.sin(xi),
+        )

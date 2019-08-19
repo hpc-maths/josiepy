@@ -31,7 +31,6 @@ from .state import State
 
 
 class Problem(metaclass=abc.ABCMeta):
-
     @property  # type: ignore
     @abc.abstractclassmethod
     def Q(cls):

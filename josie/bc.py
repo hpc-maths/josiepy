@@ -39,6 +39,7 @@ if TYPE_CHECKING:
     # This is a trick to enable mypy to evaluate the Enum as a standard
     # library Enum for type checking but we use `aenum` in the running code
     from enum import Enum, auto  # pragma: no cover
+
     NoAlias = object()  # pragma: no cover
 else:
     from aenum import Enum, NoAlias, auto
@@ -55,8 +56,13 @@ class BoundaryCondition(metaclass=abc.ABCMeta):
     """
 
     @abc.abstractmethod
-    def __call__(self, solver: Solver, centroids: np.ndarray,
-                 values: np.ndarray, t: float = 0) -> np.ndarray:
+    def __call__(
+        self,
+        solver: Solver,
+        centroids: np.ndarray,
+        values: np.ndarray,
+        t: float = 0,
+    ) -> np.ndarray:
         """
         Parameters
         ----------
@@ -102,13 +108,18 @@ class Dirichlet(BoundaryCondition):
         The value of the state to be imposed on the boundary
     """
 
-    def __init__(self, value: 'State'):
+    def __init__(self, value: "State"):
         self._value = value
 
-    def __call__(self, solver: Solver, centroids: np.ndarray,
-                 values: np.ndarray, t: float = 0) -> np.ndarray:
+    def __call__(
+        self,
+        solver: Solver,
+        centroids: np.ndarray,
+        values: np.ndarray,
+        t: float = 0,
+    ) -> np.ndarray:
 
-        return 2*self._value - values
+        return 2 * self._value - values
 
 
 class Neumann(Dirichlet):
@@ -137,8 +148,13 @@ class Neumann(Dirichlet):
         The value of the state to be imposed on the boundary
     """
 
-    def __call__(self, solver: Solver, centroids: np.ndarray,
-                 values: np.ndarray, t: float = 0) -> np.ndarray:
+    def __call__(
+        self,
+        solver: Solver,
+        centroids: np.ndarray,
+        values: np.ndarray,
+        t: float = 0,
+    ) -> np.ndarray:
         return values - self._value
 
 
@@ -155,6 +171,7 @@ class Side(Enum, settings=NoAlias):
 class Direction(Enum):
     """ An Enum encapsulating the direction of a Periodic BoundaryCondition
     """
+
     X = auto()
     Y = auto()
 
@@ -181,20 +198,25 @@ class Periodic(BoundaryCondition):
     def __init__(self, side: Side):
         self._side = side
 
-    def __call__(self, solver: Solver, centroids: np.ndarray,
-                 values: np.ndarray, t: float = 0) -> np.ndarray:
+    def __call__(
+        self,
+        solver: Solver,
+        centroids: np.ndarray,
+        values: np.ndarray,
+        t: float = 0,
+    ) -> np.ndarray:
 
         if self._side in [Side.LEFT, Side.RIGHT]:
             return solver.values[self._side.value, :]
         elif self._side in [Side.BOTTOM, Side.TOP]:
             return solver.values[:, self._side.value]
         else:
-            raise ValueError(f'Unknown side. Expecting a {Side} object')
+            raise ValueError(f"Unknown side. Expecting a {Side} object")
 
 
-def make_periodic(first: BoundaryCurve, second: BoundaryCurve,
-                  direction: Direction) \
-        -> Tuple[BoundaryCurve, BoundaryCurve]:
+def make_periodic(
+    first: BoundaryCurve, second: BoundaryCurve, direction: Direction
+) -> Tuple[BoundaryCurve, BoundaryCurve]:
     """ This handy function takes as arguments two opposed BoundaryCurve and
     configures them correctly to provide periodic behaviour.
 
@@ -223,6 +245,6 @@ def make_periodic(first: BoundaryCurve, second: BoundaryCurve,
         first.bc = Periodic(Side.BOTTOM)
         second.bc = Periodic(Side.TOP)
     else:
-        raise ValueError(f'Unknown direction. Expecting a {Direction} object')
+        raise ValueError(f"Unknown direction. Expecting a {Direction} object")
 
     return first, second

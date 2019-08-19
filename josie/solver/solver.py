@@ -39,7 +39,7 @@ if TYPE_CHECKING:
 
 
 class Solver:
-    def __init__(self, mesh: 'Mesh', Q: 'StateTemplate'):
+    def __init__(self, mesh: "Mesh", Q: "StateTemplate"):
         """ This class is used to solve a problem governed by PDEs.
 
         The internal state of the mesh is stored in :attr:`values`, while the
@@ -122,31 +122,43 @@ class Solver:
 
         # Left BC: Create the left layer of ghost cells
         self.left_ghost = self.mesh.left.bc(
-            self, self.mesh.centroids[0, :],  # type: ignore
-            self.values[0, :])  # type: ignore
+            self,
+            self.mesh.centroids[0, :],  # type: ignore
+            self.values[0, :],
+        )  # type: ignore
 
         # Right BC
         self.right_ghost = self.mesh.right.bc(
-            self, self.mesh.centroids[-1, :],  # type: ignore
-            self.values[-1, :])  # type: ignore
+            self,
+            self.mesh.centroids[-1, :],  # type: ignore
+            self.values[-1, :],
+        )  # type: ignore
 
-        if not(self.mesh.oneD):
+        if not (self.mesh.oneD):
             self.btm_ghost = np.empty((num_cells_x, state_size))
             self.top_ghost = np.empty_like(self.btm_ghost)
 
             # Bottom BC
             self.btm_ghost = self.mesh.bottom.bc(
-                self, self.mesh.centroids[:, 0],  # type: ignore
-                self.values[:, 0])  # type: ignore
+                self,
+                self.mesh.centroids[:, 0],  # type: ignore
+                self.values[:, 0],
+            )  # type: ignore
 
             # Top BC
             self.top_ghost = self.mesh.top.bc(
-                self, self.mesh.centroids[:, -1],  # type: ignore
-                self.values[:, -1])  # type: ignore
+                self,
+                self.mesh.centroids[:, -1],  # type: ignore
+                self.values[:, -1],
+            )  # type: ignore
 
-    def step(self, dt: float,
-             scheme: Callable[[np.ndarray, np.ndarray, np.ndarray, np.ndarray],
-                              np.ndarray]):
+    def step(
+        self,
+        dt: float,
+        scheme: Callable[
+            [np.ndarray, np.ndarray, np.ndarray, np.ndarray], np.ndarray
+        ],
+    ):
         """ This method advances one step in time (for the moment using an
         explicit Euler scheme for time integration, but in future we will
         provide a way to give arbitrary time schemes)
@@ -190,36 +202,54 @@ class Solver:
         fluxes = np.zeros_like(self.values)
 
         # Left Neighbours
-        neighs = np.concatenate((self.left_ghost[:, :, np.newaxis],
-                                 self.values[:-1, :]))
-        fluxes += scheme(self.values, neighs, self.mesh.normals[:, :, 0, :],
-                         self.mesh.surfaces[:, :, 0])
+        neighs = np.concatenate(
+            (self.left_ghost[:, :, np.newaxis], self.values[:-1, :])
+        )
+        fluxes += scheme(
+            self.values,
+            neighs,
+            self.mesh.normals[:, :, 0, :],
+            self.mesh.surfaces[:, :, 0],
+        )
 
         # Right Neighbours
-        neighs = np.concatenate((self.values[1:, :],
-                                 self.right_ghost[:, :, np.newaxis]))
+        neighs = np.concatenate(
+            (self.values[1:, :], self.right_ghost[:, :, np.newaxis])
+        )
 
-        fluxes += scheme(self.values, neighs, self.mesh.normals[:, :, 2, :],
-                         self.mesh.surfaces[:, :, 2])
+        fluxes += scheme(
+            self.values,
+            neighs,
+            self.mesh.normals[:, :, 2, :],
+            self.mesh.surfaces[:, :, 2],
+        )
 
-        if not(self.mesh.oneD):
+        if not (self.mesh.oneD):
             # Top Neighbours
-            neighs = np.concatenate((self.top_ghost[:, :, np.newaxis],
-                                     self.values[:, :-1]))
-            fluxes += scheme(self.values, neighs,
-                             self.mesh.normals[:, :, 3, :],
-                             self.mesh.surfaces[:, :, 3])
+            neighs = np.concatenate(
+                (self.top_ghost[:, :, np.newaxis], self.values[:, :-1])
+            )
+            fluxes += scheme(
+                self.values,
+                neighs,
+                self.mesh.normals[:, :, 3, :],
+                self.mesh.surfaces[:, :, 3],
+            )
 
             # Bottom Neighbours
-            neighs = np.concatenate((self.values[:, 1:],
-                                     self.btm_ghost[:, :, np.newaxis]))
-            fluxes += scheme(self.values, neighs,
-                             self.mesh.normals[:, :, 1, :],
-                             self.mesh.surfaces[:, :, 1])
+            neighs = np.concatenate(
+                (self.values[:, 1:], self.btm_ghost[:, :, np.newaxis])
+            )
+            fluxes += scheme(
+                self.values,
+                neighs,
+                self.mesh.normals[:, :, 1, :],
+                self.mesh.surfaces[:, :, 1],
+            )
 
-        self.values -= \
-            np.einsum('ijk,ik->ij',
-                      fluxes, dt/self.mesh.volumes)[:, np.newaxis, :]
+        self.values -= np.einsum("ijk,ik->ij", fluxes, dt / self.mesh.volumes)[
+            :, np.newaxis, :
+        ]
 
         # Let's put here an handy post step if needed after the values update
         self.post_step()
@@ -234,8 +264,8 @@ class Solver:
         i = 0
 
         while t < final_time:
-            t = t+dt
-            i = i+1
+            t = t + dt
+            i = i + 1
 
             if animate:
                 self.animate()
@@ -243,13 +273,14 @@ class Solver:
             self.step(dt, scheme)
 
             if write:
-                self.save(f't_{i:02d}.vtk')
+                self.save(f"t_{i:02d}.vtk")
 
     def _to_mayavi(self):
         from tvtk.api import tvtk
+
         # Rearrange points
         points = np.vstack((self.mesh._x.ravel(), self.mesh._y.ravel())).T
-        points = np.pad(points, ((0, 0), (0, 1)), 'constant')
+        points = np.pad(points, ((0, 0), (0, 1)), "constant")
 
         sgrid = tvtk.StructuredGrid(
             dimensions=(self.mesh._num_xi, self.mesh._num_eta, 1)
@@ -257,8 +288,9 @@ class Solver:
 
         sgrid.points = points
 
-        cell_data = np.empty((len(self.mesh.cells.ravel()),
-                             len(self.problem.Q.fields)))
+        cell_data = np.empty(
+            (len(self.mesh.cells.ravel()), len(self.problem.Q.fields))
+        )
 
         for i, cell in enumerate(self.mesh.cells.ravel()):
             cell_data[i, :] = cell.value
@@ -269,18 +301,22 @@ class Solver:
 
     def save(self, filename):
         from tvtk.api import write_data
+
         sgrid = self._to_mayavi()
         write_data(sgrid, filename)
 
     def _init_show(self):
         from mayavi import mlab
+
         sgrid = self._to_mayavi()
 
-        mlab.figure(bgcolor=(1, 1, 1), fgcolor=(0, 0, 0),
-                    figure=sgrid.class_name[3:])
+        mlab.figure(
+            bgcolor=(1, 1, 1), fgcolor=(0, 0, 0), figure=sgrid.class_name[3:]
+        )
         surf = mlab.pipeline.surface(sgrid, opacity=0.1)
-        mlab.pipeline.surface(mlab.pipeline.extract_edges(surf),
-                              color=(0, 0, 0), )
+        mlab.pipeline.surface(
+            mlab.pipeline.extract_edges(surf), color=(0, 0, 0)
+        )
 
         mlab.view(azimuth=0, elevation=0)
 
@@ -288,8 +324,9 @@ class Solver:
         self._sgrid = sgrid
 
     def animate(self):
-        cell_data = np.empty((len(self.mesh.cells.ravel()),
-                             len(self.problem.Q.fields)))
+        cell_data = np.empty(
+            (len(self.mesh.cells.ravel()), len(self.problem.Q.fields))
+        )
 
         for i, cell in enumerate(self.mesh.cells.ravel()):
             cell_data[i, :] = cell.value

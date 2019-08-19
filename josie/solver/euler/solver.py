@@ -39,9 +39,10 @@ if TYPE_CHECKING:
 
 class EulerSolver(Solver):
     """ This class accepts as input also the EOS """
+
     # TODO: Add CFL handling
 
-    def __init__(self, mesh: 'Mesh', eos: EOS):
+    def __init__(self, mesh: "Mesh", eos: EOS):
         self.eos = eos
 
         super().__init__(mesh, Q)
@@ -50,10 +51,10 @@ class EulerSolver(Solver):
         for cell in self.mesh.cells.ravel():
             Q = cell.value
             rho = Q.rho
-            U = Q.rhoU/rho
-            V = Q.rhoV/rho
-            rhoe = Q.rhoE - 0.5*rho*(U**2 + V**2)
-            e = rhoe/rho
+            U = Q.rhoU / rho
+            V = Q.rhoV / rho
+            rhoe = Q.rhoE - 0.5 * rho * (U ** 2 + V ** 2)
+            e = rhoe / rho
             p = self.eos.p_from_rho_e(rho, e)
             c = self.eos.sound_velocity(rho, p)
             cell.value[4:] = np.array([rhoe, U, V, p, c])
