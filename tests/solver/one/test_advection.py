@@ -3,38 +3,34 @@ import numpy as np
 import pytest
 
 from matplotlib.animation import ArtistAnimation
+from numba import njit
 
 from .adv1d import main as main_1d
 
 from josie.mesh import SimpleCell
 from josie.solver.state import StateTemplate
-from josie.solver.problem import Problem
 from josie.solver.solver import Solver
 
+Q = StateTemplate('u')
 
-class Advection(Problem):
-    Q = StateTemplate('u')
-    # Advection velocity in x-direction
-    V = np.array([1, 0])
-
-    @classmethod
-    def flux(cls, state_array: np.ndarray) -> np.ndarray:
-        # I multiply each element of the given state array by the velocity
-        # vector. I obtain an Nx2 array where each row is the flux on each
-        # cell
-        return cls.V*state_array[:, np.newaxis]
+# Advection velocity in x-direction
+V = np.array([1.0, 0.0])
 
 
 def upwind(values: np.ndarray, neigh_values: np.ndarray,
            normals: np.ndarray, surfaces: np.ndarray):
 
-    F = np.zeros_like(values)
+    def flux(state_array: np.ndarray) -> np.ndarray:
+        # I multiply each element of the given state array by the velocity
+        # vector. I obtain an Nx2 array where each row is the flux on each
+        # cell
+        return V*state_array[:, np.newaxis]
 
-    flux = Advection.flux
+    F = np.zeros_like(values)
 
     # I do a dot product of each normal in `norm` by the advection velocity
     # Equivalent to: un = np.sum(Advection.V*(normals), axis=-1)
-    un = np.einsum('ijk,jk->ij', normals, Advection.V[np.newaxis, :])
+    un = np.einsum('ijk,jk->ij', normals, V[np.newaxis, :])
 
     # Check where un > 0
     un_positive = np.all(un > 0)
@@ -53,20 +49,55 @@ def upwind(values: np.ndarray, neigh_values: np.ndarray,
     return FS[:, np.newaxis, :]
 
 
+@njit(cache=True)
+def upwind_jit(values: np.ndarray, neigh_values: np.ndarray,
+               normals: np.ndarray, surfaces: np.ndarray):
+
+    def flux(state):
+        # I multiply each element of the given state array by the velocity
+        # vector. I obtain an Nx2 array where each row is the flux on each
+        # cell
+
+        return V*(state)
+
+    F = np.zeros_like(values)
+
+    # Loop over cell in x and y
+    num_cells_x, num_cells_y, state_size = values.shape
+    for i in np.arange(num_cells_x):
+        for j in np.arange(num_cells_y):
+            norm = normals[i, j]
+            un = V.dot(norm)
+
+            if un > 0:
+                F[i, j] = F[i, j] + \
+                    flux(values[i, j]).dot(norm)*surfaces[i, j]
+            else:
+                F[i, j] = F[i, j] + \
+                    flux(neigh_values[i, j]).dot(norm)*surfaces[i, j]
+
+    return F
+
+
 @pytest.fixture
 def solver(mesh, init_fun):
-    mesh.interpolate(100, 1)
+    mesh.interpolate(1000, 1)
     mesh.generate(SimpleCell)
-    solver = Solver(mesh, Advection.Q)
+    solver = Solver(mesh, Q)
     solver.init(init_fun)
 
     yield solver
 
 
-def test_against_real_1D(solver, plot, tol):
+@pytest.fixture(params=[upwind, upwind_jit])
+def scheme(request):
+    yield request.param
+
+
+def test_against_real_1D(solver, scheme, plot, tol):
     """ Testing against the real 1D solver """
 
-    time, x_1d, solution = main_1d(100, 4, 0.9, plot)
+    time, x_1d, solution = main_1d(1000, 4, 0.9, plot)
     dt = time[1] - time[0]
 
     fig = plt.figure()
@@ -92,8 +123,7 @@ def test_against_real_1D(solver, plot, tol):
 
         # Check same solution with 1D-only
         # assert np.sum(err < tol) == len(x)
-
-        solver.step(dt, upwind)
+        solver.step(dt, scheme)
 
     if plot:
         _ = ArtistAnimation(fig, ims, interval=50)

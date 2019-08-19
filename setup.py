@@ -27,6 +27,8 @@ REQUIRED = [
     'matplotlib',
     'mayavi',
     'numpy',
+    'numba',
+    'scipy'
 ]
 
 # What packages are optional?
