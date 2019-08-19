@@ -53,10 +53,10 @@ def flux(state_array: np.ndarray) -> np.ndarray:
 
     num_cells_x, num_cells_y, _ = state_array.shape
 
-    F = np.empty(num_cells_x, num_cells_y, 4, 2)
+    F = np.empty((num_cells_x, num_cells_y, 4, 2))
 
-    rhoU = state_array[:, :, 0]
-    rhoV = state_array[:, :, 1]
+    rhoU = state_array[:, :, 1]
+    rhoV = state_array[:, :, 2]
     rhoE = state_array[:, :, 3]
     U = state_array[:, :, 5]
     V = state_array[:, :, 6]
@@ -64,7 +64,7 @@ def flux(state_array: np.ndarray) -> np.ndarray:
 
     rhoUU = np.multiply(rhoU, U)
     rhoUV = np.multiply(rhoU, V)
-    rhoVV = np.multiplu(rhoV, V)
+    rhoVV = np.multiply(rhoV, V)
     rhoVU = np.multiply(rhoV, U)
 
     F[:, :, 0, 0] = rhoU

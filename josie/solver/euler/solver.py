@@ -48,13 +48,24 @@ class EulerSolver(Solver):
         super().__init__(mesh, Q)
 
     def post_step(self):
-        for cell in self.mesh.cells.ravel():
-            Q = cell.value
-            rho = Q.rho
-            U = Q.rhoU / rho
-            V = Q.rhoV / rho
-            rhoe = Q.rhoE - 0.5 * rho * (U ** 2 + V ** 2)
-            e = rhoe / rho
-            p = self.eos.p_from_rho_e(rho, e)
-            c = self.eos.sound_velocity(rho, p)
-            cell.value[4:] = np.array([rhoe, U, V, p, c])
+        """ During the step we update the conservative values. After the
+        step we update the non-conservative variables """
+        rho = self.values[:, :, 0]
+        rhoU = self.values[:, :, 1]
+        rhoV = self.values[:, :, 2]
+        rhoE = self.values[:, :, 3]
+
+        U = np.divide(rhoU, rho)
+        V = np.divide(rhoV, rho)
+
+        rhoe = rhoE - 0.5 * rho * (np.power(U, 2) + np.power(V, 2))
+        e = np.divide(rhoe, rho)
+
+        p = self.eos.p(rho, e)
+        c = self.eos.sound_velocity(rho, p)
+
+        self.values[:, :, 4] = rhoe
+        self.values[:, :, 5] = U
+        self.values[:, :, 6] = V
+        self.values[:, :, 7] = p
+        self.values[:, :, 8] = c

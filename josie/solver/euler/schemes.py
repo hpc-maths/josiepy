@@ -57,6 +57,7 @@ def rusanov(
         values of the face surfaces of the face connecting the cell to is
         neighbour
     """
+    FS = np.empty_like(values)
 
     # First four variables of the total state are the conservative
     # variables (rho, rhoU, rhoV, rhoE)
@@ -71,15 +72,24 @@ def rusanov(
     U_neigh = np.einsum("ijk,ijk->ij", UV_neigh, normals)
 
     c = values[:, :, 8]
+    c_neigh = neigh_values[:, :, 8]
 
     # Array to find the sigma value. It has dimensions [Nx * Ny * 2]
-    sigma_array = np.concatenate((np.abs(U) + c, np.abs(U_neigh) + c), axis=-1)
+    sigma_array = np.concatenate(
+        (np.abs(U) + c, np.abs(U_neigh) + c_neigh), axis=-1
+    )
     sigma = np.max(sigma_array, axis=-1)
 
-    DeltaF = 0.5 * (flux(values_cons) + flux(neigh_values_cons))
+    DeltaF = 0.5 * (flux(values) + flux(neigh_values))
     # This is the flux tensor dot the normal
     DeltaF = np.einsum("ijkl,ijl->ijk", DeltaF, normals)
 
-    DeltaQ = 0.5 * np.multiply(sigma, neigh_values_cons - neigh_values_cons)
+    DeltaQ = (
+        0.5
+        * sigma[:, np.newaxis, np.newaxis]
+        * (neigh_values_cons - values_cons)
+    )
 
-    return DeltaF - DeltaQ
+    FS[:, :, :4] = surfaces[:, :, np.newaxis] * (DeltaF - DeltaQ)
+
+    return FS

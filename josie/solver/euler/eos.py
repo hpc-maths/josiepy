@@ -30,11 +30,11 @@ import numpy as np
 
 class EOS(metaclass=abc.ABCMeta):
     @abc.abstractmethod
-    def rhoe_from_rho_p(self, rho: float, p: float):
+    def rhoe(self, rho: float, p: float):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def p_from_rho_e(self, rho: float, e: float):
+    def p(self, rho: float, e: float):
         raise NotImplementedError
 
     @abc.abstractmethod
@@ -60,16 +60,67 @@ class PerfectGas(EOS):
     def __init__(self, gamma: float = 1.4):
         self.gamma = gamma
 
-    def rhoe_from_rho_p(self, rho: float, p: float):
-        """ This returns the internal energy multiplied by the density"""
+    def rhoe(self, rho: np.ndarray, p: np.ndarray):
+        """ This returns the internal energy multiplied by the density
+
+        Parameters
+        ----------
+        rho
+            A :class:`np.ndarray` containing the values of the density on the
+            mesh cells
+
+        p
+            A :class:`np.ndarray` containing the values of the pressure on the
+            mesh cells
+
+        Returns
+        -------
+        rhoe
+            A :class`np.ndarray  containing the values of the internal energy
+            multiplied by the density
+        """
 
         return p / (self.gamma - 1)
 
-    def p_from_rho_e(self, rho: float, e: float):
-        """ This returns the pressure from internal energy and density """
-        return (self.gamma - 1) * rho * e
+    def p(self, rho: np.ndarray, e: np.ndarray):
+        """ This returns the pressure from density and internal energy
 
-    def sound_velocity(self, rho: float, p: float):
-        """ This returns the sound velocity from density and pressure"""
+        Parameters
+        ----------
+        rho
+            A :class:`np.ndarray` containing the values of the density on the
+            mesh cells
 
-        return np.sqrt(self.gamma * p / rho)
+        e
+            A :class:`np.ndarray` containing the values of the internal energy
+            on the mesh cells
+
+        Returns
+        -------
+        p
+            A :class`np.ndarray  containing the values of the pressure
+            multiplied by the density
+        """
+        return (self.gamma - 1) * np.multiply(rho, e)
+
+    def sound_velocity(self, rho: np.ndarray, p: np.ndarray):
+        """ This returns the sound velocity from density and pressure
+
+        Parameters
+        ----------
+        rho
+            A :class:`np.ndarray` containing the values of the density on the
+            mesh cells
+
+        p
+            A :class:`np.ndarray` containing the values of the pressure
+            on the mesh cells
+
+        Returns
+        -------
+        c
+            A :class`np.ndarray  containing the values of the sound velocity
+            multiplied by the density
+        """
+
+        return np.sqrt(self.gamma * np.divide(p, rho))

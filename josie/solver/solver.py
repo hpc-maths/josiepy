@@ -198,12 +198,12 @@ class Solver:
             A callable representime the space scheme to use
 
         """
-        # We accumulate the fluxes for each set of neighbours
+        # We accumulate the delta fluxes for each set of neighbours
         fluxes = np.zeros_like(self.values)
 
         # Left Neighbours
         neighs = np.concatenate(
-            (self.left_ghost[:, :, np.newaxis], self.values[:-1, :])
+            (self.left_ghost[np.newaxis, :, :], self.values[:-1, :])
         )
         fluxes += scheme(
             self.values,
@@ -214,7 +214,7 @@ class Solver:
 
         # Right Neighbours
         neighs = np.concatenate(
-            (self.values[1:, :], self.right_ghost[:, :, np.newaxis])
+            (self.values[1:, :], self.right_ghost[np.newaxis, :, :])
         )
 
         fluxes += scheme(
@@ -227,7 +227,7 @@ class Solver:
         if not (self.mesh.oneD):
             # Top Neighbours
             neighs = np.concatenate(
-                (self.top_ghost[:, :, np.newaxis], self.values[:, :-1])
+                (self.top_ghost[np.newaxis, :, :], self.values[:, :-1])
             )
             fluxes += scheme(
                 self.values,
@@ -238,7 +238,7 @@ class Solver:
 
             # Bottom Neighbours
             neighs = np.concatenate(
-                (self.values[:, 1:], self.btm_ghost[:, :, np.newaxis])
+                (self.values[:, 1:], self.btm_ghost[np.newaxis, :, :])
             )
             fluxes += scheme(
                 self.values,
@@ -247,9 +247,7 @@ class Solver:
                 self.mesh.surfaces[:, :, 1],
             )
 
-        self.values -= np.einsum("ijk,ik->ij", fluxes, dt / self.mesh.volumes)[
-            :, np.newaxis, :
-        ]
+        self.values -= fluxes * dt / self.mesh.volumes[:, :, np.newaxis]
 
         # Let's put here an handy post step if needed after the values update
         self.post_step()
