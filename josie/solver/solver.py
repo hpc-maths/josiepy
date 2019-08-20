@@ -33,6 +33,7 @@ import numpy as np
 from typing import Callable, NoReturn, TYPE_CHECKING
 
 from .state import StateTemplate
+from .scheme import Scheme
 
 if TYPE_CHECKING:
     from josie.mesh import Mesh
@@ -87,8 +88,9 @@ class Solver(metaclass=abc.ABCMeta):
         self.values: np.ndarray = np.empty(0)
         self.left_ghost: np.ndarray = np.empty(0)
         self.right_ghost: np.ndarray = np.empty(0)
-        self.top_ghost: np.ndarray = np.empty(0)
-        self.btm_ghost: np.ndarray = np.empty(0)
+        if not (self.mesh.oneD):
+            self.top_ghost: np.ndarray = np.empty(0)
+            self.btm_ghost: np.ndarray = np.empty(0)
 
     def init(self, init_fun: Callable[[Solver], NoReturn]):
         """
@@ -152,13 +154,7 @@ class Solver(metaclass=abc.ABCMeta):
                 self.values[:, -1],
             )  # type: ignore
 
-    def step(
-        self,
-        dt: float,
-        scheme: Callable[
-            [np.ndarray, np.ndarray, np.ndarray, np.ndarray], np.ndarray
-        ],
-    ):
+    def step(self, dt: float, scheme: Scheme):
         """ This method advances one step in time (for the moment using an
         explicit Euler scheme for time integration, but in future we will
         provide a way to give arbitrary time schemes)

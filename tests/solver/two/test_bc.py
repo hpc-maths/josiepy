@@ -1,4 +1,4 @@
-from josie.mesh.cell import NeighbourCell
+import numpy as np
 
 
 def test_periodic(solver):
@@ -6,22 +6,10 @@ def test_periodic(solver):
     cells on the other domain and, for 1D, that the cells on the 'top' and
     'bottom' boundary actually do not have neighbours
     """
-
-    for left_cell in solver.mesh.cells[0, :]:
-        assert isinstance(left_cell.w, NeighbourCell)
-        assert left_cell.w.cell == solver.mesh.cells[-1, left_cell.j]
-
-    for btm_cell in solver.mesh.cells[:, 0]:
-        assert isinstance(btm_cell.s, NeighbourCell)
-        assert btm_cell.s.cell == solver.mesh.cells[btm_cell.i, -1]
-
-    for right_cell in solver.mesh.cells[-1, :]:
-        assert isinstance(right_cell.e, NeighbourCell)
-        assert right_cell.e.cell == solver.mesh.cells[0, right_cell.j]
-
-    for top_cell in solver.mesh.cells[:, -1]:
-        assert isinstance(top_cell.n, NeighbourCell)
-        assert top_cell.n.cell == solver.mesh.cells[top_cell.i, 0]
+    assert np.array_equal(solver.left_ghost, solver.values[-1, :])
+    assert np.array_equal(solver.right_ghost, solver.values[0, :])
+    assert np.array_equal(solver.top_ghost, solver.values[:, 0])
+    assert np.array_equal(solver.btm_ghost, solver.values[:, -1])
 
 
 def test_periodic_state(solver):
@@ -34,28 +22,14 @@ def test_periodic_state(solver):
     c = 3.33
     d = 4.44
 
-    for left_cell in solver.mesh.cells[0, :]:
-        left_cell.value = a
+    solver.values[0, :] = a
+    assert np.all(solver.right_ghost == a)
 
-    for right_cell in solver.mesh.cells[-1, :]:
-        right_cell.value = c
+    solver.values[-1, :] = b
+    assert np.all(solver.left_ghost == b)
 
-    # Check values
-    for left_cell in solver.mesh.cells[0, :]:
-        assert left_cell.w.value == c
+    solver.values[:, 0] = c
+    assert np.all(solver.top_ghost == c)
 
-    for right_cell in solver.mesh.cells[-1, :]:
-        assert right_cell.e.value == a
-
-    for btm_cell in solver.mesh.cells[:, 0]:
-        btm_cell.value = b
-
-    for top_cell in solver.mesh.cells[:, -1]:
-        top_cell.value = d
-
-    # Check values
-    for btm_cell in solver.mesh.cells[:, 0]:
-        assert btm_cell.s.value == d
-
-    for top_cell in solver.mesh.cells[:, -1]:
-        assert top_cell.n.value == b
+    solver.values[:, -1] = d
+    assert np.all(solver.btm_ghost == d)

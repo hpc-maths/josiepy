@@ -2,7 +2,7 @@ import pytest
 
 from josie.bc import make_periodic, Direction
 from josie.geom import Line
-from josie.mesh import Mesh
+from josie.mesh import Mesh, SimpleCell
 from josie.solver import Solver
 
 
@@ -25,16 +25,16 @@ def mesh(boundaries):
 
     mesh = Mesh(left, bottom, right, top)
     mesh.interpolate(20, 20)
-    mesh.generate()
+    mesh.generate(SimpleCell)
 
     yield mesh
 
 
 @pytest.fixture
-def solver(mesh, problem, init_fun):
+def solver(mesh, Q, init_fun):
     """ A dummy solver instance with initiated state """
 
-    solver = Solver(mesh, problem)
+    solver = Solver(mesh, Q)
     solver.init(init_fun)
 
     yield solver

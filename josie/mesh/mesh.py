@@ -29,7 +29,7 @@
 
 import numpy as np
 
-from typing import Optional, Tuple, Type
+from typing import Tuple, Type
 
 from josie.exceptions import InvalidMesh
 from josie.geom import BoundaryCurve
@@ -92,11 +92,11 @@ class Mesh:
         self.right = right
         self.top = top
 
-        self.centroids: Optional[np.ndarray] = None
-        self.volumes: Optional[np.ndarray] = None
-        self.points: Optional[np.ndarray] = None
-        self.surfaces: Optional[np.ndarray] = None
-        self.normals: Optional[np.ndarray] = None
+        self.centroids: np.ndarray = np.empty(0)
+        self.volumes: np.ndarray = np.empty(0)
+        self.points: np.ndarray = np.empty(0)
+        self.surfaces: np.ndarray = np.empty(0)
+        self.normals: np.ndarray = np.empty(0)
 
         self.oneD = False
 
@@ -132,8 +132,9 @@ class Mesh:
         # This is the vectorized form of a double loop on xi and eta
         # to apply the TFI
         XIS, ETAS = np.ogrid[
-            0 : 1 : self._num_xi * 1j, 0 : 1 : self._num_eta * 1j
-        ]  # type: ignore # noqa: E501
+            0 : 1 : self._num_xi * 1j,  # type: ignore
+            0 : 1 : self._num_eta * 1j,  # type: ignore
+        ]
 
         x = np.empty((self._num_xi, self._num_eta))
         y = np.empty((self._num_xi, self._num_eta))
