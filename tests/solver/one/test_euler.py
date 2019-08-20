@@ -7,7 +7,7 @@ from matplotlib.animation import ArtistAnimation
 from josie.bc import Dirichlet
 from josie.geom import Line
 from josie.mesh import Mesh, SimpleCell
-from josie.solver.euler import rusanov, Q, EulerSolver, PerfectGas
+from josie.solver.euler import Rusanov, Q, EulerSolver, PerfectGas
 
 riemann_states = [
     {
@@ -113,6 +113,7 @@ def test_toro(riemann_problem, plot):
     final_time = 0.25
     t = 0
     CFL = 0.85
+    rusanov = Rusanov()
 
     if plot:
         ims = []
@@ -149,7 +150,13 @@ def test_toro(riemann_problem, plot):
 
             ims.append([im1, im2, im3])
 
-        dt = solver.CFL(CFL)
+        dt = rusanov.CFL(
+            solver.values,
+            solver.mesh.volumes,
+            solver.mesh.normals,
+            solver.mesh.surfaces,
+            CFL,
+        )
         solver.step(dt, rusanov)
 
         t += dt

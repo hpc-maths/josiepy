@@ -205,7 +205,7 @@ class Solver(metaclass=abc.ABCMeta):
         neighs = np.concatenate(
             (self.left_ghost[np.newaxis, :, :], self.values[:-1, :])
         )
-        fluxes += scheme(
+        fluxes += scheme.convective_flux(
             self.values,
             neighs,
             self.mesh.normals[:, :, 0, :],
@@ -217,7 +217,7 @@ class Solver(metaclass=abc.ABCMeta):
             (self.values[1:, :], self.right_ghost[np.newaxis, :, :])
         )
 
-        fluxes += scheme(
+        fluxes += scheme.convective_flux(
             self.values,
             neighs,
             self.mesh.normals[:, :, 2, :],
@@ -229,7 +229,7 @@ class Solver(metaclass=abc.ABCMeta):
             neighs = np.concatenate(
                 (self.top_ghost[np.newaxis, :, :], self.values[:, :-1])
             )
-            fluxes += scheme(
+            fluxes += scheme.convective_flux(
                 self.values,
                 neighs,
                 self.mesh.normals[:, :, 3, :],
@@ -240,7 +240,7 @@ class Solver(metaclass=abc.ABCMeta):
             neighs = np.concatenate(
                 (self.values[:, 1:], self.btm_ghost[np.newaxis, :, :])
             )
-            fluxes += scheme(
+            fluxes += scheme.convective_flux(
                 self.values,
                 neighs,
                 self.mesh.normals[:, :, 1, :],
@@ -262,25 +262,6 @@ class Solver(metaclass=abc.ABCMeta):
         """
         pass
 
-    @abc.abstractmethod
-    def CFL(self, value: float) -> float:
-        """ This method returns the optimal `dt` value that fulfills the CFL
-        condition for the concrete :class:`Solver` and the given scheme
-
-        Parameters
-        ----------
-        value
-            The value of the CFL number to enforce
-
-        Returns
-        -------
-        dt
-            The Optimal `dt` fulfilling the CFL condition for the given
-            CFL number
-        """
-
-        raise NotImplementedError
-
     def solve(self, final_time, CFL, scheme, animate=False, write=False):
         if animate:
             self._init_show()
@@ -289,7 +270,7 @@ class Solver(metaclass=abc.ABCMeta):
         i = 0
 
         while t < final_time:
-            dt = self.CFL(CFL)
+            dt = scheme.CFL(CFL)
 
             t = t + dt
             i = i + 1

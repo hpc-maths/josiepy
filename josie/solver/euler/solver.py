@@ -47,30 +47,6 @@ class EulerSolver(Solver):
 
         super().__init__(mesh, Q)
 
-    def CFL(self, value: float) -> float:
-        UV = self.values[:, :, 5:7]
-        c = self.values[:, :, -1]
-
-        # TODO: We can probably optimize this since we compute `sigma` in
-        # the rusanov scheme, so we could find a way to store it and avoid
-        # to recompute it here
-
-        # Absolute value squared for each cell
-        # Equivalent to: U[:, :]**2 + V[:, :]**2
-        UU_abs = np.einsum("ijk,ijk->ij", UV, UV)
-
-        # Max speed value over all cells
-        U_abs = np.sqrt(np.max(UU_abs))
-
-        # Max sound velocity
-        c_max = np.max(c)
-
-        # Min face surface
-        # TODO: This probably needs to be generalized for 3D
-        dx = np.min(self.mesh.surfaces)
-
-        return value * dx / (U_abs + c_max)
-
     def post_step(self):
         """ During the step we update the conservative values. After the
         step we update the non-conservative variables """
