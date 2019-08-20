@@ -3,7 +3,34 @@ image: python:slim
 variables:
     DEBIAN_FRONTEND: noninteractive
 
+stages:
+    - test
+    - post
+
+
 test:
+    stage: test
     script:
+        - pip install pygount
+        - pygount --format cloc-xml -o loc.xml
         - pip install ".[dev]"
         - pytest
+    artifacts:
+        paths: 
+            - "*.xml"
+        expire_in: 1 week
+
+badges:
+    stage: post
+    dependencies:
+        - test
+    before_script: 
+        - apt-get update && apt-get -y install git
+    script: 
+        - pip install badgey
+        - badgey LOCBadge loc.xml
+        - badgey CoverageBadge cov.xml
+        - badgey GitVersionBadge .
+    artifacts:
+        paths:
+            - "*.svg"
