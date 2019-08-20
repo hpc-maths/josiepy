@@ -36,15 +36,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from typing import TYPE_CHECKING
+from josie.math import map01to
 
 if TYPE_CHECKING:
     from josie.bc import BoundaryCondition  # pragma: no cover
-
-
-def map01to(x, a, b):
-    """ Maps x in [0, 1] to [a, b] """
-
-    return (b - a) * x + a
 
 
 class BoundaryCurve(metaclass=abc.ABCMeta):
