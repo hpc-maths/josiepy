@@ -34,7 +34,13 @@ REQUIRED = [
 # What packages are optional?
 EXTRAS = {
     # 'fancy feature': ['django'],
-    "dev": ["pytest", "pytest-cov", "pytest-mypy", "pytest-flake8"],
+    "dev": [
+        "pytest",
+        "pytest-cov",
+        "pytest-mypy",
+        "pytest-flake8",
+        "pytest-xdist",
+    ],
     "examples": ["jupyter", "ipywidgets", "ipyevents", "scipy", "nbdime"],
 }
 

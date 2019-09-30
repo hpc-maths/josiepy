@@ -41,7 +41,7 @@ PointType = Union[Tuple[float, float], np.ndarray]
 
 
 class Dimensionality(Enum):
-    TWO = (2,)
+    TWO = 2
     THREE = 3
 
 
@@ -270,7 +270,6 @@ class SimpleCell(Cell):
 
     @classmethod
     def create_connectivity(cls, mesh: "Mesh"):
-
         num_cells_x = mesh.num_cells_x
         num_cells_y = mesh.num_cells_y
         x = mesh._x
@@ -287,6 +286,7 @@ class SimpleCell(Cell):
         mesh.normals = np.empty_like(mesh.points)
         mesh.surfaces = np.empty((num_cells_x, num_cells_y, cls.num_points))
 
+        # TODO: This can be probably vectorized
         for i in range(num_cells_x):
             for j in range(num_cells_y):
                 p0 = np.asarray((x[i, j + 1], y[i, j + 1]))

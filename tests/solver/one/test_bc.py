@@ -2,13 +2,14 @@ import numpy as np
 import pytest
 
 from josie.mesh.mesh import Mesh
+from josie.mesh.cell import SimpleCell
 from josie.exceptions import InvalidMesh
 
 
 def test_invalid_mesh_x(boundaries, solver, init_fun):
     left, bottom, right, top = boundaries
 
-    mesh = Mesh(left, bottom, right, top)
+    mesh = Mesh(left, bottom, right, top, SimpleCell)
     with pytest.raises(InvalidMesh):
         mesh.interpolate(40, 2)
 

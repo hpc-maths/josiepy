@@ -44,35 +44,54 @@ class Mesh:
     ----------
     left
         The left BoundaryCurve
+
     bottom
         The bottom BoundaryCurve
+
     right
         The right BoundaryCurve
+
     top
         The right BoundaryCurve
+
+    cell_type
+        A :class:`Cell` class that implements a
+        :func:`~Cell.create_connectivity`
 
     Attributes
     ----------
     left
         The left BoundaryCurve
+
     bottom
         The bottom BoundaryCurve
+
     right
         The right BoundaryCurve
+
     top
         The right BoundaryCurve
+
     oneD: bool
         A flag to indicate if the mesh is 1D or not
+
+    cell_type
+        A :class:`Cell` class that implements a
+        :func:`~Cell.create_connectivity`
+
     centroids: np.ndarray
         An array containing the centroid of the cells. It has the dimensions of
         [`num_cells_x`*`num_cells_y`]
+
     volumes: np.ndarray
         An array containing the volumes of the cells. It has the dimensions of
         [`num_cells_x`*`num_cells_y`]
+
     surfaces: np.ndarray
         An array containing the surfaces of the cells. It has the dimensions of
         [`num_cells_x`*`num_cells_y`*`num_points`] where `num_points` depends
         on the :class:`Cell` type provided
+
     points: np.ndarray
         An array containing the points that constitute a cell. It has the
         dimensions of [`num_cells_x`*`num_cells_y`*`num_points`] where
@@ -86,11 +105,13 @@ class Mesh:
         bottom: BoundaryCurve,
         right: BoundaryCurve,
         top: BoundaryCurve,
+        cell_type: Type[Cell],
     ):
         self.left = left
         self.bottom = bottom
         self.right = right
         self.top = top
+        self.cell_type = cell_type
 
         self.centroids: np.ndarray = np.empty(0)
         self.volumes: np.ndarray = np.empty(0)
@@ -183,30 +204,44 @@ class Mesh:
                     "need to set just 1 cell"
                 )
 
+            # Here I'm checking that each point on the bottom boundary has
+            # same y-coordinate
             same_y = np.all((self._y[:, 0] - self._y[0, 0]) < 1e-12)
-            same_y = same_y & np.all((self._y[:, 1] - self._y[0, 1]) < 1e-12)
+
+            # Same for the other row of points (we have two row of points and
+            # one cell in the y-direction)
+            same_y &= np.all((self._y[:, 1] - self._y[0, 1]) < 1e-12)
+
             if not (same_y):
                 raise InvalidMesh(
                     "For a 1D simulation the top and bottom BoundaryCurve "
                     "needs to be a Line (i.e.  having same y-coordinate)"
                 )
 
-            # Let's scale in the y-direction to match dx in x-direction. This
-            # is needed in order to have 2D flux to work also in 1D
+            # Let's scale dy in the y-direction to match dx in x-direction.
+            # This is needed in order to have 2D flux to work also in 1D
             dx = self._x[1, 0] - self._x[0, 0]
             scale_y = self._y[0, 1] / dx
             self._y[:, 1] = self._y[:, 1] / scale_y
 
         return self._x, self._y
 
-    def generate(self, cell_type: Type[Cell]):
+    def generate(self):
         """ This methods build the geometrical information and the connectivity
-        associated to the mesh.
+        associated to the mesh using the specific cell type connectivity build
+        method
+
+        Arguments
+        ---------
         """
 
-        cell_type.create_connectivity(self)
+        self.cell_type.create_connectivity(self)
 
     def plot(self):
+        """ This method shows the mesh in a GUI """
+
+        # TODO: Instead of matplotlib we should probably use `mayavi` in order
+        # to be future proof if we decide also to add 3D.
         import matplotlib.pyplot as plt
 
         from matplotlib.patches import Polygon

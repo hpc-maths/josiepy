@@ -23,9 +23,9 @@ def boundaries():
 def mesh(boundaries):
     left, bottom, right, top = boundaries
 
-    mesh = Mesh(left, bottom, right, top)
+    mesh = Mesh(left, bottom, right, top, SimpleCell)
     mesh.interpolate(20, 20)
-    mesh.generate(SimpleCell)
+    mesh.generate()
 
     yield mesh
 

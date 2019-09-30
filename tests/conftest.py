@@ -8,15 +8,16 @@ from josie.mesh import SimpleCell
 
 def pytest_addoption(parser):
     parser.addoption(
-        "--plot", action="store_true", help="Some tests can plot the mesh. "
-        "Set to true if you want to see them"
+        "--plot",
+        action="store_true",
+        help="Some tests can plot the mesh. "
+        "Set to true if you want to see them",
     )
 
 
-@pytest.fixture(params=(
-    Line([0, 0], [1, 0]),
-    CircleArc([0, 0], [1, 0], [0.2, 0.2])
-))
+@pytest.fixture(
+    params=(Line([0, 0], [1, 0]), CircleArc([0, 0], [1, 0], [0.2, 0.2]))
+)
 def boundaries(request):
     left = Line([0, 0], [0, 1])
     bottom = request.param
@@ -33,21 +34,22 @@ def boundaries(request):
 def mesh(boundaries):
     left, bottom, right, top = boundaries
 
-    mesh = Mesh(left, bottom, right, top)
+    mesh = Mesh(left, bottom, right, top, SimpleCell)
     mesh.interpolate(10, 10)
-    mesh.generate(SimpleCell)
+    mesh.generate()
 
     yield mesh
 
 
-@pytest.fixture(scope='session', autouse=True)
+@pytest.fixture(scope="session", autouse=True)
 def plot(request):
-    if not(request.config.getoption("--plot")):
+    if not (request.config.getoption("--plot")):
         import matplotlib
-        matplotlib.use('Template')
+
+        matplotlib.use("Template")
     yield request.config.getoption("--plot")
 
 
 @pytest.fixture
 def tol():
-    yield 1E-12
+    yield 1e-12

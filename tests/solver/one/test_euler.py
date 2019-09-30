@@ -97,9 +97,9 @@ def test_toro(riemann_problem, plot):
     top.bc = None
     bottom.bc = None
 
-    mesh = Mesh(left, bottom, right, top)
+    mesh = Mesh(left, bottom, right, top, SimpleCell)
     mesh.interpolate(500, 1)
-    mesh.generate(SimpleCell)
+    mesh.generate()
 
     def init_fun(solver: EulerSolver):
         xc = solver.mesh.centroids[:, :, 0]

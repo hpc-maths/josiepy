@@ -7,7 +7,6 @@ from numba import njit
 
 from .adv1d import main as main_1d
 
-from josie.mesh import SimpleCell
 from josie.solver.state import StateTemplate
 from josie.solver.solver import Solver
 from josie.solver.scheme import Scheme as AbstractScheme
@@ -90,7 +89,7 @@ def upwind_jit(
 @pytest.fixture
 def solver(mesh, init_fun):
     mesh.interpolate(1000, 1)
-    mesh.generate(SimpleCell)
+    mesh.generate()
     solver = Solver(mesh, Q)
     solver.init(init_fun)
 
