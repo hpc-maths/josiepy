@@ -258,27 +258,6 @@ class Solver(metaclass=abc.ABCMeta):
         """
         pass
 
-    def solve(self, final_time, CFL, scheme, animate=False, write=False):
-        if animate:
-            self._init_show()
-
-        t = 0
-        i = 0
-
-        while t < final_time:
-            dt = scheme.CFL(CFL)
-
-            t = t + dt
-            i = i + 1
-
-            if animate:
-                self.animate()
-
-            self.step(dt, scheme)
-
-            if write:
-                self.save(f"t_{i:02d}.vtk")
-
     def _to_mayavi(self):
         from tvtk.api import tvtk
 

@@ -19,13 +19,19 @@ def test_interpolate(mesh, plot):
     assert np.allclose(x[:, -1], xt) and np.allclose(y[:, -1], yt)
 
     plt.figure()
-    plt.plot(x, y, 'k.')
+    plt.plot(x, y, "k.")
     mesh.left.plot()
     mesh.bottom.plot()
     mesh.right.plot()
     mesh.top.plot()
-    plt.axis('equal')
+    plt.axis("equal")
     plt.show(block=False)
+
+
+def test_write(tmp_path, mesh):
+    mesh.generate()
+    file = tmp_path / "test.xdmf"
+    mesh.write(file.as_posix())
 
 
 def test_plot(mesh, plot):

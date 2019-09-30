@@ -28,7 +28,7 @@ import abc
 
 import numpy as np
 
-from enum import Enum
+from meshio import Mesh as MeshIO
 from typing import TYPE_CHECKING, Tuple, Union
 
 
@@ -38,11 +38,6 @@ if TYPE_CHECKING:
 
 
 PointType = Union[Tuple[float, float], np.ndarray]
-
-
-class Dimensionality(Enum):
-    TWO = 2
-    THREE = 3
 
 
 class Cell(metaclass=abc.ABCMeta):
@@ -61,29 +56,35 @@ class Cell(metaclass=abc.ABCMeta):
         The number of points needed to describe the cell
     num_dofs: int
         The number of degrees of freedom stored in the cell
-    dims: Dimensionality
-        Dimensionality of the cell.
+    _meshio_cell_type: str
+        Which type of cell in :mod:`meshio` :class:`Cell` is mapped to (e.g.
+        a quadrangular cell is of type `quad` in :mod:`meshio`
     """
 
-    @abc.abstractproperty
     @property
+    @abc.abstractmethod
     def num_points(self):
         raise NotImplementedError
 
-    @abc.abstractproperty
     @property
+    @abc.abstractmethod
     def num_dofs(self):
         raise NotImplementedError
 
+    @property
+    @abc.abstractmethod
+    def _meshio_cell_type(self):
+        raise NotImplementedError
+
     @classmethod
-    @abc.abstractclassmethod
+    @abc.abstractmethod
     def centroid(
         cls, nw: PointType, sw: PointType, se: PointType, ne: PointType
     ) -> PointType:
         """ Compute the centroid of the cell """
 
     @classmethod
-    @abc.abstractclassmethod
+    @abc.abstractmethod
     def volume(
         cls, nw: PointType, sw: PointType, se: PointType, ne: PointType
     ) -> float:
@@ -92,21 +93,21 @@ class Cell(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @classmethod
-    @abc.abstractclassmethod
+    @abc.abstractmethod
     def face_surface(cls, p0: PointType, p1: PointType) -> float:
         """ Compute the surface of a face from its points.
         """
         raise NotImplementedError
 
     @classmethod
-    @abc.abstractclassmethod
+    @abc.abstractmethod
     def face_normal(cls, p0: PointType, p1: PointType) -> np.ndarray:
         """ Compute the normal vector to a face.
         """
         raise NotImplementedError
 
     @classmethod
-    @abc.abstractclassmethod
+    @abc.abstractmethod
     def create_connectivity(cls, mesh: "Mesh"):
         """ This method creates the connectivity from the given points of
         a mesh. It modifies attributes of the :class:`Mesh` instance.
@@ -123,6 +124,13 @@ class Cell(metaclass=abc.ABCMeta):
 
         """
         raise NotImplementedError
+
+    @classmethod
+    @abc.abstractmethod
+    def export_connectivity(cls, mesh: "Mesh") -> MeshIO:
+        """ This method exports the connectivity of the mesh in the format
+        accepted by the :class:`~meshio.Mesh`.
+        """
 
 
 class SimpleCell(Cell):
@@ -142,7 +150,7 @@ class SimpleCell(Cell):
 
     num_dofs = 1
     num_points = 4
-    dims = Dimensionality.TWO
+    _meshio_cell_type = "quad"
 
     @classmethod
     def centroid(
@@ -329,3 +337,24 @@ class SimpleCell(Cell):
                 mesh.normals[i, j, 3, :] = cls.face_normal(
                     p0, p3
                 )  # type: ignore # noqa: E501
+
+    @classmethod
+    def export_connectivity(cls, mesh: "Mesh") -> MeshIO:
+        # Recast points in the format meshio wants them. I.e. an array of
+        # [nx*ny*num_points, 3] elements. Each row is a point in 3D.
+        nx = mesh.num_cells_x
+        ny = mesh.num_cells_y
+
+        # 2D points
+        io_pts = mesh.points.reshape(nx * ny * cls.num_points, 2)
+
+        # Pad with zeros to make them 3D
+        io_pts = np.pad(io_pts, ((0, 0), (0, 1)))
+
+        # Now a cell is made by chunks of `num_points` rows of the io_pts
+        # array
+        rows, _ = io_pts.shape
+        num_chunks = rows / cls.num_points
+        io_cells = np.split(np.arange(rows), num_chunks)
+
+        return MeshIO(io_pts, {cls._meshio_cell_type: np.array(io_cells)})

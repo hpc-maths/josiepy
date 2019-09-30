@@ -27,6 +27,7 @@
 
 """ This module contains the primitives related to the mesh generation """
 
+import meshio
 import numpy as np
 
 from typing import Tuple, Type
@@ -79,24 +80,31 @@ class Mesh:
         A :class:`Cell` class that implements a
         :func:`~Cell.create_connectivity`
 
-    centroids: np.ndarray
+    num_cells_x
+        The number of cells in the x-direction
+
+    num_cells_y
+        The number of cells in the y-direction
+
+    centroids
         An array containing the centroid of the cells. It has the dimensions of
         [`num_cells_x`*`num_cells_y`]
 
-    volumes: np.ndarray
+    volumes
         An array containing the volumes of the cells. It has the dimensions of
         [`num_cells_x`*`num_cells_y`]
 
-    surfaces: np.ndarray
+    surfaces
         An array containing the surfaces of the cells. It has the dimensions of
         [`num_cells_x`*`num_cells_y`*`num_points`] where `num_points` depends
         on the :class:`Cell` type provided
 
-    points: np.ndarray
+    points
         An array containing the points that constitute a cell. It has the
-        dimensions of [`num_cells_x`*`num_cells_y`*`num_points`] where
+        dimensions of [`num_cells_x`*`num_cells_y`*`num_points`* `dim`] where
         `num_points` is the number of points specific to a cell (e.g. for a
-        :class:`SimpleCell`, that is 2D quadrangle, the points are 4)
+        :class:`SimpleCell`, that is 2D quadrangle, the points are 4) and `dim`
+        is the dimensionality of the mesh, currently 2D (dim=2)
     """
 
     def __init__(
@@ -236,6 +244,19 @@ class Mesh:
         """
 
         self.cell_type.create_connectivity(self)
+
+    def write(self, filepath):
+        """ Save the cell into a file using :mod:`meshio`
+
+        Arguments
+        ---------
+        filepath
+            The path to the file. The extension of the file is used by
+            :mod:`meshio` to decide wich output file to use
+        """
+
+        io_mesh = self.cell_type.export_connectivity(self)
+        meshio.write(filepath, io_mesh)
 
     def plot(self):
         """ This method shows the mesh in a GUI """
