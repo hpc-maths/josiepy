@@ -27,9 +27,10 @@
 from __future__ import annotations
 
 import abc
-
 import numpy as np
+import os
 
+from meshio import XdmfTimeSeriesWriter
 from typing import Callable, NoReturn, TYPE_CHECKING
 
 from .state import StateTemplate
@@ -282,11 +283,29 @@ class Solver(metaclass=abc.ABCMeta):
 
         return sgrid
 
-    def save(self, filename):
-        from tvtk.api import write_data
+    def save(self, t, filename: os.PathLike):
+        """ This method saves the simulation instant in a `xdmf` file
+        supporting time series.
 
-        sgrid = self._to_mayavi()
-        write_data(sgrid, filename)
+        Arguments
+        ---------
+        t
+            The time instant to save
+        filename
+            The name of the file holding the time series. It's an XDMF file
+        """
+
+        if not (hasattr(self, "_writer")):
+            io_mesh = self.mesh.export()
+            self._writer = XdmfTimeSeriesWriter(filename)
+            self._writer.write_points_cells(io_mesh.points, io_mesh.cells)
+
+        cell_data = {}
+        for i, field in enumerate(self.Q.fields):
+            cell_data[field] = self.values[:, :, i].ravel()
+
+        cell_type_str = self.mesh.cell_type._meshio_cell_type
+        self._writer.write_data(t, cell_data={cell_type_str: cell_data})
 
     def _init_show(self):
         from mayavi import mlab

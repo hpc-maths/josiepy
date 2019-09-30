@@ -29,7 +29,9 @@
 
 import meshio
 import numpy as np
+import os
 
+from meshio import Mesh as MeshIO
 from typing import Tuple, Type
 
 from josie.exceptions import InvalidMesh
@@ -235,7 +237,7 @@ class Mesh:
         return self._x, self._y
 
     def generate(self):
-        """ This methods build the geometrical information and the connectivity
+        """ Buuild the geometrical information and the connectivity
         associated to the mesh using the specific cell type connectivity build
         method
 
@@ -245,7 +247,12 @@ class Mesh:
 
         self.cell_type.create_connectivity(self)
 
-    def write(self, filepath):
+    def export(self) -> MeshIO:
+        """ Export the mesh to a :class:`meshio.Mesh` object """
+
+        return self.cell_type.export_connectivity(self)
+
+    def write(self, filepath: os.PathLike):
         """ Save the cell into a file using :mod:`meshio`
 
         Arguments
@@ -255,8 +262,7 @@ class Mesh:
             :mod:`meshio` to decide wich output file to use
         """
 
-        io_mesh = self.cell_type.export_connectivity(self)
-        meshio.write(filepath, io_mesh)
+        meshio.write(filepath, self.export())
 
     def plot(self):
         """ This method shows the mesh in a GUI """
