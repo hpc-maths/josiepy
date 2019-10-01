@@ -31,7 +31,7 @@ import numpy as np
 import os
 
 from meshio import XdmfTimeSeriesWriter
-from typing import Callable, NoReturn, TYPE_CHECKING
+from typing import Callable, List, NoReturn, Optional, Union, TYPE_CHECKING
 
 from .state import StateTemplate
 from .scheme import Scheme
@@ -41,7 +41,7 @@ if TYPE_CHECKING:
 
 
 class Solver(metaclass=abc.ABCMeta):
-    def __init__(self, mesh: "Mesh", Q: "StateTemplate"):
+    def __init__(self, mesh: Mesh, Q: StateTemplate):
         """ This class is used to solve a problem governed by PDEs.
 
         The internal state of the mesh is stored in :attr:`values`, while the
@@ -259,35 +259,11 @@ class Solver(metaclass=abc.ABCMeta):
         """
         pass
 
-    def _to_mayavi(self):
-        from tvtk.api import tvtk
-
-        # Rearrange points
-        points = np.vstack((self.mesh._x.ravel(), self.mesh._y.ravel())).T
-        points = np.pad(points, ((0, 0), (0, 1)), "constant")
-
-        sgrid = tvtk.StructuredGrid(
-            dimensions=(self.mesh._num_xi, self.mesh._num_eta, 1)
-        )
-
-        sgrid.points = points
-
-        cell_data = np.empty(
-            (len(self.mesh.cells.ravel()), len(self.problem.Q.fields))
-        )
-
-        for i, cell in enumerate(self.mesh.cells.ravel()):
-            cell_data[i, :] = cell.value
-
-        sgrid.cell_data.scalars = cell_data
-
-        return sgrid
-
     def save(self, t, filename: os.PathLike):
         """ This method saves the simulation instant in a `xdmf` file
         supporting time series.
 
-        Arguments
+        Parameters
         ---------
         t
             The time instant to save
@@ -307,32 +283,35 @@ class Solver(metaclass=abc.ABCMeta):
         cell_type_str = self.mesh.cell_type._meshio_cell_type
         self._writer.write_data(t, cell_data={cell_type_str: cell_data})
 
-    def _init_show(self):
-        from mayavi import mlab
+    def plot(self):
+        """ Plot the current state of the simulation in a GUI.
 
-        sgrid = self._to_mayavi()
+        You can specify which fields to plot
 
-        mlab.figure(
-            bgcolor=(1, 1, 1), fgcolor=(0, 0, 0), figure=sgrid.class_name[3:]
-        )
-        surf = mlab.pipeline.surface(sgrid, opacity=0.1)
-        mlab.pipeline.surface(
-            mlab.pipeline.extract_edges(surf), color=(0, 0, 0)
-        )
+        Parameters
+        ---------
+        fields
+            A list (or a string, if a singular field is needed) of fields
+            to plot
+        """
+        plt = self.mesh.backend
+        plt.update(self)
 
-        mlab.view(azimuth=0, elevation=0)
+    def animate(self, t):
+        """ Animate the simulation. Call :meth:`animate` for each time instant
+        you want to provide in the animation.
 
-        self._surf = surf
-        self._sgrid = sgrid
+        Parameters
+        ----------
+        t
+            The time instant to animate
+        """
+        plt = self.mesh.backend
+        plt.append(self, t)
 
-    def animate(self):
-        cell_data = np.empty(
-            (len(self.mesh.cells.ravel()), len(self.problem.Q.fields))
-        )
+    def show(self, fields: Optional[Union[List[str], str]] = None):
+        """ Display on screen the given fields
+        """
 
-        for i, cell in enumerate(self.mesh.cells.ravel()):
-            cell_data[i, :] = cell.value
-
-        self._sgrid.cell_data.scalars = cell_data
-        self._sgrid.modified()
-        yield
+        plt = self.mesh.backend
+        plt.show(fields)

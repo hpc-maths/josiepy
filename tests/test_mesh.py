@@ -36,4 +36,3 @@ def test_write(tmp_path, mesh):
 
 def test_plot(mesh, plot):
     mesh.plot()
-    plt.show()

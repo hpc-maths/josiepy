@@ -36,6 +36,8 @@ from typing import Tuple, Type
 
 from josie.exceptions import InvalidMesh
 from josie.geom import BoundaryCurve
+from josie.plot import DefaultBackend
+from josie.plot.backend import PlotBackend
 
 from .cell import Cell
 
@@ -107,6 +109,9 @@ class Mesh:
         `num_points` is the number of points specific to a cell (e.g. for a
         :class:`SimpleCell`, that is 2D quadrangle, the points are 4) and `dim`
         is the dimensionality of the mesh, currently 2D (dim=2)
+
+    plot_backend
+        An instance of :class:`PlotBackend` used to plot mesh and its values
     """
 
     def __init__(
@@ -143,6 +148,8 @@ class Mesh:
                     "be set to `None`"
                 )
             self.oneD = True
+
+        self.backend: PlotBackend = DefaultBackend()
 
     def interpolate(
         self, num_cells_x: int, num_cells_y: int
@@ -241,7 +248,7 @@ class Mesh:
         associated to the mesh using the specific cell type connectivity build
         method
 
-        Arguments
+        Parameters
         ---------
         """
 
@@ -255,7 +262,7 @@ class Mesh:
     def write(self, filepath: os.PathLike):
         """ Save the cell into a file using :mod:`meshio`
 
-        Arguments
+        Parameters
         ---------
         filepath
             The path to the file. The extension of the file is used by
@@ -267,20 +274,5 @@ class Mesh:
     def plot(self):
         """ This method shows the mesh in a GUI """
 
-        # TODO: Instead of matplotlib we should probably use `mayavi` in order
-        # to be future proof if we decide also to add 3D.
-        import matplotlib.pyplot as plt
-
-        from matplotlib.patches import Polygon
-        from matplotlib.collections import PatchCollection
-
-        fig, ax = plt.subplots()
-
-        cells = []
-        for i in range(self.num_cells_x):
-            for j in range(self.num_cells_y):
-                cells.append(Polygon(self.points[i, j, :, :]))
-
-        patch_coll = PatchCollection(cells, facecolors="None", edgecolors="k")
-        ax.add_collection(patch_coll)
-        ax.plot(self.centroids[:, :, 0], self.centroids[:, :, 1], "ko", ms=1)
+        self.backend.plot(self)
+        self.backend.show_grid()

@@ -22,28 +22,17 @@ REQUIRES_PYTHON = ">=3"
 VERSION = "0.1.0"
 
 # What packages are required for this module to be executed?
-REQUIRED = [
-    "aenum",
-    "matplotlib",
-    # 'mayavi',
-    "meshio[all]",
-    "numba",
-    "numpy",
-    "scipy",
-]
+REQUIRED = ["aenum", "matplotlib", "meshio[all]", "numba", "numpy", "scipy"]
+
+# Optional
+GRAPHICS = ["mayavi"]
+DEV = ["pytest", "pytest-cov", "pytest-mypy", "pytest-flake8", "pytest-xdist"]
+EXAMPLES = ["jupyter", "ipywidgets", "ipyevents", "nbdime"]
+
+ALL = GRAPHICS + DEV + EXAMPLES
 
 # What packages are optional?
-EXTRAS = {
-    # 'fancy feature': ['django'],
-    "dev": [
-        "pytest",
-        "pytest-cov",
-        "pytest-mypy",
-        "pytest-flake8",
-        "pytest-xdist",
-    ],
-    "examples": ["jupyter", "ipywidgets", "ipyevents", "scipy", "nbdime"],
-}
+EXTRAS = {"all": ALL, "dev": DEV, "examples": EXAMPLES, "gfx": GRAPHICS}
 
 # The rest you shouldn't have to touch too much :)
 # ------------------------------------------------
@@ -140,6 +129,8 @@ setup(
         "Programming Language :: Python",
         "Programming Language :: Python :: 3",
         "Programming Language :: Python :: Implementation :: CPython",
+        "Topic :: Scientific/Engineering :: Mathematics",
+        "Topic :: Scientific/Engineering :: Physics",
     ],
     # $ setup.py publish support.
     cmdclass={"upload": UploadCommand},
