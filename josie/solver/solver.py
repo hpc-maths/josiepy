@@ -31,7 +31,7 @@ import numpy as np
 import os
 
 from meshio import XdmfTimeSeriesWriter
-from typing import Callable, List, NoReturn, Optional, Union, TYPE_CHECKING
+from typing import Callable, List, NoReturn, Union, TYPE_CHECKING
 
 from .state import StateTemplate
 from .scheme import Scheme
@@ -309,7 +309,7 @@ class Solver(metaclass=abc.ABCMeta):
         plt = self.mesh.backend
         plt.append(self, t)
 
-    def show(self, fields: Optional[Union[List[str], str]] = None):
+    def show(self, fields: Union[List[str], str]):
         """ Display on screen the given fields
         """
 

@@ -29,7 +29,7 @@ from __future__ import annotations
 
 import abc
 
-from typing import List, Optional, Union, TYPE_CHECKING
+from typing import List, Union, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from josie.mesh import Mesh
@@ -91,7 +91,7 @@ class PlotBackend(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def show(self, fields: Optional[Union[List, str]] = None):
+    def show(self, fields: Union[List, str]):
         """ Show on screen a list of fields.
 
         Parameters

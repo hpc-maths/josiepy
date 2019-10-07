@@ -148,7 +148,7 @@ class MatplotlibBackend(PlotBackend):
             self.plot(solver.mesh)
 
         # Otherwise we re-use the already created PatchCollection
-        mesh_patch_coll = self.plot_state.collection
+        mesh_patch_coll: PatchCollection = self.plot_state.collection
 
         # Use the colormap
         mesh_patch_coll.set_cmap(cmap)
@@ -183,7 +183,7 @@ class MatplotlibBackend(PlotBackend):
 
         self.plot_state.append(state_element)
 
-    def _animate(self, fields: Optional[Union[List, str]], interval):
+    def _animate(self, fields: List[str], interval):
         """ Create an animation when more than one instant of time needs to be
         shown up
 
@@ -241,7 +241,7 @@ class MatplotlibBackend(PlotBackend):
 
         plt.show()
 
-    def show(self, fields: Optional[Union[List, str]] = None, fps=25):
+    def show(self, fields: Union[List[str], str], fps=25):
         """ Show the plots on screen
 
         The logic to plot here is that if :attr:`plot_state` is a list
@@ -277,7 +277,7 @@ class MatplotlibBackend(PlotBackend):
             state_element: StateElement = self.plot_state[0]
 
             # Recover the patch collection from the state
-            patch_coll = self.plot_state.collection
+            patch_coll: PatchCollection = self.plot_state.collection
             patch_coll.set_array(state_element.data[field])
             patch_coll.set_cmap(cmap)
             ax.add_collection(patch_coll)
