@@ -277,7 +277,9 @@ class MatplotlibBackend(PlotBackend):
             state_element: StateElement = self.plot_state[0]
 
             # Recover the patch collection from the state
-            patch_coll: PatchCollection = self.plot_state.collection
+            patch_coll: PatchCollection = copy.deepcopy(
+                self.plot_state.collection
+            )
             patch_coll.set_array(state_element.data[field])
             patch_coll.set_cmap(cmap)
             ax.add_collection(patch_coll)
