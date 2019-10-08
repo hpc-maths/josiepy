@@ -14,7 +14,7 @@ def test_init(solver):
     assert np.all(left_values == solver.Q(0))
 
 
-def test_write(tmp_path, solver):
+def test_save(tmp_path, solver):
     # TODO: Think about a better test. E.g. Write down, then reload, and
     # compare
 
