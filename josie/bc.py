@@ -24,11 +24,12 @@
 # The views and conclusions contained in the software and documentation
 # are those of the authors and should not be interpreted as representing
 # official policies, either expressed or implied, of Ruben Di Battista.
+from __future__ import annotations
 
 import abc
 import numpy as np
 
-from typing import Tuple, TYPE_CHECKING
+from typing import Callable, Tuple, TYPE_CHECKING
 
 from josie.solver.solver import Solver
 from .geom import BoundaryCurve
@@ -46,8 +47,8 @@ else:
 
 
 class BoundaryCondition(metaclass=abc.ABCMeta):
-    """ A BoundaryCondition is implemented as a callable that returns an
-    equivalent cell value for each cell given to it.
+    """ A :class:`BoundaryCondition` is implemented as a callable that returns
+    an equivalent cell value for each cell given to it.
 
     This returned values can be an actual values that ensure the value of the
     :class:`State` or of its gradient, or they can just be "pointers" to
@@ -84,7 +85,7 @@ class BoundaryCondition(metaclass=abc.ABCMeta):
 
 
 class Dirichlet(BoundaryCondition):
-    r""" A Dirichlet BoundaryCondition is a BoundaryCondition that fixes a
+    r""" A :class:`BoundaryCondition` that fixes a
     value of the State on the boundary.
 
     Assuming we want to impose the value :math:`Q = Q_D` on the (left, as an
@@ -95,7 +96,8 @@ class Dirichlet(BoundaryCondition):
 
     \frac{Q_{0,j} + Q_\text{ghost}}{2} = Q_D
 
-    That means we can impose the BoundaryCondition assigning the value of
+    That means we can impose the :class:`BoundaryCondition` assigning the value
+    of
 
     .. math::
     Q_\text{ghost} = 2Q_D - \frac{Q_{0,j}}
@@ -108,7 +110,7 @@ class Dirichlet(BoundaryCondition):
         The value of the state to be imposed on the boundary
     """
 
-    def __init__(self, value: "State"):
+    def __init__(self, value: State):
         self._value = value
 
     def __call__(
@@ -123,7 +125,7 @@ class Dirichlet(BoundaryCondition):
 
 
 class Neumann(Dirichlet):
-    r""" A Neumann BoundaryCondition is a BoundaryCondition that fixes a
+    r""" A :class:`BoundaryCondition` that fixes a
     value of the gradient of the State on the boundary.
 
     Assuming we want to impose the value of the gradient :math:`\frac{\partial
@@ -135,7 +137,8 @@ class Neumann(Dirichlet):
 
     \frac{Q_{0,j} - Q_\text{ghost}}{\Delta x} = Q_N
 
-    That means we can impose the BoundaryCondition assigning the value of
+    That means we can impose the :class:`BoundaryCondition` assigning the value
+    of
 
     .. math::
     Q_\text{ghost} = \frac{Q_{0,j}} - Q_N
@@ -156,6 +159,55 @@ class Neumann(Dirichlet):
         t: float = 0,
     ) -> np.ndarray:
         return values - self._value
+
+
+class NeumannDirichlet(BoundaryCondition):
+    """ A :class:`BoundaryCondition` that applies a :class:`Dirichlet`
+    :class:`BoundaryCondition` on a part of the domain and a :class:`Neumann`
+    on the rest of it.
+
+    Parameters
+    ---------
+    neumann_value
+        The value of the gradient to use for the :class:`Neumann` partition of
+        the boundary
+    dirichlet_value
+        The value of the :class:`State` to use for the :class:`Dirichlet`
+        partition of the boundary
+    partition_fun
+        A callable that takes as input the coordinates of the boundary cells
+        and returns the indices of the cells for which the :class:`Dirichlet`
+        boundary condition has to be applied
+    """
+
+    def __init__(
+        self,
+        neumann_value: State,
+        dirichlet_value: State,
+        partition_fun: Callable[[np.ndarray], np.ndarray],
+    ):
+        self.neumann_value = neumann_value
+        self.dirichlet_value = dirichlet_value
+        self.partition_fun = partition_fun
+
+    def __call__(
+        self,
+        solver: Solver,
+        centroids: np.ndarray,
+        values: np.ndarray,
+        t: float = 0,
+    ) -> np.ndarray:
+        # First apply Neumann to everything
+        ghost_values = values - self.neumann_value
+
+        # Then extract the cells where to apply the Dirichlet BC
+        dirichlet_cells = self.partition_fun(centroids)
+
+        ghost_values[dirichlet_cells] = (
+            2 * self.dirichlet_value - values[dirichlet_cells]
+        )
+
+        return ghost_values
 
 
 class Side(Enum, settings=NoAlias):
