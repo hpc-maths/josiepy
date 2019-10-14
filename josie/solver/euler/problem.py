@@ -46,8 +46,9 @@ def flux(state_array: np.ndarray) -> np.ndarray:
 
         \begin{bmatrix}
             \rho u & \rho v \\
-            \rho u^2 & \rho uv \\
-            \rho vu * \rho v^ 2
+            \rho u^2 + p & \rho uv \\
+            \rho vu * \rho v^ 2 + p \\
+            (\rho E + p)U & (\rho E + p)V
         \end{bmatrix}
     """
 

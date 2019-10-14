@@ -68,7 +68,7 @@ class Rusanov(Scheme):
         neigh_values_cons = neigh_values[:, :, :4]
 
         UV = values[:, :, 5:7]
-        UV_neigh = values[:, :, 5:7]
+        UV_neigh = neigh_values[:, :, 5:7]
 
         # Find the normal velocity
         U = np.einsum("ijk,ijk->ij", UV, normals)
@@ -77,10 +77,18 @@ class Rusanov(Scheme):
         c = values[:, :, 8]
         c_neigh = neigh_values[:, :, 8]
 
-        # Array to find the sigma value. It has dimensions [Nx * Ny * 2]
+        # Array to find the sigma value.
+        # We concatenate the two arrays for |U| + c for both the cell and its
+        # neighbours in a [Nx * Ny * 2] array
+
         sigma_array = np.concatenate(
-            (np.abs(U) + c, np.abs(U_neigh) + c_neigh), axis=-1
+            (np.abs(U)[:, :, np.newaxis] + c[:, :, np.newaxis],
+             np.abs(U_neigh)[: , :, np.newaxis] + c_neigh[:, :, np.newaxis]),
+            axis=-1
         )
+
+        # And the we found the max on the last axis (i.e. the maximul value
+        # of sigma for each cell)
         sigma = np.max(sigma_array, axis=-1)
 
         DeltaF = 0.5 * (flux(values) + flux(neigh_values))
@@ -89,7 +97,7 @@ class Rusanov(Scheme):
 
         DeltaQ = (
             0.5
-            * sigma[:, np.newaxis, np.newaxis]
+            * sigma[:, :, np.newaxis]
             * (neigh_values_cons - values_cons)
         )
 
