@@ -228,7 +228,7 @@ class Solver(metaclass=abc.ABCMeta):
 
             # Top Neighbours
             neighs = np.concatenate(
-                (self.top_ghost[:, np.newaxis, :], self.values[:, :-1]), axis=1
+                (self.values[:, 1:], self.top_ghost[:, np.newaxis, :]), axis=1
             )
             fluxes += scheme.convective_flux(
                 self.values,
@@ -239,7 +239,7 @@ class Solver(metaclass=abc.ABCMeta):
 
             # Bottom Neighbours
             neighs = np.concatenate(
-                (self.values[:, 1:], self.btm_ghost[:, np.newaxis, :]), axis=1
+                (self.btm_ghost[:, np.newaxis, :], self.values[:, :-1]), axis=1
             )
             fluxes += scheme.convective_flux(
                 self.values,
