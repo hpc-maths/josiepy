@@ -223,7 +223,6 @@ class Solver(metaclass=abc.ABCMeta):
             self.mesh.surfaces[:, :, NormalDirection.RIGHT],
         )
 
-        # if False:
         if not (self.mesh.oneD):
 
             # Top Neighbours

@@ -331,7 +331,7 @@ class SimpleCell(Cell):
                     p2, p3
                 )  # type: ignore # noqa: E501
                 mesh.surfaces[i, j, NormalDirection.TOP] = cls.face_surface(
-                    p0, p3
+                    p3, p0
                 )  # type: ignore # noqa: E501
 
                 mesh.normals[i, j, NormalDirection.LEFT, :] = cls.face_normal(
@@ -344,7 +344,7 @@ class SimpleCell(Cell):
                     p2, p3
                 )  # type: ignore # noqa: E501
                 mesh.normals[i, j, NormalDirection.TOP, :] = cls.face_normal(
-                    p0, p3
+                    p3, p0
                 )  # type: ignore # noqa: E501
 
     @classmethod
