@@ -1,2 +1,2 @@
 from .mesh import Mesh
-from .cell import SimpleCell
+from .cell import SimpleCell, NormalDirection

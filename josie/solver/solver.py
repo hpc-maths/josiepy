@@ -36,6 +36,8 @@ from typing import Callable, List, NoReturn, Union, TYPE_CHECKING
 from .state import StateTemplate
 from .scheme import Scheme
 
+from josie.mesh import NormalDirection
+
 if TYPE_CHECKING:
     from josie.mesh import Mesh
 
@@ -205,8 +207,8 @@ class Solver(metaclass=abc.ABCMeta):
         fluxes += scheme.convective_flux(
             self.values,
             neighs,
-            self.mesh.normals[:, :, 0, :],
-            self.mesh.surfaces[:, :, 0],
+            self.mesh.normals[:, :, NormalDirection.LEFT, :],
+            self.mesh.surfaces[:, :, NormalDirection.LEFT],
         )
 
         # Right Neighbours
@@ -217,10 +219,11 @@ class Solver(metaclass=abc.ABCMeta):
         fluxes += scheme.convective_flux(
             self.values,
             neighs,
-            self.mesh.normals[:, :, 2, :],
-            self.mesh.surfaces[:, :, 2],
+            self.mesh.normals[:, :, NormalDirection.RIGHT, :],
+            self.mesh.surfaces[:, :, NormalDirection.RIGHT],
         )
 
+        # if False:
         if not (self.mesh.oneD):
 
             # Top Neighbours
@@ -230,8 +233,8 @@ class Solver(metaclass=abc.ABCMeta):
             fluxes += scheme.convective_flux(
                 self.values,
                 neighs,
-                self.mesh.normals[:, :, 3, :],
-                self.mesh.surfaces[:, :, 3],
+                self.mesh.normals[:, :, NormalDirection.TOP, :],
+                self.mesh.surfaces[:, :, NormalDirection.TOP],
             )
 
             # Bottom Neighbours
@@ -241,8 +244,8 @@ class Solver(metaclass=abc.ABCMeta):
             fluxes += scheme.convective_flux(
                 self.values,
                 neighs,
-                self.mesh.normals[:, :, 1, :],
-                self.mesh.surfaces[:, :, 1],
+                self.mesh.normals[:, :, NormalDirection.BOTTOM, :],
+                self.mesh.surfaces[:, :, NormalDirection.BOTTOM],
             )
 
         self.values -= fluxes * dt / self.mesh.volumes[:, :, np.newaxis]

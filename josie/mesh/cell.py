@@ -26,6 +26,8 @@
 # official policies, either expressed or implied, of Ruben Di Battista.
 import abc
 
+from enum import IntEnum
+
 import numpy as np
 
 from meshio import Mesh as MeshIO
@@ -38,6 +40,13 @@ if TYPE_CHECKING:
 
 
 PointType = Union[Tuple[float, float], np.ndarray]
+
+
+class NormalDirection(IntEnum):
+    LEFT = 0
+    BOTTOM = 1
+    RIGHT = 2
+    TOP = 3
 
 
 class Cell(metaclass=abc.ABCMeta):
@@ -250,7 +259,7 @@ class SimpleCell(Cell):
         r""" This class method computes the normal to a face from its points.
 
         The normal is computed as the ortogonal vector to the vector made
-        by the two given points obtained doing a CCW rotation
+        by the two given points obtained doing a CW rotation
 
         .. todo::
         Add image with TiKz
@@ -312,29 +321,29 @@ class SimpleCell(Cell):
                     p0, p1, p2, p3
                 )  # type: ignore # noqa: E501
 
-                mesh.surfaces[i, j, 0] = cls.face_surface(
+                mesh.surfaces[i, j, NormalDirection.LEFT] = cls.face_surface(
                     p0, p1
                 )  # type: ignore # noqa: E501
-                mesh.surfaces[i, j, 1] = cls.face_surface(
+                mesh.surfaces[i, j, NormalDirection.BOTTOM] = cls.face_surface(
                     p1, p2
                 )  # type: ignore # noqa: E501
-                mesh.surfaces[i, j, 2] = cls.face_surface(
+                mesh.surfaces[i, j, NormalDirection.RIGHT] = cls.face_surface(
                     p2, p3
                 )  # type: ignore # noqa: E501
-                mesh.surfaces[i, j, 3] = cls.face_surface(
+                mesh.surfaces[i, j, NormalDirection.TOP] = cls.face_surface(
                     p0, p3
                 )  # type: ignore # noqa: E501
 
-                mesh.normals[i, j, 0, :] = cls.face_normal(
+                mesh.normals[i, j, NormalDirection.LEFT, :] = cls.face_normal(
                     p0, p1
                 )  # type: ignore # noqa: E501
-                mesh.normals[i, j, 1, :] = cls.face_normal(
-                    p1, p2
-                )  # type: ignore # noqa: E501
-                mesh.normals[i, j, 2, :] = cls.face_normal(
+                mesh.normals[i, j, NormalDirection.BOTTOM, :] = \
+                    cls.face_normal(p1, p2)  # type: ignore # noqa: E501
+
+                mesh.normals[i, j, NormalDirection.RIGHT, :] = cls.face_normal(
                     p2, p3
                 )  # type: ignore # noqa: E501
-                mesh.normals[i, j, 3, :] = cls.face_normal(
+                mesh.normals[i, j, NormalDirection.TOP, :] = cls.face_normal(
                     p0, p3
                 )  # type: ignore # noqa: E501
 
