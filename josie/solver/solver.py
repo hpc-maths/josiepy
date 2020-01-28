@@ -111,18 +111,30 @@ class Solver(metaclass=abc.ABCMeta):
 
     @property
     def top_ghost(self) -> np.ndarray:
+        if self.mesh.oneD:
+            raise AttributeError
+
         return self._values[1:-1, -1]
 
     @top_ghost.setter
     def top_ghost(self, value: np.ndarray):
+        if self.mesh.oneD:
+            raise AttributeError
+
         self._values[1:-1, -1, :] = value
 
     @property
     def btm_ghost(self) -> np.ndarray:
+        if self.mesh.oneD:
+            raise AttributeError
+
         return self._values[1:-1, 0]
 
     @btm_ghost.setter
     def btm_ghost(self, value: np.ndarray):
+        if self.mesh.oneD:
+            raise AttributeError
+
         self._values[1:-1, 0] = value
 
     @property
@@ -165,9 +177,11 @@ class Solver(metaclass=abc.ABCMeta):
 
         # Corner values are unused, with set to NaN
         self._values[0, 0] = np.nan
-        self._values[0, 0] = self._values[-1, -1]
-        self._values[0, -1] = self._values[-1, 0]
-        self._values[0, 0] = self._values[0, -1]
+        self._values[0, -1] = np.nan
+        self._values[-1, -1] = np.nan
+        self._values[-1, 0] = np.nan
+
+        self._update_ghosts()
 
     def _update_ghosts(self):
         """ This method updates the ghost cells of the mesh with the corrent
@@ -242,8 +256,6 @@ class Solver(metaclass=abc.ABCMeta):
             A callable representime the space scheme to use
 
         """
-        # Keep ghost cells updated
-        self._update_ghosts()
 
         # We accumulate the delta fluxes for each set of neighbours
         fluxes = np.zeros_like(self.values)
@@ -289,6 +301,9 @@ class Solver(metaclass=abc.ABCMeta):
 
         # Let's put here an handy post step if needed after the values update
         self.post_step()
+
+        # Keep ghost cells updated
+        self._update_ghosts()
 
     def post_step(self):
         """ This method can be used to post-process the data after that the

@@ -47,19 +47,22 @@ def test_linear_index(mesh, Q):
             [10, 11, 12, 13, 14],
             [15, 16, 17, 18, 19],
             [20, 21, 22, 23, 24],
-        ]
+        ],
+        dtype=np.float,
     )
 
     def init_fun(solver: Solver):
 
-        solver._values[:, :] = _values[np.newaxis, :, :].T
+        solver._values = _values.T[:, :, np.newaxis]
 
-    solver.init(init_fun)
+    solver.init(init_fun)  # This also updates ghosts
 
     assert np.all(solver.values[0, :].ravel() == np.array([6, 11, 16]).ravel())
     assert np.all(
         solver.values[:, 1].ravel() == np.array([11, 12, 13]).ravel()
     )
+
+    # This got updated after init
     assert np.all(
-        solver._values[0, 1:-1].ravel() == np.array([5, 10, 15]).ravel()
+        solver._values[0, 1:-1].ravel() == np.array([8, 13, 18]).ravel()
     )

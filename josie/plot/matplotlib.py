@@ -213,8 +213,6 @@ class MatplotlibBackend(PlotBackend):
 
             coll.set_clim(vmin, vmax)
 
-            print(state_element.data)
-
             return coll
 
         ani_states: List[AnimateState] = []

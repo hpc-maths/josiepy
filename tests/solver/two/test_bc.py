@@ -23,13 +23,17 @@ def test_periodic_state(solver):
     d = 4.44
 
     solver.values[0, :] = a
+    solver._update_ghosts()
     assert np.all(solver.right_ghost == a)
 
     solver.values[-1, :] = b
+    solver._update_ghosts()
     assert np.all(solver.left_ghost == b)
 
     solver.values[:, 0] = c
+    solver._update_ghosts()
     assert np.all(solver.top_ghost == c)
 
     solver.values[:, -1] = d
+    solver._update_ghosts()
     assert np.all(solver.btm_ghost == d)

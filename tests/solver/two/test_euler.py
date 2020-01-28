@@ -16,6 +16,7 @@ riemann_states = [
         "uR": 0,
         "vR": 0,
         "pR": 0.1,
+        "CFL": 0.9,
     },
     {
         "rhoL": 1.0,
@@ -26,6 +27,7 @@ riemann_states = [
         "uR": 2.0,
         "vR": 0,
         "pR": 0.4,
+        "CFL": 0.9,
     },
     {
         "rhoL": 1.0,
@@ -36,6 +38,7 @@ riemann_states = [
         "uR": 0,
         "vR": 0,
         "pR": 0.01,
+        "CFL": 0.5,
     },
     {
         "rhoL": 5.99924,
@@ -46,6 +49,7 @@ riemann_states = [
         "uR": -6.19633,
         "vR": 0,
         "pR": 46.0950,
+        "CFL": 0.5,
     },
     {
         "rhoL": 1.0,
@@ -56,6 +60,7 @@ riemann_states = [
         "uR": -19.59745,
         "vR": 0,
         "pR": 0.01,
+        "CFL": 0.5,
     },
 ]
 
@@ -68,8 +73,7 @@ def neumann(bottom, top):
 
 
 def periodic(bottom, top):
-    # return make_periodic(bottom, top, Direction.Y)
-    return neumann(bottom, top)
+    return make_periodic(bottom, top, Direction.Y)
 
 
 @pytest.mark.parametrize("riemann_problem", riemann_states)
@@ -124,7 +128,7 @@ def test_toro(riemann_problem, vertical_bc_fun, plot):
 
     final_time = 0.25
     t = 0
-    CFL = 0.80
+    CFL = riemann_problem["CFL"]
     rusanov = Rusanov()
 
     while t <= final_time:
@@ -139,6 +143,7 @@ def test_toro(riemann_problem, vertical_bc_fun, plot):
             solver.mesh.surfaces,
             CFL,
         )
+        assert ~np.isnan(dt)
         solver.step(dt, rusanov)
 
         t += dt
