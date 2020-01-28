@@ -45,12 +45,7 @@ if TYPE_CHECKING:
 class Solver(metaclass=abc.ABCMeta):
 
     # Type Checking
-    _values = np.ndarray
-    values: np.ndarray
-    left_ghost: np.ndarray
-    right_ghost: np.ndarray
-    top_ghost: np.ndarray
-    btm_ghost: np.ndarray
+    _values: np.ndarray
 
     def __init__(self, mesh: Mesh, Q: StateTemplate):
         """ This class is used to solve a problem governed by PDEs.
@@ -96,6 +91,48 @@ class Solver(metaclass=abc.ABCMeta):
         self.mesh = mesh
         self.Q = Q
 
+    # In order to apply BC, we create a view of the self._values array  per
+    # each side of the domain storing the State values of the ghost cells.
+    @property
+    def left_ghost(self) -> np.ndarray:
+        return self._values[0, 1:-1]
+
+    @left_ghost.setter
+    def left_ghost(self, value: np.ndarray):
+        self._values[0, 1:-1, :] = value
+
+    @property
+    def right_ghost(self) -> np.ndarray:
+        return self._values[-1, 1:-1]
+
+    @right_ghost.setter
+    def right_ghost(self, value: np.ndarray):
+        self._values[-1, 1:-1, :] = value
+
+    @property
+    def top_ghost(self) -> np.ndarray:
+        return self._values[1:-1, -1]
+
+    @top_ghost.setter
+    def top_ghost(self, value: np.ndarray):
+        self._values[1:-1, -1, :] = value
+
+    @property
+    def btm_ghost(self) -> np.ndarray:
+        return self._values[1:-1, 0]
+
+    @btm_ghost.setter
+    def btm_ghost(self, value: np.ndarray):
+        self._values[1:-1, 0] = value
+
+    @property
+    def values(self) -> np.ndarray:
+        return self._values[1:-1, 1:-1]
+
+    @values.setter
+    def values(self, value: np.ndarray):
+        self._values[1:-1, 1:-1, :] = value
+
     def init(self, init_fun: Callable[[Solver], NoReturn]):
         """
         This method initialize the internal values of the cells of the
@@ -122,33 +159,15 @@ class Solver(metaclass=abc.ABCMeta):
         # Init data structure
         self._values = np.empty((num_cells_x + 2, num_cells_y + 2, state_size))
 
-        # Internal values (i.e. without ghosts cells)
-        self.values = self._values[1:-1, 1:-1]
-
         # First set all the values for the internal cells
         # The actual values are a view of only the internal cells
-        self.values = np.empty((num_cells_x, num_cells_y, state_size))
         init_fun(self)
 
         # Corner values are unused, with set to NaN
         self._values[0, 0] = np.nan
         self._values[0, 0] = self._values[-1, -1]
-        self._values[0, -1] = self.values[-1, 0]
-        self._values[0, 0] = self.values[0, -1]
-
-        # In order to apply BC, we create a view of the self.values array  per
-        # each side of the domain storing the State values of the ghost cells.
-        # This allows to assign to them a view of the internal values array
-        # (self.values) by the Periodic BoundaryCondition in such a way that,
-        # when internal values are updated by the simulation, also the values
-        # of the ghost cells are in sync since they are just memory
-        # "references"
-        self.left_ghost = self._values[0, 1:-1]
-        self.right_ghost = self._values[-1, 1:-1]
-
-        if not (self.mesh.oneD):
-            self.btm_ghost = self._values[1:-1, 0]
-            self.top_ghost = self._values[1:-1, -1]
+        self._values[0, -1] = self._values[-1, 0]
+        self._values[0, 0] = self._values[0, -1]
 
     def _update_ghosts(self):
         """ This method updates the ghost cells of the mesh with the corrent
@@ -230,9 +249,7 @@ class Solver(metaclass=abc.ABCMeta):
         fluxes = np.zeros_like(self.values)
 
         # Left Neighbours
-        neighs = np.concatenate(
-            (self.left_ghost[np.newaxis, :, :], self.values[:-1, :])
-        )
+        neighs = self._values[:-2, 1:-1]
         fluxes += scheme.convective_flux(
             self.values,
             neighs,
@@ -241,10 +258,7 @@ class Solver(metaclass=abc.ABCMeta):
         )
 
         # Right Neighbours
-        neighs = np.concatenate(
-            (self.values[1:, :], self.right_ghost[np.newaxis, :, :])
-        )
-
+        neighs = self._values[2:, 1:-1]
         fluxes += scheme.convective_flux(
             self.values,
             neighs,
@@ -253,11 +267,8 @@ class Solver(metaclass=abc.ABCMeta):
         )
 
         if not (self.mesh.oneD):
-
             # Top Neighbours
-            neighs = np.concatenate(
-                (self.values[:, 1:], self.top_ghost[:, np.newaxis, :]), axis=1
-            )
+            neighs = self._values[1:-1, 2:]
             fluxes += scheme.convective_flux(
                 self.values,
                 neighs,
@@ -266,9 +277,7 @@ class Solver(metaclass=abc.ABCMeta):
             )
 
             # Bottom Neighbours
-            neighs = np.concatenate(
-                (self.btm_ghost[:, np.newaxis, :], self.values[:, :-1]), axis=1
-            )
+            neighs = self._values[1:-1, :-2]
             fluxes += scheme.convective_flux(
                 self.values,
                 neighs,

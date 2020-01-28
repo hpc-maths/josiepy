@@ -35,7 +35,7 @@ def mesh(boundaries):
     left, bottom, right, top = boundaries
 
     mesh = Mesh(left, bottom, right, top, SimpleCell)
-    mesh.interpolate(10, 10)
+    mesh.interpolate(3, 3)
     mesh.generate()
 
     yield mesh
