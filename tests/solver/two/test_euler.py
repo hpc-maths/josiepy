@@ -60,8 +60,20 @@ riemann_states = [
 ]
 
 
+def periodic(bottom, top):
+    return make_periodic(bottom, top, Direction.Y)
+
+
+def neumann(bottom, top):
+    top.bc = Neumann(Q.zeros())
+    bottom.bc = Neumann(Q.zeros())
+
+    return bottom, top
+
+
 @pytest.mark.parametrize("riemann_problem", riemann_states)
-def test_toro(riemann_problem, plot):
+@pytest.mark.parametrize("vertical_bc_fun", [periodic, neumann])
+def test_toro(riemann_problem, vertical_bc_fun, plot):
     left = Line([0, 0], [0, 1])
     bottom = Line([0, 0], [1, 0])
     right = Line([1, 0], [1, 1])
@@ -91,9 +103,7 @@ def test_toro(riemann_problem, plot):
 
     left.bc = Dirichlet(Q_left)
     right.bc = Dirichlet(Q_right)
-    # top.bc = Neumann(Q.zeros())
-    # bottom.bc = Neumann(Q.zeros())
-    bottom, top = make_periodic(bottom, top, Direction.Y)
+    bottom, top = vertical_bc_fun(bottom, top)
 
     mesh = Mesh(left, bottom, right, top, SimpleCell)
     mesh.interpolate(100, 100)
@@ -113,13 +123,13 @@ def test_toro(riemann_problem, plot):
 
     final_time = 0.25
     t = 0
-    CFL = 0.85
+    CFL = 0.80
     rusanov = Rusanov()
 
     while t <= final_time:
         if plot:
             solver.animate(t)
-            solver.save(t, 'toro.xmf')
+            solver.save(t, "toro.xmf")
 
         dt = rusanov.CFL(
             solver.values,

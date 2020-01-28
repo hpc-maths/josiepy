@@ -43,6 +43,15 @@ if TYPE_CHECKING:
 
 
 class Solver(metaclass=abc.ABCMeta):
+
+    # Type Checking
+    _values = np.ndarray
+    values: np.ndarray
+    left_ghost: np.ndarray
+    right_ghost: np.ndarray
+    top_ghost: np.ndarray
+    btm_ghost: np.ndarray
+
     def __init__(self, mesh: Mesh, Q: StateTemplate):
         """ This class is used to solve a problem governed by PDEs.
 
@@ -50,7 +59,7 @@ class Solver(metaclass=abc.ABCMeta):
         values of the ghost cells (used to apply the
         :class:`BoundaryCondition`) are stored respectively in
         :attr:`left_ghost`, :attr:`btm_ghost`, :attr:`right_ghost`,
-        :attr:`top_ghost`. They're all numpy arrays.
+        :attr:`top_ghost`. They're all numpy arrays or views to numpy arrays.
 
         Parameters
         ----------
@@ -87,19 +96,18 @@ class Solver(metaclass=abc.ABCMeta):
         self.mesh = mesh
         self.Q = Q
 
-        # Initializing empty arrays for type checking
-        self.values: np.ndarray = np.empty(0)
-        self.left_ghost: np.ndarray = np.empty(0)
-        self.right_ghost: np.ndarray = np.empty(0)
-        if not (self.mesh.oneD):
-            self.top_ghost: np.ndarray = np.empty(0)
-            self.btm_ghost: np.ndarray = np.empty(0)
-
     def init(self, init_fun: Callable[[Solver], NoReturn]):
         """
         This method initialize the internal values of the cells of the
         :class:`Mesh` and the values of the ghost cells that apply the
         :class:`BoundaryCondition` for each boundary of the domain
+
+        Data Structure
+        -------------
+        The data structure holding the values of the field on the mesh is
+        a numpy array of dimensions (num_cells_x+2, num_cells_y+2, state_size).
+        That is, we have one layer of ghosts per direction. (The corner cells
+        are unused)
 
         Parameters
         ---------
@@ -111,19 +119,40 @@ class Solver(metaclass=abc.ABCMeta):
         num_cells_y = self.mesh.num_cells_y
         state_size = len(self.Q.fields)
 
+        # Init data structure
+        self._values = np.empty((num_cells_x + 2, num_cells_y + 2, state_size))
+
+        # Internal values (i.e. without ghosts cells)
+        self.values = self._values[1:-1, 1:-1]
+
         # First set all the values for the internal cells
         # The actual values are a view of only the internal cells
         self.values = np.empty((num_cells_x, num_cells_y, state_size))
         init_fun(self)
 
-        # In order to apply BC, we create an array per each side of the domain
-        # storing the State values of the ghost cells. This allows to assign
-        # to them a view of the internal values array (self.values) by the
-        # Periodic BoundaryCondition in such a way that, when internal values
-        # are updated by the simulation, also the values of the ghost cells
-        # are in sync since they are just memory "references"
-        self.left_ghost = np.empty((num_cells_y, state_size))
-        self.right_ghost = np.empty_like(self.left_ghost)
+        # Corner values are unused, with set to NaN
+        self._values[0, 0] = np.nan
+        self._values[0, 0] = self._values[-1, -1]
+        self._values[0, -1] = self.values[-1, 0]
+        self._values[0, 0] = self.values[0, -1]
+
+        # In order to apply BC, we create a view of the self.values array  per
+        # each side of the domain storing the State values of the ghost cells.
+        # This allows to assign to them a view of the internal values array
+        # (self.values) by the Periodic BoundaryCondition in such a way that,
+        # when internal values are updated by the simulation, also the values
+        # of the ghost cells are in sync since they are just memory
+        # "references"
+        self.left_ghost = self._values[0, 1:-1]
+        self.right_ghost = self._values[-1, 1:-1]
+
+        if not (self.mesh.oneD):
+            self.btm_ghost = self._values[1:-1, 0]
+            self.top_ghost = self._values[1:-1, -1]
+
+    def _update_ghosts(self):
+        """ This method updates the ghost cells of the mesh with the corrent
+        values depending on the specified boundary condition """
 
         # Left BC: Create the left layer of ghost cells
         self.left_ghost = self.mesh.left.bc(
@@ -140,9 +169,6 @@ class Solver(metaclass=abc.ABCMeta):
         )  # type: ignore
 
         if not (self.mesh.oneD):
-            self.btm_ghost = np.empty((num_cells_x, state_size))
-            self.top_ghost = np.empty_like(self.btm_ghost)
-
             # Bottom BC
             self.btm_ghost = self.mesh.bottom.bc(
                 self,
@@ -197,6 +223,9 @@ class Solver(metaclass=abc.ABCMeta):
             A callable representime the space scheme to use
 
         """
+        # Keep ghost cells updated
+        self._update_ghosts()
+
         # We accumulate the delta fluxes for each set of neighbours
         fluxes = np.zeros_like(self.values)
 

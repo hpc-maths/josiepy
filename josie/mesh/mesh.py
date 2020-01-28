@@ -110,7 +110,7 @@ class Mesh:
         :class:`SimpleCell`, that is 2D quadrangle, the points are 4) and `dim`
         is the dimensionality of the mesh, currently 2D (dim=2)
 
-    plot_backend
+    backend
         An instance of :class:`PlotBackend` used to plot mesh and its values
     """
 
