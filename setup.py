@@ -22,7 +22,14 @@ REQUIRES_PYTHON = ">=3"
 VERSION = "0.1.0"
 
 # What packages are required for this module to be executed?
-REQUIRED = ["aenum", "matplotlib", "meshio[all]", "numba", "numpy", "scipy"]
+REQUIRED = [
+    "aenum",
+    "matplotlib",
+    "meshio[all]<3.2",
+    "numba",
+    "numpy",
+    "scipy",
+]
 
 # Optional
 GRAPHICS = ["mayavi"]
