@@ -343,12 +343,6 @@ class Solver(metaclass=abc.ABCMeta):
         """ Plot the current state of the simulation in a GUI.
 
         You can specify which fields to plot
-
-        Parameters
-        ---------
-        fields
-            A list (or a string, if a singular field is needed) of fields
-            to plot
         """
         plt = self.mesh.backend
         plt.update(self)
