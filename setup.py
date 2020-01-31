@@ -19,7 +19,7 @@ URL = "https://gitlab.com/josiepy"
 EMAIL = "rubendibattista@gmail.com"
 AUTHOR = "RdB"
 REQUIRES_PYTHON = ">=3"
-VERSION = "0.1.0"
+VERSION = "0.2.0"
 
 # What packages are required for this module to be executed?
 REQUIRED = [
