@@ -5,4 +5,18 @@
 [![version](https://gitlab.com/rubendibattista/josiepy/-/jobs/artifacts/master/raw/version.svg?job=badges)](https://gitlab.com/rubendibattista/josiepy/-/releases)
 ## A 2D PDE solver written in Python with a particular focus on usability
 
+## Developer Notes
+### Correct Jupyter Git Diffing
+
+**`jq`**
+In `.gitconfig` there's the configuration to configure
+`jq` to remove useless metadata from the jupyter notebooks (in
+particular the `execution_count` and the `outputs`). In order to use it
+you need to include the `.gitconfig` in the `.git/config`.
+
+    git config --local include.path ../.gitconfig
+
+**`nbdime`** 
+You need to enable the [git integration](https://nbdime.readthedocs.io/en/latest/#git-integration-quickstart)
+
 
