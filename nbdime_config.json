@@ -1,0 +1,34 @@
+{
+
+  "Extension": {
+    "source": true,
+    "details": false, 
+    "outputs": false,
+    "metadata": false
+  },
+
+  "NbDiff": {
+    "source": true,
+    "details": false, 
+    "outputs": false,
+    "metadata": false
+  },
+
+  "NbDiffDriver": {
+    "source": true,
+    "details": false, 
+    "outputs": false,
+    "metadata": false
+  },
+
+  "NbMergeDriver": {
+    "source": true,
+    "details": false, 
+    "outputs": false,
+    "metadata": false
+  },
+
+  "dummy": {}
+
+
+}

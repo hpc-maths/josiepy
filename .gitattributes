@@ -1,6 +1,6 @@
+*.ipynb filter=nbstrip_full
 
 *.ipynb	diff=jupyternotebook
 
 *.ipynb	merge=jupyternotebook
 
-*.ipynb filter=nbstrip_full
