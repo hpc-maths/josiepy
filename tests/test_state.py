@@ -3,11 +3,11 @@ import pytest
 
 from josie.solver.state import State, StateTemplate
 
+QTemplate = StateTemplate("rhoU", "rhoV", "p")
+
 
 def state_from_template():
-    Q = StateTemplate('rhoU', 'rhoV', 'p')
-
-    return Q(0, 0, 0)
+    return QTemplate(0, 0, 0)
 
 
 def state_directly():
@@ -20,7 +20,7 @@ def Q(request):
 
 
 def test_wrong_number_of_fields():
-    Q = StateTemplate('rhoU', 'rhoV', 'p')
+    Q = StateTemplate("rhoU", "rhoV", "p")
     with pytest.raises(ValueError):
         Q(0, 0, 0, 0)
 
@@ -43,16 +43,33 @@ def test_multiple_instances():
 
     Q.p = 1.5
 
-    assert not(W.p == Q.p)
+    assert not (W.p == Q.p)
     assert Q.p == 1.5
     assert W.p == 0.0
+
+
+def test_slice():
+    Q = State(a=12, b=-12, c=0)
+    Q_slice = Q[[0, 2]]
+
+    with pytest.raises(AttributeError):
+        Q_slice.b
+
+    assert Q_slice.c == 0
+    assert Q_slice.a == 12
 
 
 def test_view(Q):
     np_arr = Q.view(np.ndarray)
 
     assert len(np_arr) == 3
-    assert not np_arr.any()
+    assert np.array_equal(np_arr, Q)
+
+
+def test_reverse_view():
+    arr = np.array([0, 1, 2])
+    arr.view(State)
+    assert 0
 
 
 def test_numpy_behaviour():

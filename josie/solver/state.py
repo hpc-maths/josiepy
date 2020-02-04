@@ -27,12 +27,12 @@
 
 import numpy as np
 
-from collections import OrderedDict
+from typing import Tuple
 
 
 class _StateDescriptor:
     """ This is a custom descriptor to be used within the State class. It
-    provides the possibilidy of accessing the ith-element of the numpy.ndarray
+    provides the possibility of accessing the ith-element of the numpy.ndarray
     by name.
 
     Parameters
@@ -52,56 +52,6 @@ class _StateDescriptor:
 
     def __set__(self, obj, value):
         obj[self.i] = value
-
-
-class StateTemplate:
-    """ A factory for a :class:`State`. It encapsulates the number of variables
-    composing the :class:`State` and it allows to concretize a state as if it
-    was an object instantiation
-
-    Parameters
-    ----------
-    fields
-        A list of (scalar) fields composing the state
-
-    Attributes
-    ----------
-    fields
-        The list of (scalar) fields composing the state
-
-    A scalar :class:`State` as for the advection equation
-    >>> Q = StateTemplate("u")
-
-    Than you can concretize the state with a value
-    >>> zero = Q(0)
-
-    You can also create higher dimensional states, for examples the state
-    of the 2D Euler compressible equations
-    >>> Q = StateTemplate("rho", "rhoU", "rhoV", "E")
-    >>> zero = Q(0, 0, 0, 0)
-    """
-
-    def __init__(self, *fields):
-        self.fields = fields
-
-    def __call__(self, *values):
-        if not (len(values) == len(self.fields)):
-            raise ValueError(
-                f"This state has {len(self.fields)} fields. "
-                "You need to provide the same amount of values"
-            )
-
-        return self._init_state(*values)
-
-    def _init_state(self, *values):
-        d = OrderedDict(zip(self.fields, values))
-        return State(**d)
-
-    def zeros(self):
-        """ This method returns a state filled with zeros """
-        values = [0] * len(self.fields)
-
-        return self._init_state(*values)
 
 
 class State(np.ndarray):
@@ -142,14 +92,71 @@ class State(np.ndarray):
     >>> assert np.array_equal(np.cross(e1, e2), e3)
     """
 
-    def __new__(cls, **variables):
-        for i, field in enumerate(variables.keys()):
+    _variables: Tuple[str]
+
+    def __new__(cls, *args, **kwargs):
+        if args and kwargs:
+            raise ValueError(
+                "You can initialize a state using positional arguments only "
+                "or keyword arguments only. Not both"
+            )
+
+        if kwargs:
+            cls._variables = tuple(kwargs.keys())
+            values = kwargs.values()
+        else:
+            if not (len(args) == len(cls._variables)):
+                raise ValueError(
+                    "The number of provided input arguments must be the same "
+                    "as the number of the variables of the state"
+                )
+
+            values = args
+
+        for i, field in enumerate(cls._variables):
             setattr(cls, field, _StateDescriptor(i))
 
-        arr = np.asarray(list(variables.values()), dtype=float).view(cls)
+        arr = np.asarray(list(values), dtype=float).view(cls)
 
         return arr
 
-    def __array_finalize(self, obj):
+    def __array_finalize__(self, obj):
         if obj is None:
             return
+
+
+class StateTemplate:
+    r""" A factory for a :class:`State`.
+
+    It allows you to create at will a :class:`State` class for which you can
+    access its variables (e.g. the velocity :math:`\mathbf{U}`) by attributes
+    (and not only by index).
+
+    Parameters
+    ----------
+    fields
+        A list of (scalar) fields composing the state
+
+    Attributes
+    ----------
+    fields
+        The list of (scalar) fields composing the state
+
+    A scalar :class:`State` as for the advection equation
+    >>> Q = StateTemplate("u")
+
+    Than you can concretize the state with a value
+    >>> zero = Q(0)
+
+    You can also create higher dimensional states, for examples the state
+    of the 2D Euler compressible equations
+    >>> Q = StateTemplate("rho", "rhoU", "rhoV", "E")
+    >>> zero = Q(0, 0, 0, 0)
+    >>> assert Q.rho == 0
+    """
+
+    def __new__(cls, *fields: str) -> State:
+        state_cls = State
+        state_cls._variables = fields
+
+        return state_cls
