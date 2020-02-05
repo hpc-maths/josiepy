@@ -3,15 +3,15 @@ import pytest
 
 from josie.solver.state import State, StateTemplate
 
-QTemplate = StateTemplate("rhoU", "rhoV", "p")
+QTemplate = StateTemplate("rho", "rhoU", "rhoV", "p")
 
 
 def state_from_template():
-    return QTemplate(0, 0, 0)
+    return QTemplate(0, 0, 0, 0)
 
 
 def state_directly():
-    return State(rhoU=0, rhoV=0, p=0)
+    return State(rho=0, rhoU=0, rhoV=0, p=0)
 
 
 @pytest.fixture(params=[state_from_template, state_directly])
@@ -48,15 +48,27 @@ def test_multiple_instances():
     assert W.p == 0.0
 
 
-def test_slice():
-    Q = State(a=12, b=-12, c=0)
+def test_list_getitem(Q):
+    Q.rhoV = 12
     Q_slice = Q[[0, 2]]
 
     with pytest.raises(AttributeError):
-        Q_slice.b
+        Q_slice.rhoU
+        Q_slice.p
 
-    assert Q_slice.c == 0
-    assert Q_slice.a == 12
+    assert Q_slice.rho == 0
+    assert Q_slice.rhoV == 12
+
+
+def test_slice_getitem(Q):
+    Q.rhoV = 12
+    Q_slice = Q[:3]
+
+    with pytest.raises(AttributeError):
+        Q_slice.p
+
+    assert Q_slice.rhoV == 12
+    assert Q_slice.rhoV == Q_slice[-1]
 
 
 def test_view(Q):
@@ -68,8 +80,11 @@ def test_view(Q):
 
 def test_reverse_view():
     arr = np.array([0, 1, 2])
-    arr.view(State)
-    assert 0
+    Q = arr.view(QTemplate)
+
+    Q.rhoU
+    Q.rhoV
+    Q.p
 
 
 def test_numpy_behaviour():

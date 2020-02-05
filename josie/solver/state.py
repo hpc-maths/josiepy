@@ -27,7 +27,8 @@
 
 import numpy as np
 
-from typing import Tuple
+from collections import Sequence
+from typing import Type, Tuple, Union
 
 
 class _StateDescriptor:
@@ -113,16 +114,70 @@ class State(np.ndarray):
 
             values = args
 
-        for i, field in enumerate(cls._variables):
-            setattr(cls, field, _StateDescriptor(i))
+        cls._set_descriptors(cls)
 
         arr = np.asarray(list(values), dtype=float).view(cls)
 
         return arr
 
+    def __getitem__(self, item):
+        self._slice_index = item
+
+        return super().__getitem__(item)
+
     def __array_finalize__(self, obj):
+        # Normal __new__ construction
         if obj is None:
             return
+        else:  # Here we are a view or a new-from-template
+            # If we are a new-from-template, need also to slice the variables
+            # to the one selected by the slice
+            if isinstance(self, State) and (isinstance(obj, State)):
+                cls = self.__class__
+                if isinstance(obj._slice_index, Sequence):
+                    # cls._variables is a tuple and can be indexed only
+                    # by integer or slice. With a sequence we manually select
+                    # the values specified by the list
+                    new_variables = []
+
+                    # First we need to get the actual variables that need are
+                    # requested by the "slice"
+                    for i in obj._slice_index:
+                        new_variables.append(cls._variables[i])
+
+                    new_variables = tuple(new_variables)
+                else:
+                    new_variables = self._variables[obj._slice_index]
+
+                self._sync_descriptors(new_variables)
+            self._set_descriptors(self)
+
+    @staticmethod
+    def _set_descriptors(obj: Union[Type["State"], "State"]):
+        """ This method sets the descriptor to each variable of the state
+        provided by :class:_StateDescriptor for the class. Can be called
+        on the class or on a instance of :class:`State`
+        """
+
+        if isinstance(obj, State):
+            cls = obj.__class__
+        else:
+            cls = obj
+
+        for i, field in enumerate(obj._variables):
+            setattr(cls, field, _StateDescriptor(i))
+
+    def _sync_descriptors(self, new_variables: Tuple[str]):
+        """ This method syncs the descriptors removing unused variables """
+        # We check on the full set of variables of the State
+        # which ones are requested by the "slice"
+        cls = self.__class__
+        for old_var in self._variables:
+            if not (old_var in new_variables):  # Requested
+                # We remove the associated attribute
+                delattr(cls, old_var)
+
+        self._variables = new_variables
 
 
 class StateTemplate:
