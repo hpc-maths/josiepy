@@ -86,7 +86,7 @@ class State(np.ndarray):
     >>> assert np.array_equal(np.cross(e1, e2), e3)
     """
 
-    fields: Tuple[str]
+    fields: Tuple[str, ...]
 
     def __new__(cls, *args, **kwargs):
         if args and kwargs:
@@ -198,7 +198,7 @@ class State(np.ndarray):
         return np.zeros(len(cls.fields))
 
 
-class StateTemplate:
+def StateTemplate(*fields: str) -> Type[State]:
     r""" A factory for a :class:`State`.
 
     It allows you to create at will a :class:`State` class for which you can
@@ -210,11 +210,6 @@ class StateTemplate:
     fields
         A list of (scalar) fields composing the state
 
-    Attributes
-    ----------
-    fields
-        The list of (scalar) fields composing the state
-
     A scalar :class:`State` as for the advection equation
     >>> Q = StateTemplate("u")
 
@@ -225,11 +220,9 @@ class StateTemplate:
     of the 2D Euler compressible equations
     >>> Q = StateTemplate("rho", "rhoU", "rhoV", "E")
     >>> zero = Q(0, 0, 0, 0)
-    >>> assert Q.rho == 0
+    >>> assert zero.rho == 0
     """
+    state_cls = State
+    state_cls.fields = fields
 
-    def __new__(cls, *fields: str) -> State:
-        state_cls = State
-        state_cls.fields = fields
-
-        return state_cls
+    return state_cls

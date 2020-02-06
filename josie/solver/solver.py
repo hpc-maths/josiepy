@@ -31,7 +31,7 @@ import numpy as np
 import os
 
 from meshio import XdmfTimeSeriesWriter
-from typing import Callable, List, NoReturn, Union, TYPE_CHECKING
+from typing import Callable, List, NoReturn, Union, Type, TYPE_CHECKING
 
 from .state import State
 from .scheme import Scheme
@@ -47,7 +47,7 @@ class Solver(metaclass=abc.ABCMeta):
     # Type Checking
     _values: np.ndarray
 
-    def __init__(self, mesh: Mesh, Q: State):
+    def __init__(self, mesh: Mesh, Q: Type[State]):
         """ This class is used to solve a problem governed by PDEs.
 
         The internal state of the mesh is stored in :attr:`values`, while the
@@ -61,7 +61,7 @@ class Solver(metaclass=abc.ABCMeta):
         mesh
             An instance of the mesh to compute the solution on
         Q
-            A :class:`StateTemplate` representing the variables of the problem
+            A :class:`State` representing the variables of the problem
             to be solved
 
         Attributes
