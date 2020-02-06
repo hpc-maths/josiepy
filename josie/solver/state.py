@@ -24,7 +24,6 @@
 # The views and conclusions contained in the software and documentation
 # are those of the authors and should not be interpreted as representing
 # official policies, either expressed or implied, of Ruben Di Battista.
-
 import numpy as np
 
 from collections import Sequence
@@ -61,17 +60,11 @@ class State(np.ndarray):
     expressively. In particular each element of the array can be accessed by
     name (in the order variables are provided)
 
-    Parameters
-    ----------
-    variables
-        keyword arguments whose keys are the variables names and the values
-        their values
-
     Attributes
     ----------
-    variables
-        Each key of the kwargs provided as input are now attributes
-        pointing to the right element in the array
+    fields
+        Each element of the tuple is the name of the corresponding element in
+        the array
 
 
     A :class:`State` can be initialized using a :class:`StateTemplate`, or
@@ -93,7 +86,7 @@ class State(np.ndarray):
     >>> assert np.array_equal(np.cross(e1, e2), e3)
     """
 
-    _variables: Tuple[str]
+    fields: Tuple[str]
 
     def __new__(cls, *args, **kwargs):
         if args and kwargs:
@@ -103,10 +96,10 @@ class State(np.ndarray):
             )
 
         if kwargs:
-            cls._variables = tuple(kwargs.keys())
+            cls.fields = tuple(kwargs.keys())
             values = kwargs.values()
         else:
-            if not (len(args) == len(cls._variables)):
+            if not (len(args) == len(cls.fields)):
                 raise ValueError(
                     "The number of provided input arguments must be the same "
                     "as the number of the variables of the state"
@@ -121,36 +114,56 @@ class State(np.ndarray):
         return arr
 
     def __getitem__(self, item):
-        self._slice_index = item
+        self._getitem = True
 
-        return super().__getitem__(item)
+        try:
+            ret = super().__getitem__(item)
+            self._slice_index = item
+        finally:
+            self.__getitem__ = False
+
+        if not isinstance(ret, np.ndarray):
+            return ret
+
+        cls = self.__class__
+        if isinstance(self._slice_index, Sequence):
+            # cls.fields is a tuple and can be indexed only by
+            # integer or slice. With a sequence we manually select
+            # the values specified by the list
+            newfields = []
+
+            # First we need to get the actual fields that are requested
+            # by the "slice"
+            for i in self._slice_index:
+                newfields.append(cls.fields[i])
+
+            newfields = tuple(newfields)
+        else:
+            newfields = self.fields[self._slice_index]
+
+        self._sync_descriptors(ret, newfields)
+        self._set_descriptors(ret)
+
+        return ret
 
     def __array_finalize__(self, obj):
         # Normal __new__ construction
         if obj is None:
             return
-        else:  # Here we are a view or a new-from-template
-            # If we are a new-from-template, need also to slice the variables
-            # to the one selected by the slice
-            if isinstance(self, State) and (isinstance(obj, State)):
-                cls = self.__class__
-                if isinstance(obj._slice_index, Sequence):
-                    # cls._variables is a tuple and can be indexed only
-                    # by integer or slice. With a sequence we manually select
-                    # the values specified by the list
-                    new_variables = []
 
-                    # First we need to get the actual variables that need are
-                    # requested by the "slice"
-                    for i in obj._slice_index:
-                        new_variables.append(cls._variables[i])
+        self._getitem = False
 
-                    new_variables = tuple(new_variables)
-                else:
-                    new_variables = self._variables[obj._slice_index]
+        # Slice handled by superclass
+        if isinstance(obj, State) and obj._getitem:
+            return
+        else:
+            # View
+            if not len(obj) == len(self.fields):
+                raise ValueError(
+                    "View has different number of elements than fields "
+                )
 
-                self._sync_descriptors(new_variables)
-            self._set_descriptors(self)
+        self._set_descriptors(self)
 
     @staticmethod
     def _set_descriptors(obj: Union[Type["State"], "State"]):
@@ -164,20 +177,25 @@ class State(np.ndarray):
         else:
             cls = obj
 
-        for i, field in enumerate(obj._variables):
+        for i, field in enumerate(obj.fields):
             setattr(cls, field, _StateDescriptor(i))
 
-    def _sync_descriptors(self, new_variables: Tuple[str]):
-        """ This method syncs the descriptors removing unused variables """
-        # We check on the full set of variables of the State
+    @staticmethod
+    def _sync_descriptors(obj, newfields: Tuple[str]):
+        """ This method syncs the descriptors removing unused fields"""
+        # We check on the full set of fields of the State
         # which ones are requested by the "slice"
-        cls = self.__class__
-        for old_var in self._variables:
-            if not (old_var in new_variables):  # Requested
+        cls = obj.__class__
+        for old_var in obj.fields:
+            if not (old_var in newfields):  # Requested
                 # We remove the associated attribute
                 delattr(cls, old_var)
 
-        self._variables = new_variables
+        obj.fields = newfields
+
+    @classmethod
+    def zeros(cls):
+        return np.zeros(len(cls.fields))
 
 
 class StateTemplate:
@@ -212,6 +230,6 @@ class StateTemplate:
 
     def __new__(cls, *fields: str) -> State:
         state_cls = State
-        state_cls._variables = fields
+        state_cls.fields = fields
 
         return state_cls

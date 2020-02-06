@@ -11,7 +11,6 @@ from josie.solver.state import StateTemplate
 from josie.solver.solver import Solver
 from josie.solver.scheme import Scheme as AbstractScheme
 
-Q = StateTemplate("u")
 
 # Advection velocity in x-direction
 V = np.array([1.0, 0.0])
@@ -87,7 +86,12 @@ def upwind_jit(
 
 
 @pytest.fixture
-def solver(mesh, init_fun):
+def Q():
+    yield StateTemplate("u")
+
+
+@pytest.fixture
+def solver(mesh, init_fun, Q):
     mesh.interpolate(1000, 1)
     mesh.generate()
     solver = Solver(mesh, Q)

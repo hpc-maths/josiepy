@@ -33,7 +33,7 @@ import os
 from meshio import XdmfTimeSeriesWriter
 from typing import Callable, List, NoReturn, Union, TYPE_CHECKING
 
-from .state import StateTemplate
+from .state import State
 from .scheme import Scheme
 
 from josie.mesh import NormalDirection
@@ -47,7 +47,7 @@ class Solver(metaclass=abc.ABCMeta):
     # Type Checking
     _values: np.ndarray
 
-    def __init__(self, mesh: Mesh, Q: StateTemplate):
+    def __init__(self, mesh: Mesh, Q: State):
         """ This class is used to solve a problem governed by PDEs.
 
         The internal state of the mesh is stored in :attr:`values`, while the

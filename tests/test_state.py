@@ -3,10 +3,9 @@ import pytest
 
 from josie.solver.state import State, StateTemplate
 
-QTemplate = StateTemplate("rho", "rhoU", "rhoV", "p")
-
 
 def state_from_template():
+    QTemplate = StateTemplate("rho", "rhoU", "rhoV", "p")
     return QTemplate(0, 0, 0, 0)
 
 
@@ -74,14 +73,21 @@ def test_slice_getitem(Q):
 def test_view(Q):
     np_arr = Q.view(np.ndarray)
 
-    assert len(np_arr) == 3
+    assert len(np_arr) == 4
     assert np.array_equal(np_arr, Q)
 
 
 def test_reverse_view():
+    QTemplate = StateTemplate("rho", "rhoU", "rhoV", "p")
     arr = np.array([0, 1, 2])
+
+    with pytest.raises(ValueError):
+        Q = arr.view(QTemplate)
+
+    arr = np.array([0, 1, 2, 3])
     Q = arr.view(QTemplate)
 
+    Q.rho
     Q.rhoU
     Q.rhoV
     Q.p
@@ -94,3 +100,17 @@ def test_numpy_behaviour():
     assert np.array_equal(np.cross(X, Y), np.array([0, 0, 1]))
     assert np.array_equal(X - Y, np.array([1, -1, 0]))
     assert X.dot(Y) == 0
+
+    assert X.x == 1
+    assert X.y == 0
+    assert X.z == 0
+
+    assert Y.x == 0
+    assert Y.y == 1
+    assert Y.z == 0
+
+
+def test_broadcasting(Q):
+    a = np.zeros((5, len(Q.fields)))
+
+    Q - a

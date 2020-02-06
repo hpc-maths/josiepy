@@ -12,8 +12,8 @@ def test_init(solver):
     right_values = solver.values[xc_r[0], xc_r[1], :]
     left_values = solver.values[xc_l[0], xc_l[1], :]
 
-    assert np.all(right_values == solver.Q(1))
-    assert np.all(left_values == solver.Q(0))
+    assert np.all(right_values == 1.0)
+    assert np.all(left_values == 0.0)
 
 
 def test_save(tmp_path, solver):
