@@ -8,7 +8,7 @@ from josie.solver.solver import Solver
 @pytest.fixture
 def Q():
     """ Simple scalar state for easy check """
-    Q = StateTemplate("a")
+    Q = StateTemplate("u")
 
     yield Q
 

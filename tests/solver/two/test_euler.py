@@ -111,7 +111,7 @@ def test_toro_x(riemann_problem, bc_fun, plot):
     bottom, top = bc_fun(bottom, top, Direction.Y)
 
     mesh = Mesh(left, bottom, right, top, SimpleCell)
-    mesh.interpolate(5, 5)
+    mesh.interpolate(30, 30)
     mesh.generate()
 
     def init_fun(solver: EulerSolver):
@@ -188,7 +188,7 @@ def test_toro_y(riemann_problem, bc_fun, plot):
     left, right = bc_fun(left, right, Direction.X)
 
     mesh = Mesh(left, bottom, right, top, SimpleCell)
-    mesh.interpolate(5, 5)
+    mesh.interpolate(30, 30)
     mesh.generate()
 
     def init_fun(solver: EulerSolver):
@@ -229,4 +229,4 @@ def test_toro_y(riemann_problem, bc_fun, plot):
         print(f"Time: {t}, dt: {dt}")
 
     if plot:
-        solver.show("U")
+        solver.show("V")

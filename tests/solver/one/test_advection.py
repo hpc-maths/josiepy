@@ -92,7 +92,7 @@ def Q():
 
 @pytest.fixture
 def solver(mesh, init_fun, Q):
-    mesh.interpolate(1000, 1)
+    mesh.interpolate(100, 1)
     mesh.generate()
     solver = Solver(mesh, Q)
     solver.init(init_fun)
@@ -132,7 +132,7 @@ def Scheme(request):
 def test_against_real_1D(solver, Scheme, plot, tol):
     """ Testing against the real 1D solver """
 
-    time, x_1d, solution = main_1d(1000, 4, 0.9, plot)
+    time, x_1d, solution = main_1d(100, 4, 0.9, plot)
     dt = time[1] - time[0]
 
     fig = plt.figure()
