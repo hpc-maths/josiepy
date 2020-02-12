@@ -44,14 +44,21 @@ class _StateDescriptor:
 
     def __init__(self, i):
         self.i = i
+        self._deleted = False
 
     def __get__(self, obj, objtype=None):
         if obj is None:
             return self
+        if self._deleted:
+            raise AttributeError("Attribute was deleted")
+
         return obj[self.i]
 
     def __set__(self, obj, value):
         obj[self.i] = value
+
+    def __delete__(self, obj):
+        self._deleted = True
 
 
 class State(np.ndarray):
@@ -185,11 +192,10 @@ class State(np.ndarray):
         """ This method syncs the descriptors removing unused fields"""
         # We check on the full set of fields of the State
         # which ones are requested by the "slice"
-        cls = obj.__class__
-        for old_var in obj.fields:
-            if not (old_var in newfields):  # Requested
+        for old_field in obj.fields:
+            if not (old_field in newfields):  # Requested
                 # We remove the associated attribute
-                delattr(cls, old_var)
+                delattr(obj, old_field)
 
         obj.fields = newfields
 
@@ -222,7 +228,8 @@ def StateTemplate(*fields: str) -> Type[State]:
     >>> zero = Q(0, 0, 0, 0)
     >>> assert zero.rho == 0
     """
-    state_cls = State
-    state_cls.fields = fields
+    # Dynamically create a class of type "State" (actually a subclass)
+    # with the right :attr:`fields`
+    state_cls = type("DerivedState", (State,), {"fields": fields})
 
     return state_cls
