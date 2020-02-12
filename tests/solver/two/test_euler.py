@@ -38,7 +38,7 @@ riemann_states = [
         "uR": 0,
         "vR": 0,
         "pR": 0.01,
-        "CFL": 0.5,
+        "CFL": 0.45,
     },
     {
         "rhoL": 5.99924,
@@ -203,7 +203,6 @@ def test_toro_y(riemann_problem, bc_fun, plot):
     solver = EulerSolver(mesh, eos)
     solver.init(init_fun)
     solver.plot()
-    solver.show("rho")
 
     final_time = 0.25
     t = 0
