@@ -18,7 +18,7 @@ DESCRIPTION = "A Python 2D Structured Mesher"
 URL = "https://gitlab.com/josiepy"
 EMAIL = "rubendibattista@gmail.com"
 AUTHOR = "RdB"
-REQUIRES_PYTHON = ">=3"
+REQUIRES_PYTHON = ">=3.7"
 VERSION = "0.2.0"
 
 # What packages are required for this module to be executed?

@@ -24,6 +24,8 @@
 # The views and conclusions contained in the software and documentation
 # are those of the authors and should not be interpreted as representing
 # official policies, either expressed or implied, of Ruben Di Battista.
+from __future__ import annotations
+
 import abc
 
 from enum import IntEnum
@@ -35,8 +37,7 @@ from typing import TYPE_CHECKING, Tuple, Union
 
 
 if TYPE_CHECKING:
-    from josie.solver.state import State  # noqa: F401
-    from josie.mesh import Mesh  # noqa: F401  # noqa: F401
+    from josie.mesh import Mesh
 
 
 PointType = Union[Tuple[float, float], np.ndarray]
@@ -117,7 +118,7 @@ class Cell(metaclass=abc.ABCMeta):
 
     @classmethod
     @abc.abstractmethod
-    def create_connectivity(cls, mesh: "Mesh"):
+    def create_connectivity(cls, mesh: Mesh):
         """ This method creates the connectivity from the given points of
         a mesh. It modifies attributes of the :class:`Mesh` instance.
 
@@ -337,8 +338,11 @@ class SimpleCell(Cell):
                 mesh.normals[i, j, NormalDirection.LEFT, :] = cls.face_normal(
                     p0, p1
                 )  # type: ignore # noqa: E501
-                mesh.normals[i, j, NormalDirection.BOTTOM, :] = \
-                    cls.face_normal(p1, p2)  # type: ignore # noqa: E501
+                mesh.normals[
+                    i, j, NormalDirection.BOTTOM, :
+                ] = cls.face_normal(
+                    p1, p2
+                )  # type: ignore # noqa: E501
 
                 mesh.normals[i, j, NormalDirection.RIGHT, :] = cls.face_normal(
                     p2, p3

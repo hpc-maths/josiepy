@@ -24,14 +24,16 @@
 # The views and conclusions contained in the software and documentation
 # are those of the authors and should not be interpreted as representing
 # official policies, either expressed or implied, of Ruben Di Battista.
+from __future__ import annotations
+
 import numpy as np
 
-from collections import Sequence
-from typing import Type, Tuple, Union
+from collections.abc import Sequence
+from typing import Type, Union
 
 
 class _StateDescriptor:
-    """ This is a custom descriptor to be used within the State class. It
+    """ This is a custom descriptor to be used within :class:`State`. It
     provides the possibility of accessing the ith-element of the numpy.ndarray
     by name.
 
@@ -46,16 +48,21 @@ class _StateDescriptor:
         self.i = i
         self._deleted = False
 
-    def __get__(self, obj, objtype=None):
+    def __get__(self, obj: State, objtype=None):
         if obj is None:
             return self
         if self._deleted:
             raise AttributeError("Attribute was deleted")
 
-        return obj[self.i]
+        ret = obj[..., self.i]
+
+        if ret.ndim == 0:
+            ret = ret.item(0)
+
+        return ret
 
     def __set__(self, obj, value):
-        obj[self.i] = value
+        obj[..., self.i] = value
 
     def __delete__(self, obj):
         self._deleted = True
@@ -65,7 +72,7 @@ class State(np.ndarray):
     """ :class:`State` is a subclass of :class:`numpy.ndarray`. It behaves like
     a normal :class:`numpy.ndarray` except it can be initialized a bit more
     expressively. In particular each element of the array can be accessed by
-    name (in the order variables are provided)
+    name
 
     Attributes
     ----------
@@ -93,7 +100,7 @@ class State(np.ndarray):
     >>> assert np.array_equal(np.cross(e1, e2), e3)
     """
 
-    fields: Tuple[str, ...]
+    fields: np.ndarray[str]
 
     def __new__(cls, *args, **kwargs):
         if args and kwargs:
@@ -103,7 +110,7 @@ class State(np.ndarray):
             )
 
         if kwargs:
-            cls.fields = tuple(kwargs.keys())
+            cls.fields = np.array(list(kwargs.keys()), ndmin=1)
             values = kwargs.values()
         else:
             if not (len(args) == len(cls.fields)):
@@ -124,7 +131,7 @@ class State(np.ndarray):
         self._getitem = True
 
         try:
-            ret = super().__getitem__(item)
+            ret: np.ndarray = super().__getitem__(item)
             self._slice_index = item
         finally:
             self.__getitem__ = False
@@ -132,21 +139,15 @@ class State(np.ndarray):
         if not isinstance(ret, np.ndarray):
             return ret
 
-        cls = self.__class__
-        if isinstance(self._slice_index, Sequence):
-            # cls.fields is a tuple and can be indexed only by
-            # integer or slice. With a sequence we manually select
-            # the values specified by the list
-            newfields = []
+        # If it's an Ellipsis we're within the __get__ call of the
+        # descriptor. So we noop.
+        if (
+            isinstance(self._slice_index, Sequence)
+            and self._slice_index[0] is Ellipsis
+        ):
+            return ret
 
-            # First we need to get the actual fields that are requested
-            # by the "slice"
-            for i in self._slice_index:
-                newfields.append(cls.fields[i])
-
-            newfields = tuple(newfields)
-        else:
-            newfields = self.fields[self._slice_index]
+        newfields = np.atleast_1d(self.fields[self._slice_index])
 
         self._sync_descriptors(ret, newfields)
         self._set_descriptors(ret)
@@ -173,7 +174,7 @@ class State(np.ndarray):
         self._set_descriptors(self)
 
     @staticmethod
-    def _set_descriptors(obj: Union[Type["State"], "State"]):
+    def _set_descriptors(obj: Union[Type[State], State]):
         """ This method sets the descriptor to each variable of the state
         provided by :class:_StateDescriptor for the class. Can be called
         on the class or on a instance of :class:`State`
@@ -188,7 +189,7 @@ class State(np.ndarray):
             setattr(cls, field, _StateDescriptor(i))
 
     @staticmethod
-    def _sync_descriptors(obj, newfields: Tuple[str]):
+    def _sync_descriptors(obj, newfields: np.ndarray[str]):
         """ This method syncs the descriptors removing unused fields"""
         # We check on the full set of fields of the State
         # which ones are requested by the "slice"
@@ -230,6 +231,7 @@ def StateTemplate(*fields: str) -> Type[State]:
     """
     # Dynamically create a class of type "State" (actually a subclass)
     # with the right :attr:`fields`
+    fields = np.array(fields, ndmin=1)
     state_cls = type("DerivedState", (State,), {"fields": fields})
 
     return state_cls
