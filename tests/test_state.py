@@ -4,18 +4,27 @@ import pytest
 from josie.solver.state import State, StateTemplate
 
 
-def state_from_template():
-    QTemplate = StateTemplate("rho", "rhoU", "rhoV", "p")
+@pytest.fixture
+def QTemplate():
+    yield StateTemplate("rho", "rhoU", "rhoV", "p")
+
+
+def state_from_template(QTemplate):
     return QTemplate(0, 0, 0, 0)
 
 
-def state_directly():
+def state_directly(QTemplate):
     return State(rho=0, rhoU=0, rhoV=0, p=0)
 
 
 @pytest.fixture(params=[state_from_template, state_directly])
-def Q(request):
-    yield request.param()
+def Q(request, QTemplate):
+    yield request.param(QTemplate)
+
+
+@pytest.fixture
+def multiQ(QTemplate):
+    yield np.random.random((10, 10, 4)).view(QTemplate)
 
 
 def test_wrong_number_of_fields():
@@ -114,3 +123,26 @@ def test_broadcasting(Q):
     a = np.zeros((5, len(Q.fields)))
 
     Q - a
+
+
+def test_multidimensional_getitem(multiQ):
+    state = multiQ
+
+    assert np.array_equal(state.rho, state[..., 0])
+    assert np.array_equal(state.rhoU, state[..., 1])
+    assert np.array_equal(state.rhoV, state[..., 2])
+    assert np.array_equal(state.p, state[..., 3])
+
+
+def test_multidimensional_numpy_behaviour():
+    Q = StateTemplate("x", "y", "z")
+
+    X = np.array([[1, 0, 0], [1, 0, 0], [1, 0, 0], [1, 0, 0]]).view(Q)
+
+    Y = np.array([[0, 1, 0], [0, 1, 0], [0, 1, 0], [0, 1, 0]]).view(Q)
+
+    Z = np.cross(X, Y)
+
+    assert np.all(Z == np.array([0, 0, 1]))
+    assert np.all(X - Y == np.array([1, -1, 0]))
+    assert np.all(np.einsum("ij,ij->i", X, Y) == 0)

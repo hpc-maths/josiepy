@@ -84,13 +84,14 @@ class State(np.ndarray):
     A :class:`State` can be initialized using a :class:`StateTemplate`, or
     directly providing key-value arguments:
 
-    >>> Q = State(rho=0, rhoU=1, rhoV=2)
-    >>> assert Q.rho == 0
-    >>> assert Q.rhoU == 1
-    >>> assert Q.rhoV == 2
-    >>> assert Q[0] == Q.rho
-    >>> assert Q[1] == Q.rhoU
-    >>> assert Q[2] == Q.rhoV
+    >>> Q = StateTemplate("rho", "rhoU", "rhoV")
+    >>> state = np.array([0, 1, 2]).view(Q)
+    >>> assert state.rho == 0
+    >>> assert state.rhoU == 1
+    >>> assert state.rhoV == 2
+    >>> assert state[0] == state.rho
+    >>> assert state[1] == state.rhoU
+    >>> assert state[2] == state.rhoV
 
     A state can be manipulated as a normal :class:`numpy.ndarray`:
 
@@ -98,6 +99,14 @@ class State(np.ndarray):
     >>> e2 = State(i=0, j=1, k=0)
     >>> e3 = State(i=0, j=0, k=1)
     >>> assert np.array_equal(np.cross(e1, e2), e3)
+
+    A :class:`State` can be multidimensional. The last dimension must be the
+    number of states defined in the :class:`StateTemplate` call. In this case
+    you can get all the values of the state for a specific variable:
+
+    >>> state = np.random.random((10, 10, 3)).view(Q)
+    >>> assert state.rho == state[..., 0]
+    >>> assert state.rhoU == state[..., 1]
     """
 
     fields: np.ndarray[str]
@@ -132,20 +141,25 @@ class State(np.ndarray):
 
         try:
             ret: np.ndarray = super().__getitem__(item)
-            self._slice_index = item
         finally:
             self.__getitem__ = False
 
         if not isinstance(ret, np.ndarray):
             return ret
 
-        # If it's an Ellipsis we're within the __get__ call of the
-        # descriptor. So we noop.
-        if (
-            isinstance(self._slice_index, Sequence)
-            and self._slice_index[0] is Ellipsis
-        ):
-            return ret
+        self._slice_index = item
+
+        if isinstance(self._slice_index, Sequence):
+            # If it's an Ellipsis we're within the __get__ call of the
+            # descriptor. So we noop.
+            if self._slice_index[0] is Ellipsis:
+                return ret
+
+            # If the first element is a slice, we're doing a call of the
+            # type array[:, 0]. So we use the second element as index for
+            # the fields
+            if isinstance(self._slice_index[0], slice):
+                self._slice_index = self._slice_index[0]
 
         newfields = np.atleast_1d(self.fields[self._slice_index])
 
@@ -166,7 +180,8 @@ class State(np.ndarray):
             return
         else:
             # View
-            if not len(obj) == len(self.fields):
+            dims = obj.shape
+            if not (dims[-1] == len(self.fields)):
                 raise ValueError(
                     "View has different number of elements than fields "
                 )
