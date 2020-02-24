@@ -28,23 +28,40 @@ r"""
 We create one big state that contains the actual conservative variables that
 are used in the flux together with the "auxiliary" variables that are instead
 needed, for example, to compute the speed of sound.
-rho: density
-rhoE: total energy multiplied by the density
-rhoe: internal energy multiplied by the density
-U: x-velocity
-V: y-velocity
-p: pressure
-c: sound velocity
+
+* `rho`: density :math:`\rho`
+* `rhoU`: component along :math:`x` of the velocity :math:`u`, multiplied by
+   the density
+* `rhoV`: component along :math:`y` of the velocity :math:`v`, mvltiplied by
+   the density
+* `rhoE`: total energy multiplied by the density :math:`\rho E`
+* `rhoe`: internal energy multiplied by the density :math:`\rhoe`
+* `U`: component along :math:`x` of the velocity :math:`u`
+* `V`: component along :math:`y` of the velocity :math:`v`
+* `p`: pressure :math:`p`
+* `c`: sound velocity :math:`c`
 """
 from __future__ import annotations
+
+from enum import IntEnum
 
 from josie.solver.state import State
 
 
+class Fields(IntEnum):
+    rho = 0
+    rhoU = 1
+    rhoV = 2
+    rhoE = 3
+    rhoe = 4
+    U = 5
+    V = 6
+    p = 7
+    c = 8
+
+
 class Q(State):
-    fields = State.list_to_enum(
-        ["rho", "rhoU", "rhoV", "rhoE", "rhoe", "U", "V", "p", "c"]
-    )
+    fields = Fields
 
     def conservative(self) -> Q:
         """ Returns the conservative part of the state """

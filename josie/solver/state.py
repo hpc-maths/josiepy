@@ -64,7 +64,7 @@ class State(np.ndarray):
     >>> assert np.array_equal(state[..., state.fields.rhoU],state[..., 1])
     """
 
-    fields: IntEnum
+    fields: Type[IntEnum]
     _FIELDS_ENUM_NAME = "FieldsEnum"
 
     def __new__(cls, *args):
@@ -110,8 +110,9 @@ def StateTemplate(*fields: str) -> Type[State]:
     r""" A factory for a :class:`State`.
 
     It allows you to create at will a :class:`State` class for which you can
-    access its variables (e.g. the velocity :math:`\mathbf{U}`) by attributes
-    (and not only by index).
+    access its variables (e.g. the velocity :math:`\mathbf{U}`) using the
+    attribute :attr:`fields`, that is an :class:`IntEnum` (and not only by
+    index).
 
     Parameters
     ----------

@@ -26,8 +26,10 @@
 # official policies, either expressed or implied, of Ruben Di Battista.
 import numpy as np
 
+from .state import Q
 
-def flux(state_array: np.ndarray) -> np.ndarray:
+
+def flux(state_array: Q) -> np.ndarray:
     r""" This returns the tensor representing the flux for an Euler problem
 
     Parameters
@@ -54,14 +56,15 @@ def flux(state_array: np.ndarray) -> np.ndarray:
 
     num_cells_x, num_cells_y, _ = state_array.shape
 
+    # Flux tensor
     F = np.empty((num_cells_x, num_cells_y, 4, 2))
 
-    rhoU = state_array[:, :, 1]
-    rhoV = state_array[:, :, 2]
-    rhoE = state_array[:, :, 3]
-    U = state_array[:, :, 5]
-    V = state_array[:, :, 6]
-    p = state_array[:, :, 7]
+    rhoU = state_array[:, :, Q.fields.rhoU]
+    rhoV = state_array[:, :, Q.fields.rhoV]
+    rhoE = state_array[:, :, Q.fields.rhoE]
+    U = state_array[:, :, Q.fields.U]
+    V = state_array[:, :, Q.fields.V]
+    p = state_array[:, :, Q.fields.p]
 
     rhoUU = np.multiply(rhoU, U)
     rhoUV = np.multiply(rhoU, V)

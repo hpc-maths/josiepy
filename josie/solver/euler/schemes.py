@@ -27,17 +27,15 @@
 
 import numpy as np
 
-from .problem import flux
 from josie.solver.scheme import Scheme
+
+from .problem import flux
+from .state import Q
 
 
 class Rusanov(Scheme):
     def convective_flux(
-        self,
-        values: np.ndarray,
-        neigh_values: np.ndarray,
-        normals: np.ndarray,
-        surfaces: np.ndarray,
+        self, values: Q, neigh_values: Q, normals: Q, surfaces: Q
     ):
         """ This schemes implements the Rusanov scheme. See :cite: `rusanov` for
         a detailed view on compressible schemes
@@ -60,31 +58,36 @@ class Rusanov(Scheme):
             the values of the face surfaces of the face connecting the cell to
             is neighbour
         """
+        fields = Q.fields
+
         FS = np.empty_like(values)
 
         # First four variables of the total state are the conservative
         # variables (rho, rhoU, rhoV, rhoE)
-        values_cons = values[:, :, :4]
-        neigh_values_cons = neigh_values[:, :, :4]
+        values_cons = values.conservative()
+        neigh_values_cons = neigh_values.conservative()
 
-        UV = values[:, :, 5:7]
-        UV_neigh = neigh_values[:, :, 5:7]
+        UV_slice = slice(fields.U, fields.V + 1)
+        UV = values[:, :, UV_slice]
+        UV_neigh = neigh_values[:, :, UV_slice]
 
         # Find the normal velocity
         U = np.einsum("ijk,ijk->ij", UV, normals)
         U_neigh = np.einsum("ijk,ijk->ij", UV_neigh, normals)
 
-        c = values[:, :, 8]
-        c_neigh = neigh_values[:, :, 8]
+        c = values[:, :, fields.c]
+        c_neigh = neigh_values[:, :, fields.c]
 
         # Array to find the sigma value.
         # We concatenate the two arrays for |U| + c for both the cell and its
         # neighbours in a [Nx * Ny * 2] array
 
         sigma_array = np.concatenate(
-            (np.abs(U)[:, :, np.newaxis] + c[:, :, np.newaxis],
-             np.abs(U_neigh)[: , :, np.newaxis] + c_neigh[:, :, np.newaxis]),
-            axis=-1
+            (
+                np.abs(U)[:, :, np.newaxis] + c[:, :, np.newaxis],
+                np.abs(U_neigh)[:, :, np.newaxis] + c_neigh[:, :, np.newaxis],
+            ),
+            axis=-1,
         )
 
         # And the we found the max on the last axis (i.e. the maximul value
@@ -96,9 +99,7 @@ class Rusanov(Scheme):
         DeltaF = np.einsum("ijkl,ijl->ijk", DeltaF, normals)
 
         DeltaQ = (
-            0.5
-            * sigma[:, :, np.newaxis]
-            * (neigh_values_cons - values_cons)
+            0.5 * sigma[:, :, np.newaxis] * (neigh_values_cons - values_cons)
         )
 
         FS[:, :, :4] = surfaces[:, :, np.newaxis] * (DeltaF - DeltaQ)
