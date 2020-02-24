@@ -45,7 +45,7 @@ if TYPE_CHECKING:
 class Solver(metaclass=abc.ABCMeta):
 
     # Type Checking
-    _values: np.ndarray
+    _values: State
 
     def __init__(self, mesh: Mesh, Q: Type[State]):
         """ This class is used to solve a problem governed by PDEs.
@@ -112,28 +112,28 @@ class Solver(metaclass=abc.ABCMeta):
     @property
     def top_ghost(self) -> np.ndarray:
         if self.mesh.oneD:
-            raise AttributeError
+            raise AttributeError("Mesh is 1D")
 
         return self._values[1:-1, -1]
 
     @top_ghost.setter
     def top_ghost(self, value: np.ndarray):
         if self.mesh.oneD:
-            raise AttributeError
+            raise AttributeError("Mesh is 1D")
 
         self._values[1:-1, -1, :] = value
 
     @property
     def btm_ghost(self) -> np.ndarray:
         if self.mesh.oneD:
-            raise AttributeError
+            raise AttributeError("Mesh is 1D")
 
         return self._values[1:-1, 0]
 
     @btm_ghost.setter
     def btm_ghost(self, value: np.ndarray):
         if self.mesh.oneD:
-            raise AttributeError
+            raise AttributeError("Mesh is 1D")
 
         self._values[1:-1, 0] = value
 
@@ -164,12 +164,8 @@ class Solver(metaclass=abc.ABCMeta):
             The function to use to initialize the value in the domain
 
         """
-        num_cells_x = self.mesh.num_cells_x
-        num_cells_y = self.mesh.num_cells_y
-        state_size = len(self.Q.fields)
-
         # Init data structure
-        self._values = np.empty((num_cells_x + 2, num_cells_y + 2, state_size))
+        self._values = self.Q.from_mesh(self.mesh)
 
         # First set all the values for the internal cells
         # The actual values are a view of only the internal cells
@@ -333,7 +329,7 @@ class Solver(metaclass=abc.ABCMeta):
             self._writer.write_points_cells(io_mesh.points, io_mesh.cells)
 
         cell_data = {}
-        for i, field in enumerate(self.Q.fields):
+        for i, field in [(field.value, field.name) for field in self.Q.fields]:
             cell_data[field] = self.values[:, :, i].ravel()
 
         cell_type_str = self.mesh.cell_type._meshio_cell_type

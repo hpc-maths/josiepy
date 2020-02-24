@@ -36,7 +36,17 @@ V: y-velocity
 p: pressure
 c: sound velocity
 """
+from __future__ import annotations
 
-from josie.solver.state import StateTemplate
+from josie.solver.state import State
 
-Q = StateTemplate("rho", "rhoU", "rhoV", "rhoE", "rhoe", "U", "V", "p", "c")
+
+class Q(State):
+    fields = State.list_to_enum(
+        ["rho", "rhoU", "rhoV", "rhoE", "rhoe", "U", "V", "p", "c"]
+    )
+
+    def conservative(self) -> Q:
+        """ Returns the conservative part of the state """
+
+        return self[..., :4]

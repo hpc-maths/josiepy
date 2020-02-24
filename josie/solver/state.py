@@ -28,76 +28,31 @@ from __future__ import annotations
 
 import numpy as np
 
-from collections.abc import Sequence
-from typing import Type, Union
+from enum import IntEnum
+from typing import List, Type
 
-
-class _StateDescriptor:
-    """ This is a custom descriptor to be used within :class:`State`. It
-    provides the possibility of accessing the ith-element of the numpy.ndarray
-    by name.
-
-    Parameters
-    ---------
-    i
-        The index of the element in the numpy array to be accessed with
-
-    """
-
-    def __init__(self, i):
-        self.i = i
-        self._deleted = False
-
-    def __get__(self, obj: State, objtype=None):
-        if obj is None:
-            return self
-        if self._deleted:
-            raise AttributeError("Attribute was deleted")
-
-        ret = obj[..., self.i]
-
-        if ret.ndim == 0:
-            ret = ret.item(0)
-
-        return ret
-
-    def __set__(self, obj, value):
-        obj[..., self.i] = value
-
-    def __delete__(self, obj):
-        self._deleted = True
+from josie.mesh import Mesh
 
 
 class State(np.ndarray):
     """ :class:`State` is a subclass of :class:`numpy.ndarray`. It behaves like
-    a normal :class:`numpy.ndarray` except it can be initialized a bit more
-    expressively. In particular each element of the array can be accessed by
-    name
-
-    Attributes
-    ----------
-    fields
-        Each element of the tuple is the name of the corresponding element in
-        the array
-
+    a normal :class:`numpy.ndarray` except it has additional init methods to
+    ease the usage
 
     A :class:`State` can be initialized using a :class:`StateTemplate`, or
     directly providing key-value arguments:
 
     >>> Q = StateTemplate("rho", "rhoU", "rhoV")
     >>> state = np.array([0, 1, 2]).view(Q)
-    >>> assert state.rho == 0
-    >>> assert state.rhoU == 1
-    >>> assert state.rhoV == 2
-    >>> assert state[0] == state.rho
-    >>> assert state[1] == state.rhoU
-    >>> assert state[2] == state.rhoV
+    >>> assert state[state.fields.rho] == 0
+    >>> assert state[state.fields.rhoU] == 1
+    >>> assert state[state.fields.rhoV] == 2
 
     A state can be manipulated as a normal :class:`numpy.ndarray`:
 
-    >>> e1 = State(i=1, j=0, k=0)
-    >>> e2 = State(i=0, j=1, k=0)
-    >>> e3 = State(i=0, j=0, k=1)
+    >>> e1 = State([1, 0, 0])
+    >>> e2 = State([0, 1, 0])
+    >>> e3 = State([0, 0, 1])
     >>> assert np.array_equal(np.cross(e1, e2), e3)
 
     A :class:`State` can be multidimensional. The last dimension must be the
@@ -105,68 +60,17 @@ class State(np.ndarray):
     you can get all the values of the state for a specific variable:
 
     >>> state = np.random.random((10, 10, 3)).view(Q)
-    >>> assert state.rho == state[..., 0]
-    >>> assert state.rhoU == state[..., 1]
+    >>> assert np.array_equal(state[..., state.fields.rho], state[..., 0])
+    >>> assert np.array_equal(state[..., state.fields.rhoU],state[..., 1])
     """
 
-    fields: np.ndarray[str]
+    fields: IntEnum
+    _FIELDS_ENUM_NAME = "FieldsEnum"
 
-    def __new__(cls, *args, **kwargs):
-        if args and kwargs:
-            raise ValueError(
-                "You can initialize a state using positional arguments only "
-                "or keyword arguments only. Not both"
-            )
-
-        if kwargs:
-            cls.fields = np.array(list(kwargs.keys()), ndmin=1)
-            values = kwargs.values()
-        else:
-            if not (len(args) == len(cls.fields)):
-                raise ValueError(
-                    "The number of provided input arguments must be the same "
-                    "as the number of the variables of the state"
-                )
-
-            values = args
-
-        cls._set_descriptors(cls)
-
-        arr = np.asarray(list(values), dtype=float).view(cls)
+    def __new__(cls, *args):
+        arr: State = np.asarray(list(args), dtype=float).view(cls)
 
         return arr
-
-    def __getitem__(self, item):
-        self._getitem = True
-
-        try:
-            ret: np.ndarray = super().__getitem__(item)
-        finally:
-            self.__getitem__ = False
-
-        if not isinstance(ret, np.ndarray):
-            return ret
-
-        self._slice_index = item
-
-        if isinstance(self._slice_index, Sequence):
-            # If it's an Ellipsis we're within the __get__ call of the
-            # descriptor. So we noop.
-            if self._slice_index[0] is Ellipsis:
-                return ret
-
-            # If the first element is a slice, we're doing a call of the
-            # type array[:, 0]. So we use the second element as index for
-            # the fields
-            if isinstance(self._slice_index[0], slice):
-                self._slice_index = self._slice_index[0]
-
-        newfields = np.atleast_1d(self.fields[self._slice_index])
-
-        self._sync_descriptors(ret, newfields)
-        self._set_descriptors(ret)
-
-        return ret
 
     def __array_finalize__(self, obj):
         # Normal __new__ construction
@@ -178,46 +82,28 @@ class State(np.ndarray):
         # Slice handled by superclass
         if isinstance(obj, State) and obj._getitem:
             return
-        else:
-            # View
-            dims = obj.shape
-            if not (dims[-1] == len(self.fields)):
-                raise ValueError(
-                    "View has different number of elements than fields "
-                )
-
-        self._set_descriptors(self)
-
-    @staticmethod
-    def _set_descriptors(obj: Union[Type[State], State]):
-        """ This method sets the descriptor to each variable of the state
-        provided by :class:_StateDescriptor for the class. Can be called
-        on the class or on a instance of :class:`State`
-        """
-
-        if isinstance(obj, State):
-            cls = obj.__class__
-        else:
-            cls = obj
-
-        for i, field in enumerate(obj.fields):
-            setattr(cls, field, _StateDescriptor(i))
-
-    @staticmethod
-    def _sync_descriptors(obj, newfields: np.ndarray[str]):
-        """ This method syncs the descriptors removing unused fields"""
-        # We check on the full set of fields of the State
-        # which ones are requested by the "slice"
-        for old_field in obj.fields:
-            if not (old_field in newfields):  # Requested
-                # We remove the associated attribute
-                delattr(obj, old_field)
-
-        obj.fields = newfields
 
     @classmethod
-    def zeros(cls):
-        return np.zeros(len(cls.fields))
+    def list_to_enum(cls, fields: List[str]) -> IntEnum:
+        """ Convert a list of textual fields to the class:`IntEnum` that needs
+        to be stored in this class :attr:`fields` """
+
+        return IntEnum(
+            cls._FIELDS_ENUM_NAME, dict(zip(fields, range(len(fields))))
+        )
+
+    @classmethod
+    def from_mesh(cls, mesh: Mesh) -> State:
+        """ Initialize an empty class:`State` object of the right dimensiosn
+        for the given class:`Mesh` """
+
+        nx = mesh.num_cells_x
+        ny = mesh.num_cells_y
+        state_size = len(cls.fields)
+
+        # TODO: Fix for 3D. Probably adding a dimensionality attribute to
+        # `Mesh`
+        return np.empty((nx + 2, ny + 2, state_size)).view(cls)
 
 
 def StateTemplate(*fields: str) -> Type[State]:
@@ -242,11 +128,11 @@ def StateTemplate(*fields: str) -> Type[State]:
     of the 2D Euler compressible equations
     >>> Q = StateTemplate("rho", "rhoU", "rhoV", "E")
     >>> zero = Q(0, 0, 0, 0)
-    >>> assert zero.rho == 0
+    >>> assert zero[Q.fields.rho] == 0
     """
     # Dynamically create a class of type "State" (actually a subclass)
     # with the right :attr:`fields`
-    fields = np.array(fields, ndmin=1)
+    fields = IntEnum(State._FIELDS_ENUM_NAME, zip(fields, range(len(fields))))
     state_cls = type("DerivedState", (State,), {"fields": fields})
 
     return state_cls

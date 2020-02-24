@@ -66,8 +66,8 @@ riemann_states = [
 
 
 def neumann(first, second, direction):
-    second.bc = Neumann(Q.zeros())
-    first.bc = Neumann(Q.zeros())
+    second.bc = Neumann(np.zeros(len(Q.fields)).view(Q))
+    first.bc = Neumann(np.zeros(len(Q.fields)).view(Q))
 
     return first, second
 
