@@ -13,8 +13,11 @@ test:
     script:
         - pip install pygount
         - pygount --format cloc-xml -o loc.xml
-        - pip install ".[dev]"
+        - pip install ".[all]"
         - pytest
+        - cd examples
+        - "jupyter nbconvert *.ipynb --to python"
+        - "for pyfile in *.py; do echo \"$pyfile\"; python \"$pyfile\"; done"
     artifacts:
         paths: 
             - "*.xml"
