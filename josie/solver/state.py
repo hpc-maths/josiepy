@@ -133,7 +133,7 @@ def StateTemplate(*fields: str) -> Type[State]:
     """
     # Dynamically create a class of type "State" (actually a subclass)
     # with the right :attr:`fields`
-    fields = IntEnum(State._FIELDS_ENUM_NAME, zip(fields, range(len(fields))))
+    fields = State.list_to_enum(fields)
     state_cls = type("DerivedState", (State,), {"fields": fields})
 
     return state_cls
