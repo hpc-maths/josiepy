@@ -24,60 +24,60 @@
 # The views and conclusions contained in the software and documentation
 # are those of the authors and should not be interpreted as representing
 # official policies, either expressed or implied, of Ruben Di Battista.
-import numpy as np
+r"""
+We create one big state that contains the actual conservative variables that
+are used in the flux together with the "auxiliary" variables that are instead
+needed, for example, to compute the speed of sound.
 
-from .state import Q
+The state of system described in :cite:`baer_nunziato` is actually two Euler
+states togeter with the state associated to the volume fraction :math:`\alpha`
+"""
+from __future__ import annotations
+
+from enum import IntEnum
+
+from josie.solver.state import State
 
 
-def flux(state_array: Q) -> np.ndarray:
-    r""" This returns the tensor representing the flux for an Euler model
+class Phases(IntEnum):
+    """ A phase indicator :class:`IntEnum`. It gives the index within the
+    :class:`State` array where that phase state variables begin
 
-    Parameters
-    ----------
-    state_array
-        A :class:`np.ndarray` that has dimension [Nx * Ny * 9] containing the
-        values for all the state variables in all the mesh points
-
-    Returns
-    ---------
-    F
-        An array of dimension `[Nx * Ny * 4 * 2]`, i.e. an array that of each
-        x cell and y cell stores the 4*2 flux tensor
-        The flux tensor is:
-        ..math::
-
-        \begin{bmatrix}
-            \rho u & \rho v \\
-            \rho u^2 + p & \rho uv \\
-            \rho vu * \rho v^ 2 + p \\
-            (\rho E + p)U & (\rho E + p)V
-        \end{bmatrix}
     """
 
-    num_cells_x, num_cells_y, _ = state_array.shape
+    PHASE1 = 1
+    PHASE2 = 10
 
-    # Flux tensor
-    F = np.empty((num_cells_x, num_cells_y, 4, 2))
 
-    rhoU = state_array[:, :, Q.fields.rhoU]
-    rhoV = state_array[:, :, Q.fields.rhoV]
-    rhoE = state_array[:, :, Q.fields.rhoE]
-    U = state_array[:, :, Q.fields.U]
-    V = state_array[:, :, Q.fields.V]
-    p = state_array[:, :, Q.fields.p]
+class Fields(IntEnum):
+    alpha = 0
 
-    rhoUU = np.multiply(rhoU, U)
-    rhoUV = np.multiply(rhoU, V)
-    rhoVV = np.multiply(rhoV, V)
-    rhoVU = np.multiply(rhoV, U)
+    rho1 = 1
+    rhoU1 = 2
+    rhoV1 = 3
+    rhoE1 = 4
+    rhoe1 = 5
+    U1 = 6
+    V1 = 7
+    p1 = 8
+    c1 = 9
 
-    F[:, :, 0, 0] = rhoU
-    F[:, :, 0, 1] = rhoV
-    F[:, :, 1, 0] = rhoUU + p
-    F[:, :, 1, 1] = rhoUV
-    F[:, :, 2, 0] = rhoVU
-    F[:, :, 2, 1] = rhoVV + p
-    F[:, :, 3, 0] = np.multiply(rhoE + p, U)
-    F[:, :, 3, 1] = np.multiply(rhoE + p, V)
+    rho2 = 10
+    rhoU2 = 11
+    rhoV2 = 12
+    rhoE2 = 13
+    rhoe2 = 14
+    U2 = 15
+    V2 = 16
+    p2 = 17
+    c2 = 18
 
-    return F
+
+class Q(State):
+    fields = Fields
+
+    def conservative(self, phase: Phases) -> Q:
+        """ Returns the conservative part of the state, for a specified phase
+        """
+
+        return self[..., phase:4]
