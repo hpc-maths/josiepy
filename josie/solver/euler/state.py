@@ -49,6 +49,8 @@ from josie.solver.state import State
 
 
 class Fields(IntEnum):
+    """ Indexing enum for the state variables of the problem """
+
     rho = 0
     rhoU = 1
     rhoV = 2
@@ -61,9 +63,25 @@ class Fields(IntEnum):
 
 
 class Q(State):
+    r""" The class representing the state variables of the Euler system
+
+    ..math:
+    (\rho, \rho u, \rho v, \rho E, \rho e, u, v, p, c)
+    """
     fields = Fields
 
     def conservative(self) -> Q:
         """ Returns the conservative part of the state """
 
         return self[..., :4]
+
+
+class Eigs(IntEnum):
+    """ Indexing enum for the eigenvalues of the problem """
+
+    UPLUS = 0
+    UMINUS = 1
+
+
+class EigState(State):
+    fields = Eigs

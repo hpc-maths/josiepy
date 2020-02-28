@@ -29,13 +29,17 @@ import numpy as np
 
 from josie.solver.scheme import Scheme
 
-from .problem import flux
+from .problem import flux, eigs
 from .state import Q
 
 
 class Rusanov(Scheme):
     def convective_flux(
-        self, values: Q, neigh_values: Q, normals: Q, surfaces: Q
+        self,
+        values: Q,
+        neigh_values: Q,
+        normals: np.ndarray,
+        surfaces: np.ndarray,
     ):
         """ This schemes implements the Rusanov scheme. See :cite: `rusanov` for
         a detailed view on compressible schemes
@@ -43,11 +47,11 @@ class Rusanov(Scheme):
         Parameters
         ----------
         values
-            A :class:`np.ndarray` that has dimension [Nx * Ny * 9] containing
+            A :class:`Q` object that has dimension [Nx * Ny * 9] containing
             the values for all the states in all the mesh points
         neigh_values
-            A :class:`np.ndarray` that has the same dimension of `values`. It
-            contains the corresponding neighbour values of the statestored in
+            A :class:`Q` object  that has the same dimension of `values`. It
+            contains the corresponding neighbour values of the states tored in
             `values`, i.e. the neighbour of `values[i]` is `neigh_values[i]`
         normals
             A :class:`np.ndarray` that has the dimensions [Nx * Ny * 2]
@@ -58,8 +62,6 @@ class Rusanov(Scheme):
             the values of the face surfaces of the face connecting the cell to
             is neighbour
         """
-        fields = Q.fields
-
         FS = np.empty_like(values)
 
         # First four variables of the total state are the conservative
@@ -67,28 +69,11 @@ class Rusanov(Scheme):
         values_cons = values.conservative()
         neigh_values_cons = neigh_values.conservative()
 
-        UV_slice = slice(fields.U, fields.V + 1)
-        UV = values[:, :, UV_slice]
-        UV_neigh = neigh_values[:, :, UV_slice]
+        # Let's retrieve the values of the eigenvalues
+        eigs_values = eigs(values, normals)
+        eigs_neigh_values = eigs(neigh_values, normals)
 
-        # Find the normal velocity
-        U = np.einsum("ijk,ijk->ij", UV, normals)
-        U_neigh = np.einsum("ijk,ijk->ij", UV_neigh, normals)
-
-        c = values[:, :, fields.c]
-        c_neigh = neigh_values[:, :, fields.c]
-
-        # Array to find the sigma value.
-        # We concatenate the two arrays for |U| + c for both the cell and its
-        # neighbours in a [Nx * Ny * 2] array
-
-        sigma_array = np.concatenate(
-            (
-                np.abs(U)[:, :, np.newaxis] + c[:, :, np.newaxis],
-                np.abs(U_neigh)[:, :, np.newaxis] + c_neigh[:, :, np.newaxis],
-            ),
-            axis=-1,
-        )
+        sigma_array = np.concatenate((eigs_values, eigs_neigh_values), axis=-1)
 
         # And the we found the max on the last axis (i.e. the maximul value
         # of sigma for each cell)
