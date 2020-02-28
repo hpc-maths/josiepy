@@ -32,6 +32,15 @@ from .state import Q
 def flux(state_array: Q) -> np.ndarray:
     r""" This returns the tensor representing the flux for an Euler model
 
+    A general problem can be written in a compact way:
+
+    ..math::
+
+    \pdv{\vb{q}}{t} + \div{\vb{F\qty(\vb{q})}} + \vb{B}\qty(\vb{q}) \cdot
+        \gradient{\vb{q}} = \vb{s\qty(\vb{q})}
+
+    This function needs to return :math:`\vb{F}\qty(\vb{q})`
+
     Parameters
     ----------
     state_array
@@ -43,6 +52,7 @@ def flux(state_array: Q) -> np.ndarray:
     F
         An array of dimension `[Nx * Ny * 4 * 2]`, i.e. an array that of each
         x cell and y cell stores the 4*2 flux tensor
+
         The flux tensor is:
         ..math::
 

@@ -76,8 +76,19 @@ class Fields(IntEnum):
 class Q(State):
     fields = Fields
 
+    def phase(self, phase: Phases) -> Q:
+        r""" Returns the part of the state associated to a specified phase
+
+        ..warning::
+        This does not return the first variable of the state, i.e.
+        :math:`\alpha`
+
+        """
+
+        return self[..., phase : phase + 8]
+
     def conservative(self, phase: Phases) -> Q:
         """ Returns the conservative part of the state, for a specified phase
         """
 
-        return self[..., phase:4]
+        return self[..., phase : phase + 3]

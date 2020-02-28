@@ -24,21 +24,24 @@
 # The views and conclusions contained in the software and documentation
 # are those of the authors and should not be interpreted as representing
 # official policies, either expressed or implied, of Ruben Di Battista.
+""" This module contains the different Equation of State (EOS) implementations
+"""
+
 import abc
 import numpy as np
 
 
 class EOS(metaclass=abc.ABCMeta):
     @abc.abstractmethod
-    def rhoe(self, rho: float, p: float):
+    def rhoe(self, rho: np.ndarray, p: np.ndarray):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def p(self, rho: float, e: float):
+    def p(self, rho: np.ndarray, e: np.ndarray):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def sound_velocity(self, rho: float, p: float):
+    def sound_velocity(self, rho: np.ndarray, p: np.ndarray):
         raise NotImplementedError
 
 

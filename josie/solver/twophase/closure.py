@@ -1,5 +1,5 @@
 # josiepy
-# Copyright © 2019 Ruben Di Battista
+# Copyright © 2020 Ruben Di Battista
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -24,50 +24,64 @@
 # The views and conclusions contained in the software and documentation
 # are those of the authors and should not be interpreted as representing
 # official policies, either expressed or implied, of Ruben Di Battista.
+import abc
 import numpy as np
 
-from typing import TYPE_CHECKING
-
-from josie.solver import Solver
-
-from .eos import EOS
 from .state import Q
 
-if TYPE_CHECKING:
-    from josie.mesh import Mesh
+
+class Closure(metaclass=abc.ABCMeta):
+    r""" A class representing the closure relation for :math:`p_I` and
+    :math:`\vb{u}_I`. Use them as mixin with the Equation of State in order
+    to provide full closure for the system
+    """
+
+    @abc.abstractmethod
+    def pI(self, state_array: Q) -> np.ndarray:
+        """
+        Parameters
+        ----------
+        Q
+            A `[Nx * Ny * 19]` array containing the values for all the state
+            variables
+
+        Returns
+        -------
+        pI
+            A `[Nx * Ny * 1]` array containing the value of the :math:`p_I`
+        """
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def uI(self, state_array: Q) -> np.ndarray:
+        r"""
+        Parameters
+        ---------
+        Q
+            A `[Nx * Ny * 19]` array containing the values for all the state
+            variables
+
+        Returns
+        ------
+        uI
+            A `[Nx * Ny * 2]` array that contains the components
+            of the velocity :math:`\vb{u}_I`.
+        """
+        raise NotImplementedError
 
 
-class EulerSolver(Solver):
-    """ This class accepts as input also the EOS """
+class Classical(Closure):
+    r""" This is the classical choice for :math:`p_I` and :math:`\vb{u}_I`
+    described in :cite:`baer_nunziato`
 
-    # TODO: Add CFL handling
+    ..math:
 
-    def __init__(self, mesh: "Mesh", eos: EOS):
-        self.eos = eos
+    p_I = p_2
+    \vb{u}_I = \vb{u}_1
+    """
 
-        super().__init__(mesh, Q)
+    def pI(self, state_array: Q) -> np.ndarray:
+        return state_array[..., Q.fields.p2]
 
-    def post_step(self):
-        """ During the step we update the conservative values. After the
-        step we update the non-conservative variables """
-        fields = self.Q.fields
-
-        rho = self.values[:, :, fields.rho]
-        rhoU = self.values[:, :, fields.rhoU]
-        rhoV = self.values[:, :, fields.rhoV]
-        rhoE = self.values[:, :, fields.rhoE]
-
-        U = np.divide(rhoU, rho)
-        V = np.divide(rhoV, rho)
-
-        rhoe = rhoE - 0.5 * rho * (np.power(U, 2) + np.power(V, 2))
-        e = np.divide(rhoe, rho)
-
-        p = self.eos.p(rho, e)
-        c = self.eos.sound_velocity(rho, p)
-
-        self.values[:, :, 4] = rhoe
-        self.values[:, :, 5] = U
-        self.values[:, :, 6] = V
-        self.values[:, :, 7] = p
-        self.values[:, :, 8] = c
+    def uI(self, state_array: Q) -> np.ndarray:
+        return state_array[..., Q.fields.U1 : Q.fields.V1 + 1]

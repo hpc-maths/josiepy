@@ -1,5 +1,5 @@
 # josiepy
-# Copyright © 2019 Ruben Di Battista
+# Copyright © 2020 Ruben Di Battista
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,12 +26,18 @@
 # official policies, either expressed or implied, of Ruben Di Battista.
 import numpy as np
 
-from .state import Q
+from typing import Union
+
+from josie.solver.euler.eos import EOS
+from josie.solver.euler.problem import flux as euler_flux
+from josie.math import Direction
+from .closure import Closure
+from .state import Q, Phases
 
 
-def flux(state_array: Q) -> np.ndarray:
-    r""" This returns the tensor representing the flux for a two-fluid model
-    as described originally by :cite:`baer_nunziato`
+def B(state_array: Q, eos: Union[EOS, Closure]):
+    r""" This returns the tensor that pre-multiplies the non-conservative
+    term of the problem.
 
     A general problem can be written in a compact way:
 
@@ -40,7 +46,59 @@ def flux(state_array: Q) -> np.ndarray:
     \pdv{\vb{q}}{t} + \div{\vb{F\qty(\vb{q})}} + \vb{B}\qty(\vb{q}) \cdot
         \gradient{\vb{q}} = \vb{s\qty(\vb{q})}
 
-    This function needs to return :math:`\vb{F}\qty(\vb{q})`
+    This function needs to return :math:`\vb{B}\qty(\vb{q})`
+
+    Parameters
+    ----------
+    Q
+        The :class:`State` array containing the values of all the fields
+
+    eos
+        An implementation of the equation of state. In particular it needs
+        to implement the :class:`Closure` trait in order to be able to return
+        `pI` and `uI`
+    """
+    # TODO: Needs to be generalized for 3D
+    DIMENSIONALITY = 2
+
+    num_fields = len(Q.fields)
+
+    B = np.zeros((num_fields * num_fields * DIMENSIONALITY))
+
+    # Compute pI and uI
+    pI = eos.pI(state_array)
+
+    # This is the vector (uI, vI)
+    UI_VI = eos.uI(state_array)
+
+    # First component of (uI, vI) along x
+    UI = UI_VI[..., Direction.X]
+    pIUI = np.multiply(pI, UI)
+
+    # Second component of (uI, vI) along y
+    VI = UI_VI[..., Direction.Y]
+    pIVI = np.multiply(pI, VI)
+
+    # Gradient component along x
+    B[Q.fields.alpha, Q.fields.alpha, Direction.X] = UI
+    B[Q.fields.rhoU1, Q.fields.alpha, Direction.X] = -pI
+    B[Q.fields.rhoE1, Q.fields.alpha, Direction.X] = -pIUI
+    B[Q.fields.rhoU2, Q.fields.alpha, Direction.X] = pI
+    B[Q.fields.rhoE2, Q.fields.alpha, Direction.X] = pIUI
+
+    # Gradient component along y
+    B[Q.fields.alpha, Q.fields.alpha, Direction.X] = VI
+    B[Q.fields.rhoV1, Q.fields.alpha, Direction.X] = -pI
+    B[Q.fields.rhoE1, Q.fields.alpha, Direction.X] = -pIVI
+    B[Q.fields.rhoV2, Q.fields.alpha, Direction.X] = pI
+    B[Q.fields.rhoE2, Q.fields.alpha, Direction.X] = pIVI
+
+    return B
+
+
+def flux(state_array: Q) -> np.ndarray:
+    r""" This returns the tensor representing the flux for a two-fluid model
+    as described originally by :cite:`baer_nunziato`
 
 
     Parameters
@@ -54,6 +112,7 @@ def flux(state_array: Q) -> np.ndarray:
     F
         An array of dimension `[Nx * Ny * 9 * 2]`, i.e. an array that of each
         x cell and y cell stores the 9*2 flux tensor
+
         The flux tensor is:
         ..math::
 
@@ -75,46 +134,16 @@ def flux(state_array: Q) -> np.ndarray:
     # Flux tensor
     F = np.zeros((num_cells_x, num_cells_y, 9, 2))
 
-    rhoU1 = state_array[:, :, Q.fields.rhoU1]
-    rhoV1 = state_array[:, :, Q.fields.rhoV1]
-    rhoE1 = state_array[:, :, Q.fields.rhoE1]
-    U1 = state_array[:, :, Q.fields.U1]
-    V1 = state_array[:, :, Q.fields.V1]
-    p1 = state_array[:, :, Q.fields.p1]
+    # First part of the flux (from rho1 to rhoE1] is the same as the Euler
+    # flux, but computed for phase 1
+    F[..., Q.fields.rho1 : Q.fields.rhoE1, :] = euler_flux(
+        Q.phase(Phases.PHASE1)
+    )
 
-    rhoUU1 = np.multiply(rhoU1, U1)
-    rhoUV1 = np.multiply(rhoU1, V1)
-    rhoVV1 = np.multiply(rhoV1, V1)
-    rhoVU1 = np.multiply(rhoV1, U1)
-
-    rhoU2 = state_array[:, :, Q.fields.rhoU1]
-    rhoV2 = state_array[:, :, Q.fields.rhoV1]
-    rhoE2 = state_array[:, :, Q.fields.rhoE1]
-    U2 = state_array[:, :, Q.fields.U1]
-    V2 = state_array[:, :, Q.fields.V1]
-    p2 = state_array[:, :, Q.fields.p1]
-
-    rhoUU2 = np.multiply(rhoU2, U2)
-    rhoUV2 = np.multiply(rhoU2, V2)
-    rhoVV2 = np.multiply(rhoV2, V2)
-    rhoVU2 = np.multiply(rhoV2, U2)
-
-    F[:, :, 1, 0] = rhoU1
-    F[:, :, 1, 1] = rhoV1
-    F[:, :, 2, 0] = rhoUU1 + p1
-    F[:, :, 2, 1] = rhoUV1
-    F[:, :, 3, 0] = rhoVU1
-    F[:, :, 3, 1] = rhoVV1 + p1
-    F[:, :, 4, 0] = np.multiply(rhoE1 + p1, U1)
-    F[:, :, 4, 1] = np.multiply(rhoE1 + p1, V1)
-
-    F[:, :, 1, 0] = rhoU2
-    F[:, :, 1, 1] = rhoV2
-    F[:, :, 2, 0] = rhoUU2 + p2
-    F[:, :, 2, 1] = rhoUV2
-    F[:, :, 3, 0] = rhoVU2
-    F[:, :, 3, 1] = rhoVV2 + p2
-    F[:, :, 4, 0] = np.multiply(rhoE2 + p2, U2)
-    F[:, :, 4, 1] = np.multiply(rhoE2 + p2, V2)
+    # Second part of the flux (from rho2 to rhoE2] is the same as the Euler
+    # flux, but computed for phase 2
+    F[..., Q.fields.rho2 : Q.fields.rhoE2, :] = euler_flux(
+        Q.phase(Phases.PHASE2)
+    )
 
     return F

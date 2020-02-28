@@ -33,17 +33,18 @@ from typing import Callable, Tuple, TYPE_CHECKING
 
 from josie.solver.solver import Solver
 from .geom import BoundaryCurve
+from .math import Direction
 
 if TYPE_CHECKING:
     from josie.solver.state import State  # pragma: no cover
 
     # This is a trick to enable mypy to evaluate the Enum as a standard
     # library Enum for type checking but we use `aenum` in the running code
-    from enum import Enum, auto  # pragma: no cover
+    from enum import Enum  # pragma: no cover
 
     NoAlias = object()  # pragma: no cover
 else:
-    from aenum import Enum, NoAlias, auto
+    from aenum import Enum, NoAlias
 
 
 class BoundaryCondition(metaclass=abc.ABCMeta):
@@ -218,14 +219,6 @@ class Side(Enum, settings=NoAlias):
     BOTTOM = -1
     RIGHT = 0
     TOP = 0
-
-
-class Direction(Enum):
-    """ An Enum encapsulating the direction of a Periodic BoundaryCondition
-    """
-
-    X = auto()
-    Y = auto()
 
 
 class Periodic(BoundaryCondition):

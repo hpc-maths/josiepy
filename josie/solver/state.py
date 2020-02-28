@@ -29,7 +29,7 @@ from __future__ import annotations
 import numpy as np
 
 from enum import IntEnum
-from typing import List, Type
+from typing import Collection, Type
 
 from josie.mesh import Mesh
 
@@ -84,7 +84,7 @@ class State(np.ndarray):
             return
 
     @classmethod
-    def list_to_enum(cls, fields: List[str]) -> IntEnum:
+    def list_to_enum(cls, fields: Collection[str]) -> IntEnum:
         """ Convert a list of textual fields to the class:`IntEnum` that needs
         to be stored in this class :attr:`fields` """
 
@@ -133,7 +133,7 @@ def StateTemplate(*fields: str) -> Type[State]:
     """
     # Dynamically create a class of type "State" (actually a subclass)
     # with the right :attr:`fields`
-    fields = State.list_to_enum(fields)
-    state_cls = type("DerivedState", (State,), {"fields": fields})
+    enum_fields: IntEnum = State.list_to_enum(fields)
+    state_cls = type("DerivedState", (State,), {"fields": enum_fields})
 
     return state_cls
