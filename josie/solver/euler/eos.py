@@ -32,6 +32,8 @@ import numpy as np
 
 
 class EOS(metaclass=abc.ABCMeta):
+    """ An Abstract Base Class representing an EOS for an Euler System """
+
     @abc.abstractmethod
     def rhoe(self, rho: np.ndarray, p: np.ndarray):
         raise NotImplementedError
@@ -54,7 +56,7 @@ class PerfectGas(EOS):
     p = \rho \mathcal{R} T = \rho \left( \gamma - 1 \right)e
 
 
-    Parameters
+    Attributes
     ----------
     gamma
         The adiabatic coefficient (default=1.4)
