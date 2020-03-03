@@ -29,11 +29,75 @@ import numpy as np
 
 from josie.solver.scheme import Scheme
 
-from .problem import flux, eigs
-from .state import Q
+from .problem import flux
+from .state import Q, EigState
 
 
 class Rusanov(Scheme):
+    def eigs(self, state_array: Q, normals: np.ndarray) -> EigState:
+        r""" Returns the eigenvalues associated to the jacobian of the flux
+        tensor correctly projected along the given face normals
+
+        If we write the system in quasi-linear form
+
+        ..math:
+
+        \pdv{\vb{q}}{t} +
+        \qty(\vb{\pdv{\vb{F}}{\vb{q}}}\qty(\vb{q}) + \vb{B}\qty(\vb{q})) \cdot
+        \gradient{\vb{q}} = \vb{s\qty(\vb{q})}
+
+        This returns the value of the eigenvalues of the term
+        :math:`\qty(\vb{\pdv{\vb{F}}{\vb{q}}}\qty(\vb{q})+\vb{B}\qty(\vb{q}))`
+
+        In the case of Euler system, they are :math:`u + c, u - c, u` along x,
+        :math:`v + c, v - c, v` along y, and so on
+
+        Parameters
+        ----------
+        state_array
+            A :class:`Q` object that has dimension [Nx * Ny * 9] containing
+            the values for all the states in all the mesh points
+
+        normals
+            A :class:`np.ndarray` that has the dimensions [Nx * Ny * 2]
+            containing the values of the normals to the face connecting the
+            cell to its neighbour
+
+        Returns
+        -------
+        eigs
+            A `[Nx * Ny * num_eigs]` containing the eigenvalues
+            for each dimension.
+            `eigs[..., Direction.X]` is :math:`(u+c, u-c)`
+            `eigs[..., Direction.Y]` is :math:`(v+c, v-c)`
+        """
+        fields = Q.fields
+
+        mesh_size = state_array.shape[:-1]
+        nx = mesh_size[0]
+        ny = mesh_size[1]
+
+        # Get the velocity components
+        UV_slice = slice(fields.U, fields.V + 1)
+        UV = state_array[:, :, UV_slice]
+
+        # Find the normal velocity
+        # 2D: U = np.einsum("ijk,ijk->ij", UV, normals)
+        U = np.einsum("...k,...k->...", UV, normals)
+
+        # Speed of sound
+        c = state_array[:, :, fields.c]
+
+        # Eigenvalues (u is neglected, since not useful for numerical purposes)
+        Uplus = U + c
+        Uminus = U - c
+
+        eigs = np.empty((nx, ny, 2))
+        eigs[..., EigState.fields.UPLUS] = Uplus
+        eigs[..., EigState.fields.UMINUS] = Uminus
+
+        return eigs
+
     def convective_flux(
         self,
         values: Q,
@@ -62,32 +126,33 @@ class Rusanov(Scheme):
             the values of the face surfaces of the face connecting the cell to
             is neighbour
         """
-        FS = np.empty_like(values)
+        FS = np.empty_like(values).view(Q)
 
         # First four variables of the total state are the conservative
         # variables (rho, rhoU, rhoV, rhoE)
-        values_cons = values.conservative()
-        neigh_values_cons = neigh_values.conservative()
+        values_cons = values.get_conservative()
+        neigh_values_cons = neigh_values.get_conservative()
 
         # Let's retrieve the values of the eigenvalues
-        eigs_values = eigs(values, normals)
-        eigs_neigh_values = eigs(neigh_values, normals)
+        eigs_values = self.eigs(values, normals)
+        eigs_neigh_values = self.eigs(neigh_values, normals)
 
         sigma_array = np.concatenate((eigs_values, eigs_neigh_values), axis=-1)
 
-        # And the we found the max on the last axis (i.e. the maximul value
+        # And the we found the max on the last axis (i.e. the maximum value
         # of sigma for each cell)
         sigma = np.max(sigma_array, axis=-1)
 
         DeltaF = 0.5 * (flux(values) + flux(neigh_values))
+
         # This is the flux tensor dot the normal
-        DeltaF = np.einsum("ijkl,ijl->ijk", DeltaF, normals)
+        DeltaF = np.einsum("...kl,...l->...k", DeltaF, normals)
 
         DeltaQ = (
-            0.5 * sigma[:, :, np.newaxis] * (neigh_values_cons - values_cons)
+            0.5 * sigma[..., np.newaxis] * (neigh_values_cons - values_cons)
         )
 
-        FS[:, :, :4] = surfaces[:, :, np.newaxis] * (DeltaF - DeltaQ)
+        FS.set_conservative(surfaces[..., np.newaxis] * (DeltaF - DeltaQ))
 
         return FS
 
@@ -99,8 +164,8 @@ class Rusanov(Scheme):
         surfaces: np.ndarray,
         CFL_value,
     ) -> float:
-        UV = values[:, :, 5:7]
-        c = values[:, :, -1]
+        UV = values[..., Q.fields.U : Q.fields.V + 1]
+        c = values[..., Q.fields.c]
 
         # TODO: We can probably optimize this since we compute `sigma` in
         # the rusanov scheme, so we could find a way to store it and avoid
@@ -108,7 +173,7 @@ class Rusanov(Scheme):
 
         # Absolute value squared for each cell
         # Equivalent to: U[:, :]**2 + V[:, :]**2
-        UU_abs = np.einsum("ijk,ijk->ij", UV, UV)
+        UU_abs = np.einsum("...k,...k->...", UV, UV)
 
         # Max speed value over all cells
         U_abs = np.sqrt(np.max(UU_abs))

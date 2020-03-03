@@ -62,18 +62,24 @@ class Fields(IntEnum):
     c = 8
 
 
-class Q(State):
-    r""" The class representing the state variables of the Euler system
+class ConsFields(IntEnum):
+    """ Indexing enum for the conservative state variables of the problem """
 
-    ..math:
-    (\rho, \rho u, \rho v, \rho E, \rho e, u, v, p, c)
-    """
-    fields = Fields
+    rho = 0
+    rhoU = 1
+    rhoV = 2
+    rhoE = 3
+    rhoe = 4
 
-    def conservative(self) -> Q:
-        """ Returns the conservative part of the state """
 
-        return self[..., :4]
+class AuxFields(IntEnum):
+    """ Indexing enum for the auxiliary state variables of the problem """
+
+    rhoe = 0
+    U = 1
+    V = 2
+    p = 3
+    c = 4
 
 
 class Eigs(IntEnum):
@@ -83,5 +89,50 @@ class Eigs(IntEnum):
     UMINUS = 1
 
 
+class ConsQ(State):
+    """ A :class:`State` class representing the conservative state variables
+    of the Euler system """
+
+    fields = ConsFields
+
+
+class AuxQ(State):
+    """ A :class:`State` class representing the auxiliary state variables
+    of the Euler system """
+
+    fields = AuxFields
+
+
+class Q(State):
+    r""" The class representing the state variables of the Euler system
+
+    ..math:
+    (\rho, \rho u, \rho v, \rho E, \rho e, u, v, p, c)
+    """
+    fields = Fields
+
+    def get_conservative(self) -> ConsQ:
+        """ Returns the conservative part of the state """
+
+        return self[..., Fields.rho : Fields.rhoE + 1].view(ConsQ)
+
+    def set_conservative(self, values: ConsQ):
+        """ Sets the conservative part of the state """
+
+        self[..., Fields.rho : Fields.rhoE + 1] = values
+
+    def get_auxiliary(self) -> AuxQ:
+        """ Returns the auxiliary part of the state """
+
+        return self[..., Fields.rhoe : Fields.c + 1].view(AuxQ)
+
+    def set_auxiliary(self, values: AuxQ):
+        """ Sets the auxiliary part of the state """
+
+        self[..., Fields.rhoe : Fields.c + 1] = values
+
+
 class EigState(State):
+    """ A :class:`State` class representing the eigenvalues of the system """
+
     fields = Eigs

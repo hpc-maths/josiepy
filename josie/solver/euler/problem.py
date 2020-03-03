@@ -26,71 +26,7 @@
 # official policies, either expressed or implied, of Ruben Di Battista.
 import numpy as np
 
-from .state import Q, EigState
-
-
-def eigs(state_array: Q, normals: np.ndarray) -> EigState:
-    r""" Returns the eigenvalues associated to the jacobian of the flux
-    tensor correctly projected along the given face normals
-
-    If we write the system in quasi-linear form
-
-    ..math:
-
-    \pdv{\vb{q}}{t} +
-    \qty(\vb{\pdv{\vb{F}}{\vb{q}}}\qty(\vb{q}) + \vb{B}\qty(\vb{q})) \cdot
-    \gradient{\vb{q}} = \vb{s\qty(\vb{q})}
-
-    This returns the value of the eigenvalues of the term
-    :math:`\qty(\vb{\pdv{\vb{F}}{\vb{q}}}\qty(\vb{q}) + \vb{B}\qty(\vb{q}))`
-
-    In the case of Euler system, they are :math:`u + c, u - c, u` along x,
-    :math:`v + c, v - c, v` along y, and so on
-
-    Parameters
-    ----------
-    state_array
-        A :class:`Q` object that has dimension [Nx * Ny * 9] containing
-        the values for all the states in all the mesh points
-
-    normals
-        A :class:`np.ndarray` that has the dimensions [Nx * Ny * 2]
-        containing the values of the normals to the face connecting the
-        cell to its neighbour
-
-    Returns
-    -------
-    eigs
-        A `[Nx * Ny * num_eigs]` containing the eigenvalues
-        for each dimension.
-        `eigs[..., Direction.X]` is :math:`(u+c, u-c)`
-        `eigs[..., Direction.Y]` is :math:`(v+c, v-c)`
-    """
-    fields = Q.fields
-
-    mesh_size = state_array.shape[:-1]
-    nx = mesh_size[0]
-    ny = mesh_size[1]
-
-    # Get the velocity components
-    UV_slice = slice(fields.U, fields.V + 1)
-    UV = state_array[:, :, UV_slice]
-
-    # Find the normal velocity
-    U = np.einsum("ijk,ijk->ij", UV, normals)
-
-    # Speed of sound
-    c = state_array[:, :, fields.c]
-
-    # Eigenvalues (u is neglected, since not useful for numerical purposes)
-    Uplus = U + c
-    Uminus = U - c
-
-    eigs = np.empty((nx, ny, 2))
-    eigs[..., EigState.fields.UPLUS] = Uplus
-    eigs[..., EigState.fields.UMINUS] = Uminus
-
-    return eigs
+from .state import Q
 
 
 def flux(state_array: Q) -> np.ndarray:
