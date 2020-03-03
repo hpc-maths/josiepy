@@ -37,6 +37,7 @@ from __future__ import annotations
 from enum import IntEnum
 
 from josie.solver.state import State
+from josie.solver.euler import Q as EulerQ
 
 
 class Phases(IntEnum):
@@ -76,19 +77,41 @@ class Fields(IntEnum):
 class Q(State):
     fields = Fields
 
-    def phase(self, phase: Phases) -> Q:
+    def get_phase(self, phase: Phases) -> EulerQ:
         r""" Returns the part of the state associated to a specified phase
+        as an instance of :class:`~euler.state.Q`
 
         ..warning::
         This does not return the first variable of the state, i.e.
         :math:`\alpha`
 
+        Parameters
+        ---------
+        phase
+            A :class:`Phases` instance identifying the requested phase
+            partition of the state
+
+        Returns
+        ------
+        state
+            A :class:`~euler.state.Q` instance corresponding to the partition
+            of the system associated to the requested phase
         """
 
-        return self[..., phase : phase + 8]
+        return self[..., phase : phase + 9].view(EulerQ)
 
-    def conservative(self, phase: Phases) -> Q:
-        """ Returns the conservative part of the state, for a specified phase
+    def set_phase(self, phase: Phases, values: EulerQ):
+        """ Sets the part of the system associated to the given `phase` with
+        the provided `values`
+
+        Parameters
+        ---------
+        phase
+            A :class:`Phases` instance identifying the phase
+            partition of the state for which the values need to be set
+
+        values
+            The corresponding values to update the state with
         """
 
-        return self[..., phase : phase + 3]
+        self[..., phase : phase + 9] = values

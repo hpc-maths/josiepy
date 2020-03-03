@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from josie.solver.twophase.state import Q
+from josie.solver.twophase.state import Q, Phases
 
 
 @pytest.fixture
@@ -10,4 +10,52 @@ def state():
 
 
 def test_phase(state):
-    __import__("ipdb").set_trace()
+    fields = Q.fields
+    assert np.array_equal(
+        state.phase(Phases.PHASE1),
+        state[
+            ...,
+            [
+                fields.rho1,
+                fields.rhoU1,
+                fields.rhoV1,
+                fields.rhoE1,
+                fields.rhoe1,
+                fields.U1,
+                fields.V1,
+                fields.p1,
+                fields.c1,
+            ],
+        ],
+    )
+
+    assert np.array_equal(
+        state.phase(Phases.PHASE2),
+        state[
+            ...,
+            [
+                fields.rho2,
+                fields.rhoU2,
+                fields.rhoV2,
+                fields.rhoE2,
+                fields.rhoe2,
+                fields.U2,
+                fields.V2,
+                fields.p2,
+                fields.c2,
+            ],
+        ],
+    )
+
+
+def test_conservative(state):
+    fields = Q.fields
+    assert np.array_equal(
+        state.conservative(Phases.PHASE1),
+        state[..., [fields.rho1, fields.rhoU1, fields.rhoV1, fields.rhoE1]],
+    )
+
+    assert np.array_equal(
+        state.conservative(Phases.PHASE2),
+        state[..., [fields.rho2, fields.rhoU2, fields.rhoV2, fields.rhoE2]],
+    )

@@ -29,25 +29,39 @@ import numpy as np
 
 from josie.solver.scheme import Scheme
 
-from .problem import flux
-from .state import Q
+from josie.solver.euler import EulerScheme
+
+from .state import Q, Phases
 
 
-class Rusanov(Scheme):
+class TwoPhaseScheme(Scheme):
+    """ A general base class for two-phase schemes. A two-phase scheme is
+    built applying a :class:`EulerScheme` for each partition of the state
+    associated to one phase
+
+    Attributes
+    ---------
+    euler_scheme
+        The :class:`EulerScheme` to be applied to each phase system
+    """
+
+    def __init__(self, euler_scheme: EulerScheme):
+        self.euler_scheme = euler_scheme
+
     def convective_flux(
         self, values: Q, neigh_values: Q, normals: Q, surfaces: Q
     ):
-        """ This schemes implements the Rusanov scheme. See :cite: `rusanov` for
-        a detailed view on compressible schemes
+        """ This schemes implements the Rusanov scheme. See :cite: `rusanov`
+        for a detailed view on compressible schemes
 
         Parameters
         ----------
         values
-            A :class:`np.ndarray` that has dimension [Nx * Ny * 9] containing
+            A :class:`np.ndarray` that has dimension [Nx * Ny * 19] containing
             the values for all the states in all the mesh points
         neigh_values
             A :class:`np.ndarray` that has the same dimension of `values`. It
-            contains the corresponding neighbour values of the statestored in
+            contains the corresponding neighbour values of the state stored in
             `values`, i.e. the neighbour of `values[i]` is `neigh_values[i]`
         normals
             A :class:`np.ndarray` that has the dimensions [Nx * Ny * 2]
@@ -58,51 +72,18 @@ class Rusanov(Scheme):
             the values of the face surfaces of the face connecting the cell to
             is neighbour
         """
-        fields = Q.fields
+        FS = np.empty_like(values).view(Q)
 
-        FS = np.empty_like(values)
+        # We apply the Euler scheme per each phase
+        for phase in Phases:
+            phase_values = values.get_phase(phase)
+            phase_neigh_values = neigh_values.get_phase(phase)
 
-        # First four variables of the total state are the conservative
-        # variables (rho, rhoU, rhoV, rhoE)
-        values_cons = values.conservative()
-        neigh_values_cons = neigh_values.conservative()
-
-        UV_slice = slice(fields.U, fields.V + 1)
-        UV = values[:, :, UV_slice]
-        UV_neigh = neigh_values[:, :, UV_slice]
-
-        # Find the normal velocity
-        U = np.einsum("ijk,ijk->ij", UV, normals)
-        U_neigh = np.einsum("ijk,ijk->ij", UV_neigh, normals)
-
-        c = values[:, :, fields.c]
-        c_neigh = neigh_values[:, :, fields.c]
-
-        # Array to find the sigma value.
-        # We concatenate the two arrays for |U| + c for both the cell and its
-        # neighbours in a [Nx * Ny * 2] array
-
-        sigma_array = np.concatenate(
-            (
-                np.abs(U)[:, :, np.newaxis] + c[:, :, np.newaxis],
-                np.abs(U_neigh)[:, :, np.newaxis] + c_neigh[:, :, np.newaxis],
-            ),
-            axis=-1,
-        )
-
-        # And the we found the max on the last axis (i.e. the maximul value
-        # of sigma for each cell)
-        sigma = np.max(sigma_array, axis=-1)
-
-        DeltaF = 0.5 * (flux(values) + flux(neigh_values))
-        # This is the flux tensor dot the normal
-        DeltaF = np.einsum("ijkl,ijl->ijk", DeltaF, normals)
-
-        DeltaQ = (
-            0.5 * sigma[:, :, np.newaxis] * (neigh_values_cons - values_cons)
-        )
-
-        FS[:, :, :4] = surfaces[:, :, np.newaxis] * (DeltaF - DeltaQ)
+            FS.set_phase(
+                self.euler_scheme.convective_flux(
+                    phase_values, phase_neigh_values, normals, surfaces
+                )
+            )
 
         return FS
 
@@ -114,25 +95,17 @@ class Rusanov(Scheme):
         surfaces: np.ndarray,
         CFL_value,
     ) -> float:
-        UV = values[:, :, 5:7]
-        c = values[:, :, -1]
 
-        # TODO: We can probably optimize this since we compute `sigma` in
-        # the rusanov scheme, so we could find a way to store it and avoid
-        # to recompute it here
+        # We apply the Euler CFL method per each phase and we take the minimum
+        # dt
+        dt = 1e9  # Use a big value to initialize
+        for phase in Phases:
+            phase_values = values.get_phase(phase)
+            dt = np.min(
+                self.euler_scheme.CFL(
+                    phase_values, volumes, normals, surfaces, CFL_value
+                ),
+                dt,
+            )
 
-        # Absolute value squared for each cell
-        # Equivalent to: U[:, :]**2 + V[:, :]**2
-        UU_abs = np.einsum("ijk,ijk->ij", UV, UV)
-
-        # Max speed value over all cells
-        U_abs = np.sqrt(np.max(UU_abs))
-
-        # Max sound velocity
-        c_max = np.max(c)
-
-        # Min face surface
-        # TODO: This probably needs to be generalized for 3D
-        dx = np.min(surfaces)
-
-        return CFL_value * dx / (U_abs + c_max)
+        return dt
