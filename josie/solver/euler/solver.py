@@ -24,50 +24,22 @@
 # The views and conclusions contained in the software and documentation
 # are those of the authors and should not be interpreted as representing
 # official policies, either expressed or implied, of Ruben Di Battista.
-import numpy as np
+from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
 from josie.solver import Solver
 
-from .eos import EOS
 from .state import Q
+from .schemes import EulerScheme
 
 if TYPE_CHECKING:
     from josie.mesh import Mesh
 
 
 class EulerSolver(Solver):
-    """ This class accepts as input also the EOS """
+    """ A solver for the Euler system """
 
-    # TODO: Add CFL handling
+    def __init__(self, mesh: Mesh, scheme: EulerScheme):
 
-    def __init__(self, mesh: "Mesh", eos: EOS):
-        self.eos = eos
-
-        super().__init__(mesh, Q)
-
-    def post_step(self):
-        """ During the step we update the conservative values. After the
-        step we update the non-conservative variables """
-        fields = self.Q.fields
-
-        rho = self.values[:, :, fields.rho]
-        rhoU = self.values[:, :, fields.rhoU]
-        rhoV = self.values[:, :, fields.rhoV]
-        rhoE = self.values[:, :, fields.rhoE]
-
-        U = np.divide(rhoU, rho)
-        V = np.divide(rhoV, rho)
-
-        rhoe = rhoE - 0.5 * rho * (np.power(U, 2) + np.power(V, 2))
-        e = np.divide(rhoe, rho)
-
-        p = self.eos.p(rho, e)
-        c = self.eos.sound_velocity(rho, p)
-
-        self.values[:, :, 4] = rhoe
-        self.values[:, :, 5] = U
-        self.values[:, :, 6] = V
-        self.values[:, :, 7] = p
-        self.values[:, :, 8] = c
+        super().__init__(mesh, Q, scheme)

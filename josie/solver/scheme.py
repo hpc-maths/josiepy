@@ -28,6 +28,8 @@ import abc
 
 import numpy as np
 
+from .state import State
+
 
 class Scheme(metaclass=abc.ABCMeta):
     """ An abstract class representing a scheme to be used during a simulation.
@@ -37,8 +39,8 @@ class Scheme(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def convective_flux(
         self,
-        values: np.ndarray,
-        neigh_values: np.ndarray,
+        values: State,
+        neigh_values: State,
         normals: np.ndarray,
         surfaces: np.ndarray,
     ):
@@ -61,8 +63,8 @@ class Scheme(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def CFL(
         self,
-        values: np.ndarray,
-        volumes: np.ndarray,
+        values: State,
+        volumes: State,
         normals: np.ndarray,
         surfaces: np.ndarray,
         CFL_value: float,
@@ -96,3 +98,11 @@ class Scheme(metaclass=abc.ABCMeta):
         """
 
         raise NotImplementedError
+
+    def post_step(self, values: State) -> State:
+        """ Schemes can implement a post-step hook that is executed by the
+        solver after the update step.
+        It can be needed, for example, to apply an Equation of State
+        """
+
+        pass

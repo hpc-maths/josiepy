@@ -24,16 +24,111 @@
 # The views and conclusions contained in the software and documentation
 # are those of the authors and should not be interpreted as representing
 # official policies, either expressed or implied, of Ruben Di Battista.
-
+import abc
 import numpy as np
 
 from josie.solver.scheme import Scheme
 
+from .eos import EOS
 from .problem import flux
 from .state import Q, EigState
 
 
-class Rusanov(Scheme):
+class EulerScheme(Scheme):
+    """ A general base class for Euler schemes """
+
+    def __init__(self, eos: EOS):
+        self.eos = eos
+
+    @abc.abstractmethod
+    def convective_flux(
+        self,
+        values: Q,
+        neigh_values: Q,
+        normals: np.ndarray,
+        surfaces: np.ndarray,
+    ):
+        """
+        Parameters
+        ----------
+        values
+            A :class:`Q` object that has dimension [Nx * Ny * 9] containing
+            the values for all the states in all the mesh points
+        neigh_values
+            A :class:`Q` object  that has the same dimension of `values`. It
+            contains the corresponding neighbour values of the states tored in
+            `values`, i.e. the neighbour of `values[i]` is `neigh_values[i]`
+        normals
+            A :class:`np.ndarray` that has the dimensions [Nx * Ny * 2]
+            containing the values of the normals to the face connecting the
+            cell to its neighbour
+        surfaces
+            A :class:`np.ndarray` that has the dimensions [Nx * Ny] containing
+            the values of the face surfaces of the face connecting the cell to
+            is neighbour
+        """
+
+        raise NotImplementedError
+
+    def CFL(
+        self,
+        values: np.ndarray,
+        volumes: np.ndarray,
+        normals: np.ndarray,
+        surfaces: np.ndarray,
+        CFL_value,
+    ) -> float:
+        UV = values[..., Q.fields.U : Q.fields.V + 1]
+        c = values[..., Q.fields.c]
+
+        # TODO: We can probably optimize this since we compute `sigma` in
+        # the rusanov scheme, so we could find a way to store it and avoid
+        # to recompute it here
+
+        # Absolute value squared for each cell
+        # Equivalent to: U[:, :]**2 + V[:, :]**2
+        UU_abs = np.einsum("...k,...k->...", UV, UV)
+
+        # Max speed value over all cells
+        U_abs = np.sqrt(np.max(UU_abs))
+
+        # Max sound velocity
+        c_max = np.max(c)
+
+        # Min face surface
+        # TODO: This probably needs to be generalized for 3D
+        dx = np.min(surfaces)
+
+        return CFL_value * dx / (U_abs + c_max)
+
+    def post_step(self, values: Q) -> Q:
+        """ During the step we update the conservative values. After the
+        step we update the non-conservative variables """
+
+        fields = Q.fields
+
+        rho = values[:, :, fields.rho]
+        rhoU = values[:, :, fields.rhoU]
+        rhoV = values[:, :, fields.rhoV]
+        rhoE = values[:, :, fields.rhoE]
+
+        U = np.divide(rhoU, rho)
+        V = np.divide(rhoV, rho)
+
+        rhoe = rhoE - 0.5 * rho * (np.power(U, 2) + np.power(V, 2))
+        e = np.divide(rhoe, rho)
+
+        p = self.eos.p(rho, e)
+        c = self.eos.sound_velocity(rho, p)
+
+        values[..., fields.rhoe] = rhoe
+        values[..., fields.U] = U
+        values[..., fields.V] = V
+        values[..., fields.p] = p
+        values[..., fields.c] = c
+
+
+class Rusanov(EulerScheme):
     def eigs(self, state_array: Q, normals: np.ndarray) -> EigState:
         r""" Returns the eigenvalues associated to the jacobian of the flux
         tensor correctly projected along the given face normals
@@ -108,23 +203,6 @@ class Rusanov(Scheme):
         """ This schemes implements the Rusanov scheme. See :cite: `rusanov` for
         a detailed view on compressible schemes
 
-        Parameters
-        ----------
-        values
-            A :class:`Q` object that has dimension [Nx * Ny * 9] containing
-            the values for all the states in all the mesh points
-        neigh_values
-            A :class:`Q` object  that has the same dimension of `values`. It
-            contains the corresponding neighbour values of the states tored in
-            `values`, i.e. the neighbour of `values[i]` is `neigh_values[i]`
-        normals
-            A :class:`np.ndarray` that has the dimensions [Nx * Ny * 2]
-            containing the values of the normals to the face connecting the
-            cell to its neighbour
-        surfaces
-            A :class:`np.ndarray` that has the dimensions [Nx * Ny] containing
-            the values of the face surfaces of the face connecting the cell to
-            is neighbour
         """
         FS = np.empty_like(values).view(Q)
 
@@ -155,34 +233,3 @@ class Rusanov(Scheme):
         FS.set_conservative(surfaces[..., np.newaxis] * (DeltaF - DeltaQ))
 
         return FS
-
-    def CFL(
-        self,
-        values: np.ndarray,
-        volumes: np.ndarray,
-        normals: np.ndarray,
-        surfaces: np.ndarray,
-        CFL_value,
-    ) -> float:
-        UV = values[..., Q.fields.U : Q.fields.V + 1]
-        c = values[..., Q.fields.c]
-
-        # TODO: We can probably optimize this since we compute `sigma` in
-        # the rusanov scheme, so we could find a way to store it and avoid
-        # to recompute it here
-
-        # Absolute value squared for each cell
-        # Equivalent to: U[:, :]**2 + V[:, :]**2
-        UU_abs = np.einsum("...k,...k->...", UV, UV)
-
-        # Max speed value over all cells
-        U_abs = np.sqrt(np.max(UU_abs))
-
-        # Max sound velocity
-        c_max = np.max(c)
-
-        # Min face surface
-        # TODO: This probably needs to be generalized for 3D
-        dx = np.min(surfaces)
-
-        return CFL_value * dx / (U_abs + c_max)

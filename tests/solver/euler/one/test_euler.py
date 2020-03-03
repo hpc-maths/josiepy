@@ -107,13 +107,13 @@ def test_toro(riemann_problem, plot):
         solver.values[np.where(xc > 0.5), :, :] = Q_right
         solver.values[np.where(xc <= 0.5), :, :] = Q_left
 
-    solver = EulerSolver(mesh, eos)
+    scheme = Rusanov(eos)
+    solver = EulerSolver(mesh, scheme)
     solver.init(init_fun)
 
     final_time = 0.25
     t = 0
     CFL = 0.85
-    rusanov = Rusanov()
 
     if plot:
         ims = []
@@ -150,14 +150,14 @@ def test_toro(riemann_problem, plot):
 
             ims.append([im1, im2, im3])
 
-        dt = rusanov.CFL(
+        dt = scheme.CFL(
             solver.values,
             solver.mesh.volumes,
             solver.mesh.normals,
             solver.mesh.surfaces,
             CFL,
         )
-        solver.step(dt, rusanov)
+        solver.step(dt)
 
         t += dt
         print(f"Time: {t}, dt: {dt}")

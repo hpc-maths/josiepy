@@ -47,7 +47,7 @@ class Solver(metaclass=abc.ABCMeta):
     # Type Checking
     _values: State
 
-    def __init__(self, mesh: Mesh, Q: Type[State]):
+    def __init__(self, mesh: Mesh, Q: Type[State], scheme: Scheme):
         """ This class is used to solve a problem governed by PDEs.
 
         The internal state of the mesh is stored in :attr:`values`, while the
@@ -63,6 +63,10 @@ class Solver(metaclass=abc.ABCMeta):
         Q
             A :class:`State` representing the variables of the problem
             to be solved
+
+        scheme
+            A :class:`Scheme` instance providing the numerical scheme to be
+            used for the simulation
 
         Attributes
         ----------
@@ -90,6 +94,7 @@ class Solver(metaclass=abc.ABCMeta):
 
         self.mesh = mesh
         self.Q = Q
+        self.scheme = scheme
 
     # In order to apply BC, we create a view of the self._values array  per
     # each side of the domain storing the State values of the ghost cells.
@@ -212,7 +217,7 @@ class Solver(metaclass=abc.ABCMeta):
                 self.values[:, -1],
             )  # type: ignore
 
-    def step(self, dt: float, scheme: Scheme):
+    def step(self, dt: float):
         """ This method advances one step in time (for the moment using an
         explicit Euler scheme for time integration, but in future we will
         provide a way to give arbitrary time schemes)
@@ -258,7 +263,7 @@ class Solver(metaclass=abc.ABCMeta):
 
         # Left Neighbours
         neighs = self._values[:-2, 1:-1]
-        fluxes += scheme.convective_flux(
+        fluxes += self.scheme.convective_flux(
             self.values,
             neighs,
             self.mesh.normals[:, :, NormalDirection.LEFT, :],
@@ -267,7 +272,7 @@ class Solver(metaclass=abc.ABCMeta):
 
         # Right Neighbours
         neighs = self._values[2:, 1:-1]
-        fluxes += scheme.convective_flux(
+        fluxes += self.scheme.convective_flux(
             self.values,
             neighs,
             self.mesh.normals[:, :, NormalDirection.RIGHT, :],
@@ -277,7 +282,7 @@ class Solver(metaclass=abc.ABCMeta):
         if not (self.mesh.oneD):
             # Top Neighbours
             neighs = self._values[1:-1, 2:]
-            fluxes += scheme.convective_flux(
+            fluxes += self.scheme.convective_flux(
                 self.values,
                 neighs,
                 self.mesh.normals[:, :, NormalDirection.TOP, :],
@@ -286,7 +291,7 @@ class Solver(metaclass=abc.ABCMeta):
 
             # Bottom Neighbours
             neighs = self._values[1:-1, :-2]
-            fluxes += scheme.convective_flux(
+            fluxes += self.scheme.convective_flux(
                 self.values,
                 neighs,
                 self.mesh.normals[:, :, NormalDirection.BOTTOM, :],
@@ -296,7 +301,7 @@ class Solver(metaclass=abc.ABCMeta):
         self.values -= fluxes * dt / self.mesh.volumes[:, :, np.newaxis]
 
         # Let's put here an handy post step if needed after the values update
-        self.post_step()
+        self.scheme.post_step(self.values)
 
         # Keep ghost cells updated
         self._update_ghosts()

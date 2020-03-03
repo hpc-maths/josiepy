@@ -123,20 +123,20 @@ def test_toro_x(riemann_problem, bc_fun, plot):
         solver.values[idx_left[0], idx_left[1], :] = Q_right
         solver.values[idx_right[0], idx_right[1], :] = Q_left
 
-    solver = EulerSolver(mesh, eos)
+    scheme = Rusanov(eos)
+    solver = EulerSolver(mesh, scheme)
     solver.init(init_fun)
 
     final_time = 0.25
     t = 0
     CFL = riemann_problem["CFL"]
-    rusanov = Rusanov()
 
     while t <= final_time:
         if plot:
             solver.animate(t)
             # solver.save(t, "toro.xmf")
 
-        dt = rusanov.CFL(
+        dt = scheme.CFL(
             solver.values,
             solver.mesh.volumes,
             solver.mesh.normals,
@@ -144,7 +144,7 @@ def test_toro_x(riemann_problem, bc_fun, plot):
             CFL,
         )
         assert ~np.isnan(dt)
-        solver.step(dt, rusanov)
+        solver.step(dt)
 
         t += dt
         print(f"Time: {t}, dt: {dt}")
@@ -200,21 +200,21 @@ def test_toro_y(riemann_problem, bc_fun, plot):
         solver.values[idx_btm[0], idx_btm[1], :] = Q_left
         solver.values[idx_top[0], idx_top[1], :] = Q_right
 
-    solver = EulerSolver(mesh, eos)
+    scheme = Rusanov(eos)
+    solver = EulerSolver(mesh, scheme)
     solver.init(init_fun)
     solver.plot()
 
     final_time = 0.25
     t = 0
     CFL = riemann_problem["CFL"]
-    rusanov = Rusanov()
 
     while t <= final_time:
         if plot:
             solver.animate(t)
             solver.save(t, "toro.xmf")
 
-        dt = rusanov.CFL(
+        dt = scheme.CFL(
             solver.values,
             solver.mesh.volumes,
             solver.mesh.normals,
@@ -222,7 +222,7 @@ def test_toro_y(riemann_problem, bc_fun, plot):
             CFL,
         )
         assert ~np.isnan(dt)
-        solver.step(dt, rusanov)
+        solver.step(dt)
 
         t += dt
         print(f"Time: {t}, dt: {dt}")
