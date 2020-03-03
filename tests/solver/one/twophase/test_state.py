@@ -12,7 +12,7 @@ def state():
 def test_phase(state):
     fields = Q.fields
     assert np.array_equal(
-        state.phase(Phases.PHASE1),
+        state.get_phase(Phases.PHASE1),
         state[
             ...,
             [
@@ -30,7 +30,7 @@ def test_phase(state):
     )
 
     assert np.array_equal(
-        state.phase(Phases.PHASE2),
+        state.get_phase(Phases.PHASE2),
         state[
             ...,
             [
@@ -51,11 +51,11 @@ def test_phase(state):
 def test_conservative(state):
     fields = Q.fields
     assert np.array_equal(
-        state.conservative(Phases.PHASE1),
+        state.get_phase(Phases.PHASE1).get_conservative(),
         state[..., [fields.rho1, fields.rhoU1, fields.rhoV1, fields.rhoE1]],
     )
 
     assert np.array_equal(
-        state.conservative(Phases.PHASE2),
+        state.get_phase(Phases.PHASE2).get_conservative(),
         state[..., [fields.rho2, fields.rhoU2, fields.rhoV2, fields.rhoE2]],
     )
