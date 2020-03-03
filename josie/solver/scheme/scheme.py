@@ -32,8 +32,18 @@ from .state import State
 
 
 class Scheme(metaclass=abc.ABCMeta):
-    """ An abstract class representing a scheme to be used during a simulation.
-    It is a callable (i.e. a functor) used on the cells state values.
+    r""" An abstract class representing a scheme to be used during a simulation.
+
+    A general problem can be written in a compact way:
+
+    ..math::
+
+    \pdv{\vb{q}}{t} + \div{\vb{F\qty(\vb{q})}} + \vb{B}\qty(\vb{q}) \cdot
+        \gradient{\vb{q}} = \vb{s\qty(\vb{q})}
+
+    This class provides implementation of the discrete numerical schemes for
+    the terms :math:`\div{\vb{F\qty(\vb{q})}}, \vb{B}\qty(\vb{q}) \cdot
+        \gradient{\vb{q}} `
     """
 
     @abc.abstractmethod
