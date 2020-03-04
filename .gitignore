@@ -15,3 +15,7 @@ htmlcov/
 .mypy_cache/
 .pytest_cache/
 *.xml
+
+# Docs artifacta
+docs/build/
+docs/source/josie*
