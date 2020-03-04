@@ -28,7 +28,8 @@ import abc
 
 import numpy as np
 
-from .state import State
+from josie.solver.state import State
+from josie.solver.problem import Problem
 
 
 class Scheme(metaclass=abc.ABCMeta):
@@ -41,34 +42,19 @@ class Scheme(metaclass=abc.ABCMeta):
     \pdv{\vb{q}}{t} + \div{\vb{F\qty(\vb{q})}} + \vb{B}\qty(\vb{q}) \cdot
         \gradient{\vb{q}} = \vb{s\qty(\vb{q})}
 
-    This class provides implementation of the discrete numerical schemes for
-    the terms :math:`\div{\vb{F\qty(\vb{q})}}, \vb{B}\qty(\vb{q}) \cdot
-        \gradient{\vb{q}} `
+    A concrete instance of this class needs to implement discretization
+    strategies for the terms that are present in a specific :class:`Problem`
+
+    Attributes
+    ----------
+    problem
+        An instance of :class:`Problem` representing the physical problem that
+        this scheme discretizes
+
     """
 
-    @abc.abstractmethod
-    def convective_flux(
-        self,
-        values: State,
-        neigh_values: State,
-        normals: np.ndarray,
-        surfaces: np.ndarray,
-    ):
-        r""" This is the convective flux implementation of the scheme. See
-        :cite:`toro` for a great overview on numerical methods for hyperbolic
-        problems.
-        This method implements a scheme as a 1D scheme operating on a cell and
-        its neighbour (i.e. the :math:`\mathcal{F}` function in the following
-        equation)
-
-        ..math:
-
-        \mathbf{U}_i^{k+1} = \mathbf{U}_i^{k} -
-            \frac{\text{d}t}{V} \mathcal{F}
-            \left(\mathbf{U}_i^{k}, \mathbf{U}_{i+1}^{k} \right)
-        """
-
-        raise NotImplementedError
+    def __init__(self, problem: Problem):
+        self.problem = problem
 
     @abc.abstractmethod
     def CFL(
@@ -109,8 +95,19 @@ class Scheme(metaclass=abc.ABCMeta):
 
         raise NotImplementedError
 
+    def pre_init(self):
+        """ :class:`Scheme` can implement a :method:`pre_init` in order to
+        perform operations before the :method:`Solver.init` initialize the
+        solver state
+
+        Can be used, for example, to modify the :class:`State` in order to
+        inject more information that need to be stored
+        """
+
+        pass
+
     def post_step(self, values: State) -> State:
-        """ Schemes can implement a post-step hook that is executed by the
+        """ :class:`Scheme` can implement a post-step hook that is executed by the
         solver after the update step.
         It can be needed, for example, to apply an Equation of State
         """

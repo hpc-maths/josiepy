@@ -3,6 +3,7 @@ import pytest
 
 from josie.solver.state import StateTemplate
 from josie.solver.solver import Solver
+from josie.solver.scheme import Scheme
 
 
 @pytest.fixture
