@@ -34,12 +34,19 @@ REQUIRED = [
 # Optional
 GRAPHICS = ["mayavi"]
 DEV = ["pytest", "pytest-cov", "pytest-mypy", "pytest-flake8", "pytest-xdist"]
+DOCS = ["sphinx", "sphinx_rtd_theme"]
 EXAMPLES = ["jupyter", "ipywidgets", "ipyevents", "nbdime"]
 
 ALL = GRAPHICS + DEV + EXAMPLES
 
 # What packages are optional?
-EXTRAS = {"all": ALL, "dev": DEV, "examples": EXAMPLES, "gfx": GRAPHICS}
+EXTRAS = {
+    "all": ALL,
+    "dev": DEV,
+    "examples": EXAMPLES,
+    "gfx": GRAPHICS,
+    "docs": DOCS,
+}
 
 # The rest you shouldn't have to touch too much :)
 # ------------------------------------------------
