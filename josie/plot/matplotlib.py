@@ -106,7 +106,7 @@ class AnimateState(NamedTuple):
 
 
 class MatplotlibBackend(PlotBackend):
-    """ A :module:`matplotlib`-based backend to plot 2D meshes.
+    """ A :mod:`matplotlib`-based backend to plot 2D meshes.
 
     The state is stored in a list of :class:`StateElement` objects.
 

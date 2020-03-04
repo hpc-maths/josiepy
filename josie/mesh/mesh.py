@@ -43,21 +43,21 @@ from .cell import Cell
 
 
 class Mesh:
-    """ This class handles the mesh generation over a domain.
+    r""" This class handles the mesh generation over a domain.
 
     Parameters
     ----------
     left
-        The left BoundaryCurve
+        The left :class:`BoundaryCurve`
 
     bottom
-        The bottom BoundaryCurve
+        The bottom :class:`BoundaryCurve`
 
     right
-        The right BoundaryCurve
+        The right :class:`BoundaryCurve`
 
     top
-        The right BoundaryCurve
+        The right :class:`BoundaryCurve`
 
     cell_type
         A :class:`Cell` class that implements a
@@ -66,16 +66,16 @@ class Mesh:
     Attributes
     ----------
     left
-        The left BoundaryCurve
+        The left :class:`BoundaryCurve`
 
     bottom
-        The bottom BoundaryCurve
+        The bottom :class:`BoundaryCurve`
 
     right
-        The right BoundaryCurve
+        The right :class:`BoundaryCurve`
 
     top
-        The right BoundaryCurve
+        The right :class:`BoundaryCurve`
 
     oneD: bool
         A flag to indicate if the mesh is 1D or not
@@ -85,30 +85,32 @@ class Mesh:
         :func:`~Cell.create_connectivity`
 
     num_cells_x
-        The number of cells in the x-direction
+        The number of cells in the :math:`x`-direction
 
     num_cells_y
-        The number of cells in the y-direction
+        The number of cells in the :math:`y`-direction
 
     centroids
         An array containing the centroid of the cells. It has the dimensions of
-        [`num_cells_x`*`num_cells_y`]
+        :math:`N_x \times N_y`
 
     volumes
         An array containing the volumes of the cells. It has the dimensions of
-        [`num_cells_x`*`num_cells_y`]
+        :math:`N_x \times N_y`
 
     surfaces
         An array containing the surfaces of the cells. It has the dimensions of
-        [`num_cells_x`*`num_cells_y`*`num_points`] where `num_points` depends
-        on the :class:`Cell` type provided
+        :math:`N_x \times N_y \times N_\text{points}` where
+        N_\text{points} depends on the :class:`Cell` type provided
 
     points
         An array containing the points that constitute a cell. It has the
-        dimensions of [`num_cells_x`*`num_cells_y`*`num_points`* `dim`] where
-        `num_points` is the number of points specific to a cell (e.g. for a
-        :class:`SimpleCell`, that is 2D quadrangle, the points are 4) and `dim`
-        is the dimensionality of the mesh, currently 2D (dim=2)
+        dimensions of :math:`N_x \times N_y \times N_\text{points} \times
+        N_\text{dimensions}` where :math:`N_\text{points}` is the number of
+        points specific to a cell (e.g. for a :class:`SimpleCell`, that is 2D
+        quadrangle, the points are 4) and :math:`N_\text{dimensions}` is the
+        dimensionality of the mesh, currently 2D
+        (:math:`N_\text{dimensions}`=2)
 
     backend
         An instance of :class:`PlotBackend` used to plot mesh and its values
@@ -158,8 +160,8 @@ class Mesh:
         BoundaryCurve using Transfinite Interpolation
 
         Args:
-            num_cells_x: Number of cells in x-direction
-            num_cells_y: Number of cells in y-direction
+            num_cells_x: Number of cells in :math:`x`-direction
+            num_cells_y: Number of cells in :math:`y`-direction
         """
 
         self._num_xi = num_cells_x + 1

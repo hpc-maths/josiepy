@@ -30,12 +30,12 @@ are used in the flux together with the "auxiliary" variables that are instead
 needed, for example, to compute the speed of sound.
 
 * `rho`: density :math:`\rho`
-* `rhoU`: component along :math:`x` of the velocity :math:`u`, multiplied by
-   the density
-* `rhoV`: component along :math:`y` of the velocity :math:`v`, mvltiplied by
-   the density
+* | `rhoU`: component along :math:`x` of the velocity :math:`u`, multiplied by
+  | the density
+* | `rhoV`: component along :math:`y` of the velocity :math:`v`, multiplied by
+  | the density
 * `rhoE`: total energy multiplied by the density :math:`\rho E`
-* `rhoe`: internal energy multiplied by the density :math:`\rhoe`
+* `rhoe`: internal energy multiplied by the density :math:`\rho e`
 * `U`: component along :math:`x` of the velocity :math:`u`
 * `V`: component along :math:`y` of the velocity :math:`v`
 * `p`: pressure :math:`p`

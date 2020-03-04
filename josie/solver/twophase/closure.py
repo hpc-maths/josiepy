@@ -38,18 +38,19 @@ class Closure(metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
     def pI(self, state_array: Q) -> np.ndarray:
-        """
+        r"""
         Parameters
         ----------
         Q
-            A `[Nx * Ny * 19]` array containing the values for all the state
-            variables
+            A :math:`Nx \times Ny \times 9` array containing the values for
+            all the state variables
 
         Returns
         -------
         pI
-            A `[Nx * Ny * 1]` array containing the value of the :math:`p_I`
-        """
+            A :math:`Nx \times Ny \times 1` array containing the value of the
+            :math:p_I """
+
         raise NotImplementedError
 
     @abc.abstractmethod
@@ -58,13 +59,13 @@ class Closure(metaclass=abc.ABCMeta):
         Parameters
         ---------
         Q
-            A `[Nx * Ny * 19]` array containing the values for all the state
-            variables
+            A :math:`Nx \times Ny \times 9` array containing the values for
+            all the state variables
 
         Returns
         ------
         uI
-            A `[Nx * Ny * 2]` array that contains the components
+            A :math:`Nx \times Ny \times 2` array that contains the components
             of the velocity :math:`\vb{u}_I`.
         """
         raise NotImplementedError
@@ -74,10 +75,10 @@ class Classical(Closure):
     r""" This is the classical choice for :math:`p_I` and :math:`\vb{u}_I`
     described in :cite:`baer_nunziato`
 
-    ..math:
+    .. math::
 
-    p_I = p_2
-    \vb{u}_I = \vb{u}_1
+        p_I = p_2 \\
+        \vb{u}_I = \vb{u}_1
     """
 
     def pI(self, state_array: Q) -> np.ndarray:

@@ -39,11 +39,13 @@ class Scheme(metaclass=abc.ABCMeta):
 
     ..math::
 
-    \pdv{\vb{q}}{t} + \div{\vb{F\qty(\vb{q})}} + \vb{B}\qty(\vb{q}) \cdot
-        \gradient{\vb{q}} = \vb{s\qty(\vb{q})}
+    |pde_full|
 
     A concrete instance of this class needs to implement discretization
     strategies for the terms that are present in a specific :class:`Problem`
+    within a Finite Volume discretization method
+
+    |scheme_terms|
 
     Attributes
     ----------
@@ -65,24 +67,25 @@ class Scheme(metaclass=abc.ABCMeta):
         surfaces: np.ndarray,
         CFL_value: float,
     ) -> float:
-        """ This method returns the optimal `dt` value that fulfills the CFL
+        r""" This method returns the optimal `dt` value that fulfills the CFL
         condition for the concrete the given scheme
 
         Parameters
         ----------
         values
-            A :class:`np.ndarray` that has dimension [Nx * Ny * 9] containing
-            the values for all the states in all the mesh points
+            A :class:`np.ndarray` that has dimension :math:`Nx \times Ny \times
+            9` containing the values for all the states in all the mesh points
         volumes
-            A :class:`np.ndarray` that has the dimensions [Nx * Ny] containing
-            the values of the cell volumes
+            A :class:`np.ndarray` that has the dimensions :math:`Nx \times Ny`
+            containing the values of the cell volumes
         normals
-            A :class:`np.ndarray` that has the dimensions [Nx * Ny * num_points
-            * 2] containing the values of the normals to the faces of the cell
+            A :class:`np.ndarray` that has the dimensions :math:`Nx \times Ny
+            \times N_\text{centroids} \times 2` containing the values of the
+            normals to the faces of the cell
         surfaces
-            A :class:`np.ndarray` that has the dimensions [Nx * Ny *
-            num_points] containing the values of the face surfaces of the face
-            connecting the cell to is neighbour
+            A :class:`np.ndarray` that has the dimensions :math:`Nx \times Ny
+            \times N_\text{centroids}` containing the values of the face
+            surfaces of the face connecting the cell to is neighbour
         CFL_value
             The value of the CFL coefficient to impose
 

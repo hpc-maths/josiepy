@@ -34,34 +34,38 @@ def flux(state_array: Q) -> np.ndarray:
 
     A general problem can be written in a compact way:
 
-    ..math::
+    .. math::
 
-    \pdv{\vb{q}}{t} + \div{\vb{F\qty(\vb{q})}} + \vb{B}\qty(\vb{q}) \cdot
-        \gradient{\vb{q}} = \vb{s\qty(\vb{q})}
+        \pdv{\vb{q}}{t} + \div{\vb{F\qty(\vb{q})}} + \vb{B}\qty(\vb{q}) \cdot
+            \gradient{\vb{q}} = \vb{s\qty(\vb{q})}
 
     This function needs to return :math:`\vb{F}\qty(\vb{q})`
 
     Parameters
     ----------
     state_array
-        A :class:`np.ndarray` that has dimension [Nx * Ny * 9] containing the
-        values for all the state variables in all the mesh points
+        A :class:`np.ndarray` that has dimension :math:`Nx \times Ny \times 9`
+        containing the values for all the state variables in all the mesh
+        points
 
     Returns
     ---------
     F
-        An array of dimension `[Nx * Ny * 4 * 2]`, i.e. an array that of each
-        x cell and y cell stores the 4*2 flux tensor
+        An array of dimension :math:`Nx \times Ny \times 4 \times 2`, i.e. an
+        array that of each :math:`x` cell and :math:`y` cell stores the
+        :math:`4 \times 2` flux
+        tensor
 
         The flux tensor is:
-        ..math::
 
-        \begin{bmatrix}
-            \rho u & \rho v \\
-            \rho u^2 + p & \rho uv \\
-            \rho vu * \rho v^ 2 + p \\
-            (\rho E + p)U & (\rho E + p)V
-        \end{bmatrix}
+        .. math::
+
+            \begin{bmatrix}
+                \rho u & \rho v \\
+                \rho u^2 + p & \rho uv \\
+                \rho vu & \rho v^ 2 + p \\
+                (\rho E + p)U & (\rho E + p)V
+            \end{bmatrix}
     """
 
     num_cells_x, num_cells_y, _ = state_array.shape

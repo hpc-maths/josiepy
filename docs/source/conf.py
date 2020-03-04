@@ -48,8 +48,33 @@ set_type_checking_flag = False
 
 # :: sphinx.ext.imgmath
 imgmath_image_format = "svg"
+imgmath_font_size = 14
+imgmath_use_preview = True
 imgmath_latex_preamble = r"""
 \usepackage{physics}
+\usepackage{lmodern}
+\usepackage[T1]{fontenc}
+
+\newcommand{\pdeNormal}{\ensuremath{\hat{\vb{n}}}}
+
+\newcommand{\pdeState}{\ensuremath{\vb{q}}}
+
+\newcommand{\pdeConvective}{\ensuremath{\vb{F}\qty(\pdeState)}}
+
+\newcommand{\pdeNonConservativeMultiplier}{\ensuremath{\vb{B}\qty{\pdeState}}}
+
+\newcommand{\pdeGradient}{\ensuremath{\gradient{\pdeState}}}
+
+\newcommand{\pdeSource}{\ensuremath{\vb{s}\qty(\pdeState)}}
+
+\newcommand{\pdeTermList}{\ensuremath{%
+         \pdeConvective, \pdeNonConservativeMultiplier, \pdeSource
+}}
+
+\newcommand{\pdeFull}{\ensuremath{%
+    \pdv{\pdeState}{t} + \divergence{\pdeConvective} +
+    \pdeNonConservativeMultiplier \cdot \pdeGradient = \pdeSource
+}}
 """
 
 # List of patterns, relative to source directory, that match files and
@@ -71,45 +96,3 @@ html_theme = "sphinx_rtd_theme"
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ["_static"]
-
-# # Substitutions
-# rst_epilog = r"""
-#  .. |pde| replace :: :math:`\hat{n}`
-#
-#  .. |pde_normal| replace :: :math:`\hat{\vb{n}}`
-#
-#  .. |pde_state| replace :: \vb{q}
-#
-#  .. |pde_convective_flux| replace :: \vb{F}\qty(|state|)
-#
-#  .. |pde_non_conservative_multiplier| replace :: \vb{B}\qty(|state|)
-#
-#  .. |pde_gradient| replace :: \gradient{|state|}
-#
-#  .. |pde_source| replace :: \vb{s}\qty(|state|)
-#
-#  .. |pde_term_list| replace ::
-#     * :math:`|pde_convective_flux|`
-#     * :math`|pde_non_conservative_multiplier|`
-#     * :math:`|pde_source|`
-#
-#  .. |pde_full| replace :: \pdv{|pde_state|}{t} + \div{|pde_convective_flux| +
-#     |pde_non_conservative_multiplier| \cdot |pde_gradient| = |pde_source|
-#
-#  .. |scheme_convective_flux| replace :: \int_{V_i}
-#     \divergence{|pde_convective_flux|} \dd{V}
-#
-#  .. |scheme_convective_flux_S| replace :: \oint{\partial V_i}
-#     |pde_convective_flux| \cdot |pde_normal| \dd{S}
-#
-#  .. |scheme_gradient| replace :: \oint{\partial V_i} |pde_state||pde_normal|
-#     \dd{S}
-#
-#  .. |scheme_source| replace :: \int_{V_i} |pde_source| \dd{V}
-#
-#  .. |scheme_terms| replace ::
-#     * :math:`|scheme_convective_flux| = |scheme_convective_flux_S|`
-#     * :math:`|scheme_gradient|`
-#     * :math:`|scheme_source|`
-#
-# """

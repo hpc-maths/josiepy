@@ -34,14 +34,15 @@ class Problem(metaclass=abc.ABCMeta):
 
     A general problem can be written in a compact way:
 
-    ..math::
+    .. math::
 
-    \pdv{\vb{q}}{t} + \div{\vb{F\qty(\vb{q})}} + \vb{B}\qty(\vb{q}) \cdot
-        \gradient{\vb{q}} = \vb{s\qty(\vb{q})}
+        \pdeFull
 
     A concrete instance of this class potentially provides the terms
-    * :math:`\vb{F}\qty(\vb{q})`
-    * :math:`\vb{B}\qty(\vb{q})`
+
+    .. math::
+
+        \pdeTermList
     """
 
     pass

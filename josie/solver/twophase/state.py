@@ -24,14 +24,6 @@
 # The views and conclusions contained in the software and documentation
 # are those of the authors and should not be interpreted as representing
 # official policies, either expressed or implied, of Ruben Di Battista.
-r"""
-We create one big state that contains the actual conservative variables that
-are used in the flux together with the "auxiliary" variables that are instead
-needed, for example, to compute the speed of sound.
-
-The state of system described in :cite:`baer_nunziato` is actually two Euler
-states togeter with the state associated to the volume fraction :math:`\alpha`
-"""
 from __future__ import annotations
 
 from enum import IntEnum
@@ -75,15 +67,24 @@ class Fields(IntEnum):
 
 
 class Q(State):
+    r""" We create one big state that contains the actual conservative
+    variables that are used in the flux together with the "auxiliary" variables
+    that are instead needed, for example, to compute the speed of sound.
+
+    The state of system described in :cite:`baer_nunziato` is actually two
+    Euler states togeter with the state associated to the volume fraction
+    :math:`\alpha` """
+
     fields = Fields
 
     def get_phase(self, phase: Phases) -> EulerQ:
         r""" Returns the part of the state associated to a specified phase
         as an instance of :class:`~euler.state.Q`
 
-        ..warning::
-        This does not return the first variable of the state, i.e.
-        :math:`\alpha`
+        .. warning::
+
+            This does not return the first variable of the state, i.e.
+            :math:`\alpha`
 
         Parameters
         ---------

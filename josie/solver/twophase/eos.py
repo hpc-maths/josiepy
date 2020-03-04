@@ -37,7 +37,7 @@ class EOS:
     provided.
 
     You can access the EOS for a specified phase using the
-    :method:`__getitem__`
+    :meth:`__getitem__`
 
     """
 

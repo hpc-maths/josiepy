@@ -43,10 +43,10 @@ if TYPE_CHECKING:
 
 
 class BoundaryCurve(metaclass=abc.ABCMeta):
-    r""" A class representing a BoundaryCurve. A BoundaryCurve is parametrized
-    with a single parameter. It implements a `__call__` method to that returns
-    the :math:`(x,y)` values of the curve for a given :math:`\xi`
-    parameter value.
+    r""" A class representing a :class:`BoundaryCurve`. A
+    :class:`BoundaryCurve` is parametrized with a single parameter. It
+    implements a :meth:`__call__` method that returns the :math:`(x,y)` values
+    of the curve for a given :math:`\xi` parameter value.
     """
 
     @property
@@ -59,16 +59,16 @@ class BoundaryCurve(metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
     def __call__(self, xi):
-        """ The effective parametrization of the BoundaryCurve. Assume `xi` to
-        range into [0, 1]
+        r""" The effective parametrization of the BoundaryCurve. Assume ``xi``
+        (:math:`\xi`) to range into :math:`[0, 1]`
 
         Args:
             xi: The parameter the curve is parametrized with.
                 Ranges from 0 to 1
 
         Returns:
-            xy: A tuple containing the x and y coordinates of the
-                BoundaryCurve computed for the `xi` values
+            xy: | A tuple containing the x and y coordinates of the
+                :class:`BoundaryCurve` computed for the :math:`\xi` values
         """
 
         raise NotImplementedError  # pragma: no cover

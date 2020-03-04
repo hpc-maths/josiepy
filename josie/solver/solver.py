@@ -153,15 +153,15 @@ class Solver(metaclass=abc.ABCMeta):
     def init(self, init_fun: Callable[[Solver], NoReturn]):
         """
         This method initialize the internal values of the cells of the
-        :class:`Mesh` and the values of the ghost cells that apply the
-        :class:`BoundaryCondition` for each boundary of the domain
+        :class:`~.Mesh` and the values of the ghost cells that apply the
+        :class:`~.BoundaryCondition` for each boundary of the domain
 
-        Data Structure
-        -------------
-        The data structure holding the values of the field on the mesh is
-        a numpy array of dimensions (num_cells_x+2, num_cells_y+2, state_size).
-        That is, we have one layer of ghosts per direction. (The corner cells
-        are unused)
+        **Data Structure**
+
+        The data structure holding the values of the field on the mesh is a
+        :class:`numpy.ndarray` of dimensions (``num_cells_x+2``,
+        ``num_cells_y+2``, ``state_size``).  That is, we have one layer of
+        ghosts per direction.  (The corner cells are unused)
 
         Parameters
         ---------
@@ -190,9 +190,7 @@ class Solver(metaclass=abc.ABCMeta):
 
         # Left BC: Create the left layer of ghost cells
         self.left_ghost = self.mesh.left.bc(
-            self,
-            self.mesh.centroids[0, :],  # type: ignore
-            self.values[0, :],
+            self, self.mesh.centroids[0, :], self.values[0, :],  # type: ignore
         )  # type: ignore
 
         # Right BC
@@ -231,31 +229,30 @@ class Solver(metaclass=abc.ABCMeta):
         data structures sent to the `scheme` callable for `values` and
         `neigh_values` are:
 
-        values:>
-        +---------------+---------------+---------------+
-        | `values[0,2]` | `values[1,2]` | `values[2,2]` |
-        +---------------+---------------+---------------+
-        | `values[0,1]` | `values[1,1]` | `values[2,1]` |
-        +---------------+---------------+---------------+
-        | `values[0,0]` | `values[1,0]` | `values[2,0]` |
-        +---------------+---------------+---------------+
+        **values**
 
-        neighbours:>
-        +---------------+---------------+------------------+
-        | `values[1,2]` | `values[2,2]` | `right_ghost[2]` |
-        +---------------+---------------+------------------+
-        | `values[1,1]` | `values[2,1]` | `right_ghost[1]` |
-        +---------------+---------------+------------------+
-        | `values[1,0]` | `values[2,0]` | `right_ghost[0]` |
-        +---------------+---------------+------------------+
+        +-----------------+-----------------+-----------------+
+        | ``values[0,2]`` | ``values[1,2]`` | ``values[2,2]`` |
+        +-----------------+-----------------+-----------------+
+        | ``values[0,1]`` | ``values[1,1]`` | ``values[2,1]`` |
+        +-----------------+-----------------+-----------------+
+        | ``values[0,0]`` | ``values[1,0]`` | ``values[2,0]`` |
+        +-----------------+-----------------+-----------------+
+
+        **neighbours**
+
+        +-----------------+-----------------+--------------------+
+        | ``values[1,2]`` | ``values[2,2]`` | ``right_ghost[2]`` |
+        +-----------------+-----------------+--------------------+
+        | ``values[1,1]`` | ``values[2,1]`` | ``right_ghost[1]`` |
+        +-----------------+-----------------+--------------------+
+        | ``values[1,0]`` | ``values[2,0]`` | ``right_ghost[0]`` |
+        +-----------------+-----------------+--------------------+
 
         Parameters
         ----------
         dt
             Time increment of the step
-        scheme
-            A callable representime the space scheme to use
-
         """
 
         # We accumulate the delta fluxes for each set of neighbours
@@ -342,8 +339,6 @@ class Solver(metaclass=abc.ABCMeta):
 
     def plot(self):
         """ Plot the current state of the simulation in a GUI.
-
-        You can specify which fields to plot
         """
         plt = self.mesh.backend
         plt.update(self)
@@ -362,6 +357,11 @@ class Solver(metaclass=abc.ABCMeta):
 
     def show(self, fields: Union[List[str], str]):
         """ Display on screen the given fields
+
+        Parameters
+        ---------
+        fields
+            The fields you want to plot
         """
 
         plt = self.mesh.backend

@@ -41,9 +41,9 @@ def B(state_array: Q, eos: Union[EOS, Closure]):
 
     A general problem can be written in a compact way:
 
-    ..math::
+    .. math::
 
-    \pdv{\vb{q}}{t} + \div{\vb{F\qty(\vb{q})}} + \vb{B}\qty(\vb{q}) \cdot
+        \pdv{\vb{q}}{t} + \div{\vb{F\qty(\vb{q})}} + \vb{B}\qty(\vb{q}) \cdot
         \gradient{\vb{q}} = \vb{s\qty(\vb{q})}
 
     This function needs to return :math:`\vb{B}\qty(\vb{q})`
@@ -104,29 +104,32 @@ def flux(state_array: Q) -> np.ndarray:
     Parameters
     ----------
     state_array
-        A :class:`np.ndarray` that has dimension `[Nx * Ny * 19]` containing
-        the values for all the state variables in all the mesh points
+        A :class:`np.ndarray` that has dimension :math:`Nx \times Ny \times 19`
+        containing the values for all the state variables in all the mesh
+        points
 
     Returns
     ---------
     F
-        An array of dimension `[Nx * Ny * 9 * 2]`, i.e. an array that of each
-        x cell and y cell stores the 9*2 flux tensor
+        An array of dimension :math:`Nx \times Ny \times 9 \times 2`, i.e. an
+        array that of each cell in :math:`x` and :math:`y` direction stores the
+        :math:`9 \times 2` flux tensor
 
         The flux tensor is:
-        ..math::
 
-        \begin{bmatrix}
-            0 & 0
-            \alpha_1 \rho u_1 & \alpha_1 \rho v_1 \\
-            \alpha_1(\rho_1 u_1^2 + p_1) & \alpha_1 \rho_1 u_1 v_1 \\
-            \alpha_1 \rho_1 v_1 u_1 * \alpha_1(\rho v_1^ 2 + p_1) \\
-            \alpha_1(\rho_1 E_1 + p_1)u_1 & \alpha_1 (\rho_1 E + p)v_1
-            \alpha_2 \rho u_2 & \alpha_2 \rho v_2 \\
-            \alpha_2(\rho_2 u_2^2 + p_2) & \alpha_2 \rho_2 u_2 v_2 \\
-            \alpha_2 \rho_2 v_2 u_2 * \alpha_2(\rho v_2^ 2 + p_2) \\
-            \alpha_2(\rho_2 E_2 + p_2)u_2 & \alpha_2 (\rho_2 E + p)v_2
-        \end{bmatrix}
+        .. math::
+            \pdeConvective =
+            \begin{bmatrix}
+                0 & 0 \\
+                \alpha_1 \rho u_1 & \alpha_1 \rho v_1 \\
+                \alpha_1(\rho_1 u_1^2 + p_1) & \alpha_1 \rho_1 u_1 v_1 \\
+                \alpha_1 \rho_1 v_1 u_1 & \alpha_1(\rho v_1^ 2 + p_1) \\
+                \alpha_1(\rho_1 E_1 + p_1)u_1 & \alpha_1 (\rho_1 E + p)v_1 \\
+                \alpha_2 \rho u_2 & \alpha_2 \rho v_2 \\
+                \alpha_2(\rho_2 u_2^2 + p_2) & \alpha_2 \rho_2 u_2 v_2 \\
+                \alpha_2 \rho_2 v_2 u_2 & \alpha_2(\rho v_2^ 2 + p_2) \\
+                \alpha_2(\rho_2 E_2 + p_2)u_2 & \alpha_2 (\rho_2 E + p)v_2
+            \end{bmatrix}
     """
 
     num_cells_x, num_cells_y, _ = state_array.shape

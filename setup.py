@@ -34,7 +34,13 @@ REQUIRED = [
 # Optional
 GRAPHICS = ["mayavi"]
 DEV = ["pytest", "pytest-cov", "pytest-mypy", "pytest-flake8", "pytest-xdist"]
-DOCS = ["sphinx", "sphinx_rtd_theme"]
+DOCS = [
+    "sphinx",
+    "sphinx_rtd_theme",
+    "sphinx-autodoc-typehints",
+    "sphinx-markdown-tables",
+    "recommonmark",
+]
 EXAMPLES = ["jupyter", "ipywidgets", "ipyevents", "nbdime"]
 
 ALL = GRAPHICS + DEV + EXAMPLES

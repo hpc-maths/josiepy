@@ -119,6 +119,7 @@ def StateTemplate(*fields: str) -> Type[State]:
     fields
         A list of (scalar) fields composing the state
 
+
     A scalar :class:`State` as for the advection equation
     >>> Q = StateTemplate("u")
 

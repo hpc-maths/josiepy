@@ -128,9 +128,9 @@ class Cell(metaclass=abc.ABCMeta):
         Parameters
         ----------
         x
-            x-coordinates of the points of the mesh
+            :math:`x`-coordinates of the points of the mesh
         y
-            y-coordinates of the points of the mesh
+            :math:`y`-coordinates of the points of the mesh
 
         """
         raise NotImplementedError
@@ -148,13 +148,15 @@ class SimpleCell(Cell):
     stores the :class:`State` value in its centroid. The cell needs 4 points
     to be defined and has 1 degree of freedom.
 
-    nw     ne
-    *-------*
-    |       |
-    |   *   |
-    |   c   |
-    *-------*
-    sw     se
+    .. code-block::
+
+        nw     ne
+        *-------*
+        |       |
+        |   *   |
+        |   c   |
+        *-------*
+        sw     se
 
     """
 
@@ -263,7 +265,8 @@ class SimpleCell(Cell):
         by the two given points obtained doing a CW rotation
 
         .. todo::
-        Add image with TiKz
+
+            Add image with TiKz
 
         Parameters
         ----------
@@ -287,7 +290,7 @@ class SimpleCell(Cell):
         return normal / np.linalg.norm(normal)
 
     @classmethod
-    def create_connectivity(cls, mesh: "Mesh"):
+    def create_connectivity(cls, mesh: Mesh):
         num_cells_x = mesh.num_cells_x
         num_cells_y = mesh.num_cells_y
         x = mesh._x

@@ -48,24 +48,25 @@ class EulerScheme(Scheme):
         normals: np.ndarray,
         surfaces: np.ndarray,
     ):
-        """
+        r"""
         Parameters
         ----------
         values
-            A :class:`Q` object that has dimension [Nx * Ny * 9] containing
-            the values for all the states in all the mesh points
+            A :class:`Q` object that has dimension :math:`Nx \times Ny \times
+            9` containing the values for all the states in all the mesh points
         neigh_values
-            A :class:`Q` object  that has the same dimension of `values`. It
+            A :class:`Q` object  that has the same dimension of ``values``. It
             contains the corresponding neighbour values of the states tored in
-            `values`, i.e. the neighbour of `values[i]` is `neigh_values[i]`
+            ``values``, i.e. the neighbour of `values[i]` is
+            ``neigh_values[i]``
         normals
-            A :class:`np.ndarray` that has the dimensions [Nx * Ny * 2]
-            containing the values of the normals to the face connecting the
-            cell to its neighbour
+            A :class:`np.ndarray` that has the dimensions :math:`Nx \times Ny
+            \times 2` containing the values of the normals to the face
+            connecting the cell to its neighbour
         surfaces
-            A :class:`np.ndarray` that has the dimensions [Nx * Ny] containing
-            the values of the face surfaces of the face connecting the cell to
-            is neighbour
+            A :class:`np.ndarray` that has the dimensions :math:`Nx \times Ny`
+            containing the values of the face surfaces of the face connecting
+            the cell to is neighbour
         """
 
         raise NotImplementedError
@@ -135,36 +136,36 @@ class Rusanov(EulerScheme):
 
         If we write the system in quasi-linear form
 
-        ..math:
+        .. math:
 
-        \pdv{\vb{q}}{t} +
-        \qty(\vb{\pdv{\vb{F}}{\vb{q}}}\qty(\vb{q}) + \vb{B}\qty(\vb{q})) \cdot
-        \gradient{\vb{q}} = \vb{s\qty(\vb{q})}
+            \pdv{\vb{q}}{t} + \qty(\vb{\pdv{\vb{F}}{\vb{q}}}\qty(\vb{q}) +
+            \vb{B}\qty(\vb{q})) \cdot \gradient{\vb{q}} = \vb{s\qty(\vb{q})}
 
         This returns the value of the eigenvalues of the term
         :math:`\qty(\vb{\pdv{\vb{F}}{\vb{q}}}\qty(\vb{q})+\vb{B}\qty(\vb{q}))`
 
-        In the case of Euler system, they are :math:`u + c, u - c, u` along x,
-        :math:`v + c, v - c, v` along y, and so on
+        In the case of Euler system, they are :math:`u + c, u - c, u` along
+        :math:`x`, :math:`v + c, v - c, v` along :math:`y`, and so on
 
         Parameters
         ----------
         state_array
-            A :class:`Q` object that has dimension [Nx * Ny * 9] containing
-            the values for all the states in all the mesh points
+            A :class:`Q` object that has dimension :math:`Nx \times Ny \times
+            9` containing the values for all the states in all the mesh points
 
         normals
-            A :class:`np.ndarray` that has the dimensions [Nx * Ny * 2]
-            containing the values of the normals to the face connecting the
-            cell to its neighbour
+            A :class:`np.ndarray` that has the dimensions :math:`Nx \times Ny
+            \times 2` containing the values of the normals to the face
+            connecting the cell to its neighbour
 
         Returns
         -------
         eigs
-            A `[Nx * Ny * num_eigs]` containing the eigenvalues
-            for each dimension.
-            `eigs[..., Direction.X]` is :math:`(u+c, u-c)`
-            `eigs[..., Direction.Y]` is :math:`(v+c, v-c)`
+            A :math:`Nx \times Ny \times \text{size}(\lambda)` containing the
+            eigenvalues for each dimension:
+
+            * ``eigs[..., Direction.X]`` is :math:`(u+c, u-c)`
+            * ``eigs[..., Direction.Y]`` is :math:`(v+c, v-c)`
         """
         fields = Q.fields
 

@@ -70,12 +70,12 @@ class BoundaryCondition(metaclass=abc.ABCMeta):
         ----------
         mesh
             The mesh object that can be useful to use other cells of the mesh
-            (probably needed only for Periodic)
+            (probably needed only for :class:`Periodic`)
         centroids
             An array containing the cell centroids of the cells on the boundary
             which this BoundaryCondition is applied to
         values
-            An array containing the cell :class:`State` values of the cells
+            An array containing the cell :class:`~.State` values of the cells
             on the boundary which this BoundaryCondition is applied to
         t
             The time instant to which this BoundaryCondition must be evaluated
@@ -95,13 +95,14 @@ class Dirichlet(BoundaryCondition):
 
     .. math::
 
-    \frac{Q_{0,j} + Q_\text{ghost}}{2} = Q_D
+        \frac{Q_{0,j} + Q_\text{ghost}}{2} = Q_D
 
     That means we can impose the :class:`BoundaryCondition` assigning the value
     of
 
     .. math::
-    Q_\text{ghost} = 2Q_D - \frac{Q_{0,j}}
+
+        Q_\text{ghost} = 2Q_D - Q_{0,j}
 
     to the ghost cell.
 
@@ -130,19 +131,20 @@ class Neumann(Dirichlet):
     value of the gradient of the State on the boundary.
 
     Assuming we want to impose the value of the gradient :math:`\frac{\partial
-    Q}{\partial \hat{\mathbf{n}}} = Q_N`of the state on the (left, as an
+    Q}{\partial \hat{\mathbf{n}}} = Q_N` of the state on the (left, as an
     example) boundary, we can assume that the value of the gradient on the
     boundary is approximated by:
 
     .. math::
 
-    \frac{Q_{0,j} - Q_\text{ghost}}{\Delta x} = Q_N
+        \frac{Q_{0,j} - Q_\text{ghost}}{\Delta x} = Q_N
 
     That means we can impose the :class:`BoundaryCondition` assigning the value
     of
 
     .. math::
-    Q_\text{ghost} = \frac{Q_{0,j}} - Q_N
+
+        Q_\text{ghost} = Q_{0,j} - Q_N
 
     to the ghost cell (assuming a :math:`\Delta x = 1`)
 
@@ -212,8 +214,8 @@ class NeumannDirichlet(BoundaryCondition):
 
 
 class Side(Enum, settings=NoAlias):
-    """ A Enum encapsulating the 4 possibilities of a Periodic
-    BoundaryCondition """
+    """ A Enum encapsulating the 4 possibilities of a :class:`Periodic`
+    :class:`BoundaryCondition` """
 
     LEFT = -1
     BOTTOM = -1
@@ -222,10 +224,10 @@ class Side(Enum, settings=NoAlias):
 
 
 class Periodic(BoundaryCondition):
-    r""" A Periodic BoundaryCondition is a BoundaryCondition that connects
-    one side of the domain to the other. In general is more straighforward
-    to use the `make_periodic` function on a couple of BoundaryCurve that
-    needs to be linked periodically
+    r""" A Periodic BoundaryCondition is a :class:`~.BoundaryCondition` that
+    connects one side of the domain to the other. In general is more
+    straighforward to use the ``make_periodic`` function on a couple of
+    :class:`~.BoundaryCurve` that needs to be linked periodically
 
     That means the neighbour cells of the cells on one domain are the cells
     on the other side of the domain. In other words, as an example, given a
@@ -268,19 +270,21 @@ def make_periodic(
     Parameters
     ----------
     first
-        The first BoundaryCurve to link
+        The first :class:`~.BoundaryCurve` to link
     second
-        The second BoundaryCurve to link
+        The second :class:`~.BoundaryCurve` to link
     direction
-        The direction on which the two BoundaryCurve are periodically
-        connected
+        The direction on which the two :class:`~.BoundaryCurve` are
+        periodically connected
 
     Returns
     -------
     first
-        The first BoundaryCurve whose `bc` attribute is correctly configured
+        The first :class:`~.BoundaryCurve` whose `bc` attribute is correctly
+        configured
     second
-        The second BoundaryCurve whose `bc` attribute is correctly configured
+        The second :class:`~.BoundaryCurve` whose `bc` attribute is correctly
+        configured
     """
 
     if direction is Direction.X:

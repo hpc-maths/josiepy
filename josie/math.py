@@ -26,11 +26,11 @@
 # official policies, either expressed or implied, of Ruben Di Battista.
 """ General purpose math primitives """
 
-from enum import auto, IntEnum
+from enum import IntEnum
 
 
 def map01to(x, a, b):
-    """ Maps x in [0, 1] to [a, b] """
+    r""" Maps :math:`x` in :math:`[0, 1] \to [a, b]` """
 
     return (b - a) * x + a
 
@@ -39,6 +39,6 @@ class Direction(IntEnum):
     """ An Enum encapsulating the coordinates indices
     """
 
-    X = auto()
-    Y = auto()
-    Z = auto()
+    X = 0
+    Y = 1
+    Z = 2

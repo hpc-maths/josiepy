@@ -51,15 +51,15 @@ class PerfectGas(EOS):
     r""" This class embeds methods to compute states for the Euler problem
     using an EOS (Equation of State) for perfect gases
 
-    .. :math::
+    .. math::
 
-    p = \rho \mathcal{R} T = \rho \left( \gamma - 1 \right)e
+        p = \rho \mathcal{R} T = \rho \left( \gamma - 1 \right)e
 
 
     Attributes
     ----------
     gamma
-        The adiabatic coefficient (default=1.4)
+        The adiabatic coefficient
     """
 
     def __init__(self, gamma: float = 1.4):
@@ -81,7 +81,7 @@ class PerfectGas(EOS):
         Returns
         -------
         rhoe
-            A :class`np.ndarray  containing the values of the internal energy
+            A :class`np.ndarray` containing the values of the internal energy
             multiplied by the density
         """
 
