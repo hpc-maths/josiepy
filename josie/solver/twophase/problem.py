@@ -87,11 +87,11 @@ def B(state_array: Q, eos: Union[EOS, Closure]):
     B[Q.fields.rhoE2, Q.fields.alpha, Direction.X] = pIUI
 
     # Gradient component along y
-    B[Q.fields.alpha, Q.fields.alpha, Direction.X] = VI
-    B[Q.fields.rhoV1, Q.fields.alpha, Direction.X] = -pI
-    B[Q.fields.rhoE1, Q.fields.alpha, Direction.X] = -pIVI
-    B[Q.fields.rhoV2, Q.fields.alpha, Direction.X] = pI
-    B[Q.fields.rhoE2, Q.fields.alpha, Direction.X] = pIVI
+    B[Q.fields.alpha, Q.fields.alpha, Direction.Y] = VI
+    B[Q.fields.rhoV1, Q.fields.alpha, Direction.Y] = -pI
+    B[Q.fields.rhoE1, Q.fields.alpha, Direction.Y] = -pIVI
+    B[Q.fields.rhoV2, Q.fields.alpha, Direction.Y] = pI
+    B[Q.fields.rhoE2, Q.fields.alpha, Direction.Y] = pIVI
 
     return B
 

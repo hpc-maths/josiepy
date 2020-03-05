@@ -185,12 +185,12 @@ class Solver(metaclass=abc.ABCMeta):
         self._update_ghosts()
 
     def _update_ghosts(self):
-        """ This method updates the ghost cells of the mesh with the corrent
+        """ This method updates the ghost cells of the mesh with the current
         values depending on the specified boundary condition """
 
         # Left BC: Create the left layer of ghost cells
         self.left_ghost = self.mesh.left.bc(
-            self, self.mesh.centroids[0, :], self.values[0, :],  # type: ignore
+            self, self.mesh.centroids[0, :], self.values[0, :]  # type: ignore
         )  # type: ignore
 
         # Right BC
@@ -302,16 +302,6 @@ class Solver(metaclass=abc.ABCMeta):
 
         # Keep ghost cells updated
         self._update_ghosts()
-
-    def post_step(self):
-        """ This method can be used to post-process the data after that the
-        flux update took place.
-
-        For example it is used in the :class:`EulerSolver` in order to retrieve
-        the auxiliary variables, from the conservative ones, using the
-        :class:`EOS`
-        """
-        pass
 
     def save(self, t, filename: os.PathLike):
         """ This method saves the simulation instant in a `xdmf` file

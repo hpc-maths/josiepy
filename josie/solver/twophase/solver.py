@@ -30,42 +30,15 @@ from typing import TYPE_CHECKING
 
 from josie.solver import Solver
 
-from .eos import EOS
 from .state import Q
+from .schemes import TwoPhaseScheme
 
 if TYPE_CHECKING:
     from josie.mesh import Mesh
 
 
-class EulerSolver(Solver):
-    """ This class accepts as input also the EOS """
+class TwoPhaseSolver(Solver):
+    """ A solver for the TwoPhase system """
 
-    # TODO: Add CFL handling
-
-    def __init__(self, mesh: "Mesh", eos: EOS):
-        self.eos = eos
-
-        super().__init__(mesh, Q)
-
-    def post_step(self):
-        """ During the step we update the conservative values. After the
-        step we update the non-conservative variables """
-        rho = self.values[:, :, 0]
-        rhoU = self.values[:, :, 1]
-        rhoV = self.values[:, :, 2]
-        rhoE = self.values[:, :, 3]
-
-        U = np.divide(rhoU, rho)
-        V = np.divide(rhoV, rho)
-
-        rhoe = rhoE - 0.5 * rho * (np.power(U, 2) + np.power(V, 2))
-        e = np.divide(rhoe, rho)
-
-        p = self.eos.p(rho, e)
-        c = self.eos.sound_velocity(rho, p)
-
-        self.values[:, :, 4] = rhoe
-        self.values[:, :, 5] = U
-        self.values[:, :, 6] = V
-        self.values[:, :, 7] = p
-        self.values[:, :, 8] = c
+    def __init__(self, mesh: Mesh, scheme: TwoPhaseScheme):
+        super().__init__(mesh, Q, scheme)
