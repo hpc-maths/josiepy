@@ -13,6 +13,9 @@
 # import os
 # import sys
 # sys.path.insert(0, os.path.abspath('.'))
+import sys
+
+print(sys.path)
 
 
 # -- Project information -----------------------------------------------------
@@ -75,6 +78,18 @@ imgmath_latex_preamble = r"""
     \pdv{\pdeState}{t} + \divergence{\pdeConvective} +
     \pdeNonConservativeMultiplier \cdot \pdeGradient = \pdeSource
 }}
+
+\newcommand{\numConvective}{%
+    \sum_{f \in \text{faces}} \qty|\vb{F} \cdot \hat{\vb{n}}|_f S_f
+}
+
+\newcommand{\numConvectiveFull}{%
+    \int_{V_i} \div{\vb{F}\qty(\vb{q})} \dd{V} =
+        \oint_{\partial V_i} \vb{F}\qty(\vb{q}) \cdot \hat{\vb{n}} \dd{S}
+        \approx \numConvective
+}
+
+
 """
 
 # List of patterns, relative to source directory, that match files and

@@ -35,23 +35,11 @@ class ConvectiveScheme(Scheme):
     r"""
     A mixin that provides the convective scheme implementation.
 
-    A general problem can be written in a compact way:
 
-    ..math::
-
-    \pdv{\vb{q}}{t} + \div{\vb{F\qty(\vb{q})}} + \vb{B}\qty(\vb{q}) \cdot
-        \gradient{\vb{q}} = \vb{s\qty(\vb{q})}
-
-    A concrete instance of this class needs to implement the term:
-
-    ..math::
-
-    \int_{V_i} \div{\vb{F}\qty(\vb{q})} \dd{V} =
-        \oint_{\partial V_i} \vb{F}\qty(\vb{q}) \cdot \hat{\vb{n}} \dd{S}
     """
 
     @abc.abstractmethod
-    def convective_flux(
+    def F(
         self,
         values: State,
         neigh_values: State,
@@ -61,15 +49,21 @@ class ConvectiveScheme(Scheme):
         r""" This is the convective flux implementation of the scheme. See
         :cite:`toro` for a great overview on numerical methods for hyperbolic
         problems.
-        This method implements a scheme as a 1D scheme operating on a cell and
-        its neighbour (i.e. the :math:`\mathcal{F}` function in the following
-        equation)
 
-        ..math:
+        A general problem can be written in a compact way:
 
-        \mathbf{U}_i^{k+1} = \mathbf{U}_i^{k} -
-            \frac{\text{d}t}{V} \mathcal{F}
-            \left(\mathbf{U}_i^{k}, \mathbf{U}_{i+1}^{k} \right)
+        ..math::
+
+            \pdeFull
+
+
+        A concrete instance of this class needs to implement the discretization
+        of the numerical flux on **one** face of a cell. It needs to implement
+        the term :math:`\numConvective`
+
+        ..math::
+
+            \numConvectiveFull
         """
 
         raise NotImplementedError

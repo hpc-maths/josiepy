@@ -7,7 +7,10 @@ from matplotlib.animation import ArtistAnimation
 from josie.bc import Dirichlet
 from josie.geom import Line
 from josie.mesh import Mesh, SimpleCell
-from josie.solver.euler import Rusanov, Q, EulerSolver, PerfectGas
+from josie.solver.euler.eos import PerfectGas
+from josie.solver.euler.schemes import Rusanov
+from josie.solver.euler.solver import EulerSolver
+from josie.solver.euler.state import Q
 
 riemann_states = [
     {
@@ -136,15 +139,15 @@ def test_toro(riemann_problem, plot):
         p = p.reshape(p.size)
 
         if plot:
-            im1, = ax1.plot(x, rho, "k-")
+            (im1,) = ax1.plot(x, rho, "k-")
             ax1.set_xlabel("x")
             ax1.set_ylabel(r"$\rho$")
 
-            im2, = ax2.plot(x, U, "k-")
+            (im2,) = ax2.plot(x, U, "k-")
             ax2.set_xlabel("x")
             ax2.set_ylabel("U")
 
-            im3, = ax3.plot(x, p, "k-")
+            (im3,) = ax3.plot(x, p, "k-")
             ax3.set_xlabel("x")
             ax3.set_ylabel("p")
 

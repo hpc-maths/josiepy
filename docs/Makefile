@@ -22,4 +22,4 @@ help:
 
 
 apidoc:
-	sphinx-apidoc -M -o "$(SOURCEDIR)" "$(AUTODOCSOURCE)"
+	sphinx-apidoc -fM -o "$(SOURCEDIR)" "$(AUTODOCSOURCE)"

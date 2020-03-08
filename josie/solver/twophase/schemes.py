@@ -27,32 +27,28 @@
 
 import numpy as np
 
-from josie.solver.scheme import Scheme
-
-from josie.solver.euler import EulerScheme
+from josie.solver.euler.schemes import Rusanov as EulerRusanov
 
 from .state import Q, Phases
 
 
-class TwoPhaseScheme(Scheme):
+class Rusanov(EulerRusanov):
     """ A general base class for two-phase schemes. A two-phase scheme is
     built applying a :class:`EulerScheme` for each partition of the state
     associated to one phase
-
-    Attributes
-    ---------
-    euler_scheme
-        The :class:`EulerScheme` to be applied to each phase system
     """
 
-    def __init__(self, euler_scheme: EulerScheme):
-        self.euler_scheme = euler_scheme
-
-    def convective_flux(
-        self, values: Q, neigh_values: Q, normals: Q, surfaces: Q
+    def F(
+        self,
+        values: Q,
+        neigh_values: Q,
+        normals: np.ndarray,
+        surfaces: np.ndarray,
     ):
-        """ This schemes implements the Rusanov scheme. See :cite: `rusanov`
-        for a detailed view on compressible schemes
+        r""" This schemes implements the Rusanov scheme for a
+        :class:`~.TwoPhaseProblem`. It applies the :class:`~.euler.Rusanov`
+        scheme indipendently for each phase (with the :math:`\sigma` correctly
+        calculated among all the two phases state
 
         Parameters
         ----------
@@ -74,16 +70,49 @@ class TwoPhaseScheme(Scheme):
         """
         FS = np.empty_like(values).view(Q)
 
+        # Compute the sigma per each phase
+        sigmas = []
+
+        for phase in Phases:
+            phase_values = values.get_phase(phase)
+            values.append(phase_values)
+
+            phase_neigh_values = neigh_values.get_phase(phase)
+            neigh_values.append(phase_neigh_values)
+
+            # Let's retrieve the values of the sigma on every cell
+            # for current cell
+            sigmas.append(self.sigma(phase_values, normals))
+            # and its neighbour
+            sigmas.append(self.sigma(phase_neigh_values, normals))
+
+        # Concatenate all the sigmas in a single array
+        sigma_array = np.concatenate(sigmas, axis=-1)
+
+        # And the we found the max on the last axis (i.e. the maximum value
+        # of sigma for each cell)
+        sigma = np.max(sigma_array, axis=-1)
+
         # We apply the Euler scheme per each phase
         for phase in Phases:
             phase_values = values.get_phase(phase)
             phase_neigh_values = neigh_values.get_phase(phase)
 
-            FS.set_phase(
-                self.euler_scheme.convective_flux(
-                    phase_values, phase_neigh_values, normals, surfaces
+            DeltaF = 0.5 * (
+                self.problem.F(phase_values)
+                + self.problem.F(phase_neigh_values)
+            )
+
+            DeltaQ = (
+                0.5
+                * sigma[..., np.newaxis]
+                * (
+                    phase_neigh_values.get_conservative()
+                    - phase_values.get_conservative()
                 )
             )
+
+            FS.set_phase(surfaces[..., np.newaxis] * (DeltaF - DeltaQ))
 
         return FS
 
@@ -102,7 +131,7 @@ class TwoPhaseScheme(Scheme):
         for phase in Phases:
             phase_values = values.get_phase(phase)
             dt = np.min(
-                self.euler_scheme.CFL(
+                super().CFL(
                     phase_values, volumes, normals, surfaces, CFL_value
                 ),
                 dt,

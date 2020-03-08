@@ -82,13 +82,6 @@ class AuxFields(IntEnum):
     c = 4
 
 
-class Eigs(IntEnum):
-    """ Indexing enum for the eigenvalues of the problem """
-
-    UPLUS = 0
-    UMINUS = 1
-
-
 class ConsQ(State):
     """ A :class:`State` class representing the conservative state variables
     of the Euler system """
@@ -130,9 +123,3 @@ class Q(State):
         """ Sets the auxiliary part of the state """
 
         self[..., Fields.rhoe : Fields.c + 1] = values
-
-
-class EigState(State):
-    """ A :class:`State` class representing the eigenvalues of the system """
-
-    fields = Eigs

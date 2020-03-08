@@ -99,8 +99,8 @@ class Scheme(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     def pre_init(self):
-        """ :class:`Scheme` can implement a :method:`pre_init` in order to
-        perform operations before the :method:`Solver.init` initialize the
+        """ :class:`Scheme` can implement a :meth:`pre_init` in order to
+        perform operations before the :meth:`Solver.init` initialize the
         solver state
 
         Can be used, for example, to modify the :class:`State` in order to

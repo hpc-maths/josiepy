@@ -43,7 +43,7 @@ DOCS = [
 ]
 EXAMPLES = ["jupyter", "ipywidgets", "ipyevents", "nbdime"]
 
-ALL = GRAPHICS + DEV + EXAMPLES
+ALL = GRAPHICS + DEV + EXAMPLES + DOCS
 
 # What packages are optional?
 EXTRAS = {

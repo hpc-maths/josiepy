@@ -26,72 +26,87 @@
 # official policies, either expressed or implied, of Ruben Di Battista.
 import numpy as np
 
+from josie.solver.problem import Problem
+
 from .state import Q
+from .eos import EOS
 
 
-def flux(state_array: Q) -> np.ndarray:
-    r""" This returns the tensor representing the flux for an Euler model
+class EulerProblem(Problem):
+    """ A class representing an Euler system problem
 
-    A general problem can be written in a compact way:
-
-    .. math::
-
-        \pdv{\vb{q}}{t} + \div{\vb{F\qty(\vb{q})}} + \vb{B}\qty(\vb{q}) \cdot
-            \gradient{\vb{q}} = \vb{s\qty(\vb{q})}
-
-    This function needs to return :math:`\vb{F}\qty(\vb{q})`
-
-    Parameters
-    ----------
-    state_array
-        A :class:`np.ndarray` that has dimension :math:`Nx \times Ny \times 9`
-        containing the values for all the state variables in all the mesh
-        points
-
-    Returns
+    Attributes
     ---------
-    F
-        An array of dimension :math:`Nx \times Ny \times 4 \times 2`, i.e. an
-        array that of each :math:`x` cell and :math:`y` cell stores the
-        :math:`4 \times 2` flux
-        tensor
+    eos
+        An instance of :class:`~.EOS`, an equation of state for the fluid
+    """
 
-        The flux tensor is:
+    def __init__(self, eos: EOS):
+        self.eos = eos
+
+    def F(self, state_array: Q) -> np.ndarray:
+        r""" This returns the tensor representing the flux for an Euler model
+
+        A general problem can be written in a compact way:
 
         .. math::
 
-            \begin{bmatrix}
-                \rho u & \rho v \\
-                \rho u^2 + p & \rho uv \\
-                \rho vu & \rho v^ 2 + p \\
-                (\rho E + p)U & (\rho E + p)V
-            \end{bmatrix}
-    """
+            \pdv{\vb{q}}{t} + \div{\vb{F\qty(\vb{q})}} + \vb{B}\qty(\vb{q})
+            \cdot \gradient{\vb{q}} = \vb{s\qty(\vb{q})}
 
-    num_cells_x, num_cells_y, _ = state_array.shape
+        This function needs to return :math:`\vb{F}\qty(\vb{q})`
 
-    # Flux tensor
-    F = np.empty((num_cells_x, num_cells_y, 4, 2))
+        Parameters
+        ----------
+        state_array
+            A :class:`~.Q` that has dimension :math:`Nx \times Ny \times 9`
+            containing the values for all the state variables in all the mesh
+            points
 
-    rhoU = state_array[:, :, Q.fields.rhoU]
-    rhoV = state_array[:, :, Q.fields.rhoV]
-    rhoE = state_array[:, :, Q.fields.rhoE]
-    U = state_array[:, :, Q.fields.U]
-    V = state_array[:, :, Q.fields.V]
-    p = state_array[:, :, Q.fields.p]
+        Returns
+        ---------
+        F
+            An array of dimension :math:`Nx \times Ny \times 4 \times 2`, i.e.
+            an array that of each :math:`x` cell and :math:`y` cell stores the
+            :math:`4 \times 2` flux tensor
 
-    rhoUU = np.multiply(rhoU, U)
-    rhoUV = np.multiply(rhoU, V)
-    rhoVV = np.multiply(rhoV, V)
-    rhoVU = np.multiply(rhoV, U)
+            The flux tensor is:
 
-    F[:, :, 0, 0] = rhoU
-    F[:, :, 0, 1] = rhoV
-    F[:, :, 1, 0] = rhoUU + p
-    F[:, :, 1, 1] = rhoUV
-    F[:, :, 2, 0] = rhoVU
-    F[:, :, 2, 1] = rhoVV + p
-    F[:, :, 3, 0] = np.multiply(rhoE + p, U)
-    F[:, :, 3, 1] = np.multiply(rhoE + p, V)
+            .. math::
 
-    return F
+                \pdeConservative =
+                \begin{bmatrix}
+                    \rho u & \rho v \\
+                    \rho u^2 + p & \rho uv \\
+                    \rho vu & \rho v^ 2 + p \\
+                    (\rho E + p)U & (\rho E + p)V
+                \end{bmatrix}
+        """
+
+        num_cells_x, num_cells_y, _ = state_array.shape
+
+        # Flux tensor
+        F = np.empty((num_cells_x, num_cells_y, 4, 2))
+
+        rhoU = state_array[:, :, Q.fields.rhoU]
+        rhoV = state_array[:, :, Q.fields.rhoV]
+        rhoE = state_array[:, :, Q.fields.rhoE]
+        U = state_array[:, :, Q.fields.U]
+        V = state_array[:, :, Q.fields.V]
+        p = state_array[:, :, Q.fields.p]
+
+        rhoUU = np.multiply(rhoU, U)
+        rhoUV = np.multiply(rhoU, V)
+        rhoVV = np.multiply(rhoV, V)
+        rhoVU = np.multiply(rhoV, U)
+
+        F[:, :, 0, 0] = rhoU
+        F[:, :, 0, 1] = rhoV
+        F[:, :, 1, 0] = rhoUU + p
+        F[:, :, 1, 1] = rhoUV
+        F[:, :, 2, 0] = rhoVU
+        F[:, :, 2, 1] = rhoVV + p
+        F[:, :, 3, 0] = np.multiply(rhoE + p, U)
+        F[:, :, 3, 1] = np.multiply(rhoE + p, V)
+
+        return F

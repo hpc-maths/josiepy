@@ -24,17 +24,13 @@
 # The views and conclusions contained in the software and documentation
 # are those of the authors and should not be interpreted as representing
 # official policies, either expressed or implied, of Ruben Di Battista.
-import numpy as np
-
-from typing import TYPE_CHECKING
+from __future__ import annotations
 
 from josie.solver import Solver
+from josie.mesh import Mesh
 
 from .state import Q
 from .schemes import TwoPhaseScheme
-
-if TYPE_CHECKING:
-    from josie.mesh import Mesh
 
 
 class TwoPhaseSolver(Solver):

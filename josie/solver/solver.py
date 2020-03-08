@@ -260,7 +260,7 @@ class Solver(metaclass=abc.ABCMeta):
 
         # Left Neighbours
         neighs = self._values[:-2, 1:-1]
-        fluxes += self.scheme.convective_flux(
+        fluxes += self.scheme.F(
             self.values,
             neighs,
             self.mesh.normals[:, :, NormalDirection.LEFT, :],
@@ -269,7 +269,7 @@ class Solver(metaclass=abc.ABCMeta):
 
         # Right Neighbours
         neighs = self._values[2:, 1:-1]
-        fluxes += self.scheme.convective_flux(
+        fluxes += self.scheme.F(
             self.values,
             neighs,
             self.mesh.normals[:, :, NormalDirection.RIGHT, :],
@@ -279,7 +279,7 @@ class Solver(metaclass=abc.ABCMeta):
         if not (self.mesh.oneD):
             # Top Neighbours
             neighs = self._values[1:-1, 2:]
-            fluxes += self.scheme.convective_flux(
+            fluxes += self.scheme.F(
                 self.values,
                 neighs,
                 self.mesh.normals[:, :, NormalDirection.TOP, :],
@@ -288,7 +288,7 @@ class Solver(metaclass=abc.ABCMeta):
 
             # Bottom Neighbours
             neighs = self._values[1:-1, :-2]
-            fluxes += self.scheme.convective_flux(
+            fluxes += self.scheme.F(
                 self.values,
                 neighs,
                 self.mesh.normals[:, :, NormalDirection.BOTTOM, :],

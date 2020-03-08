@@ -27,6 +27,8 @@
 
 import abc
 
+from .state import State
+
 
 class Problem(metaclass=abc.ABCMeta):
     r""" A class representing a physical problem to be solved (governed by
@@ -45,4 +47,72 @@ class Problem(metaclass=abc.ABCMeta):
         \pdeTermList
     """
 
-    pass
+    def F(self, state_array: State):
+        r""" The convective flux operator :math:`\pdeConvective`
+
+        Parameters
+        ----------
+        state_array
+            A :class:`State` array that contains the value of the state on
+            each cell of the :class:`~.Mesh`
+
+        Returns
+        -------
+        F
+            An array of dimension :math:`Nx \times Ny \times N_\text{state}
+            \times \N_\text{dim}` containing the computed convective flux for
+            the given problem
+        """
+        pass
+
+    def B(self, state_array: State):
+        r""" This returns the tensor that pre-multiplies the non-conservative
+        term of the problem.
+
+        A general problem can be written in a compact way:
+
+        .. math::
+
+            \pdeFull
+
+
+        This method needs to return :math:`\pdeNonConservativeMultiplier`
+
+        Parameters
+        ----------
+        Q
+            The :class:`State` array containing the values of all the fields
+
+        Returns
+        -------
+        B
+            An array of dimension :math:`Nx \times Ny \times N_\text{state}
+            \times N_\text{state} \times N_\text{dim}` containing the computed
+            pre-multiplier tensor
+        """
+        pass
+
+    def s(self, state_arrau: State):
+        r""" This returns the values of the source terms
+
+        A general problem can be written in a compact way:
+
+        .. math::
+
+            \pdeFull
+
+
+        This method needs to return :math:`\pdeSource`
+
+        Parameters
+        ----------
+        Q
+            The :class:`State` array containing the values of all the fields
+
+        Returns
+        -------
+        s
+            An array of dimension :math:`Nx \times Ny \times N_\text{state}`
+            containing the computed source terms
+        """
+        pass

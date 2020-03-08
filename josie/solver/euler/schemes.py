@@ -24,52 +24,20 @@
 # The views and conclusions contained in the software and documentation
 # are those of the authors and should not be interpreted as representing
 # official policies, either expressed or implied, of Ruben Di Battista.
-import abc
 import numpy as np
 
-from josie.solver.scheme import Scheme
+from josie.solver.scheme import ConvectiveScheme
 
 from .eos import EOS
-from .problem import flux
-from .state import Q, EigState
+from .problem import EulerProblem
+from .state import Q
 
 
-class EulerScheme(Scheme):
+class EulerScheme(ConvectiveScheme):
     """ A general base class for Euler schemes """
 
     def __init__(self, eos: EOS):
-        self.eos = eos
-
-    @abc.abstractmethod
-    def convective_flux(
-        self,
-        values: Q,
-        neigh_values: Q,
-        normals: np.ndarray,
-        surfaces: np.ndarray,
-    ):
-        r"""
-        Parameters
-        ----------
-        values
-            A :class:`Q` object that has dimension :math:`Nx \times Ny \times
-            9` containing the values for all the states in all the mesh points
-        neigh_values
-            A :class:`Q` object  that has the same dimension of ``values``. It
-            contains the corresponding neighbour values of the states tored in
-            ``values``, i.e. the neighbour of `values[i]` is
-            ``neigh_values[i]``
-        normals
-            A :class:`np.ndarray` that has the dimensions :math:`Nx \times Ny
-            \times 2` containing the values of the normals to the face
-            connecting the cell to its neighbour
-        surfaces
-            A :class:`np.ndarray` that has the dimensions :math:`Nx \times Ny`
-            containing the values of the face surfaces of the face connecting
-            the cell to is neighbour
-        """
-
-        raise NotImplementedError
+        self.problem = EulerProblem(eos)
 
     def CFL(
         self,
@@ -102,16 +70,19 @@ class EulerScheme(Scheme):
 
         return CFL_value * dx / (U_abs + c_max)
 
-    def post_step(self, values: Q) -> Q:
+    def post_step(self, values: Q):
         """ During the step we update the conservative values. After the
-        step we update the non-conservative variables """
+        step we update the non-conservative variables. This method updates
+        the values of the non-conservative (auxiliary) variables using the
+        :class:`~.EOS`
+        """
 
         fields = Q.fields
 
-        rho = values[:, :, fields.rho]
-        rhoU = values[:, :, fields.rhoU]
-        rhoV = values[:, :, fields.rhoV]
-        rhoE = values[:, :, fields.rhoE]
+        rho = values[..., fields.rho]
+        rhoU = values[..., fields.rhoU]
+        rhoV = values[..., fields.rhoV]
+        rhoE = values[..., fields.rhoE]
 
         U = np.divide(rhoU, rho)
         V = np.divide(rhoV, rho)
@@ -119,8 +90,8 @@ class EulerScheme(Scheme):
         rhoe = rhoE - 0.5 * rho * (np.power(U, 2) + np.power(V, 2))
         e = np.divide(rhoe, rho)
 
-        p = self.eos.p(rho, e)
-        c = self.eos.sound_velocity(rho, p)
+        p = self.problem.eos.p(rho, e)
+        c = self.problem.eos.sound_velocity(rho, p)
 
         values[..., fields.rhoe] = rhoe
         values[..., fields.U] = U
@@ -130,22 +101,17 @@ class EulerScheme(Scheme):
 
 
 class Rusanov(EulerScheme):
-    def eigs(self, state_array: Q, normals: np.ndarray) -> EigState:
-        r""" Returns the eigenvalues associated to the jacobian of the flux
-        tensor correctly projected along the given face normals
-
-        If we write the system in quasi-linear form
+    def sigma(self, state_array: Q, normals: np.ndarray) -> np.ndarray:
+        r""" Returns the value of the :math:`\sigma`(i.e. the wave velocity) for
+        the the Rusanov scheme.
 
         .. math:
 
-            \pdv{\vb{q}}{t} + \qty(\vb{\pdv{\vb{F}}{\vb{q}}}\qty(\vb{q}) +
-            \vb{B}\qty(\vb{q})) \cdot \gradient{\vb{q}} = \vb{s\qty(\vb{q})}
-
-        This returns the value of the eigenvalues of the term
-        :math:`\qty(\vb{\pdv{\vb{F}}{\vb{q}}}\qty(\vb{q})+\vb{B}\qty(\vb{q}))`
-
-        In the case of Euler system, they are :math:`u + c, u - c, u` along
-        :math:`x`, :math:`v + c, v - c, v` along :math:`y`, and so on
+            \qty|\pdeConvective|_{i+\frac{1}{2}} =
+                \frac{1}{2} \qty[%
+                \qty|\pdeConvective|_{i+1} + \qty|\pdeConvective|_{i}
+                - \sigma \qty(\pdeState_{i+1} - \pdeState{i})
+                ]
 
         Parameters
         ----------
@@ -160,51 +126,42 @@ class Rusanov(EulerScheme):
 
         Returns
         -------
-        eigs
-            A :math:`Nx \times Ny \times \text{size}(\lambda)` containing the
-            eigenvalues for each dimension:
-
-            * ``eigs[..., Direction.X]`` is :math:`(u+c, u-c)`
-            * ``eigs[..., Direction.Y]`` is :math:`(v+c, v-c)`
+        sigma
+            A :math:`Nx \times Ny \times 1` containing the value of the sigma
+            per each cell
         """
         fields = Q.fields
 
-        mesh_size = state_array.shape[:-1]
-        nx = mesh_size[0]
-        ny = mesh_size[1]
-
         # Get the velocity components
         UV_slice = slice(fields.U, fields.V + 1)
-        UV = state_array[:, :, UV_slice]
+        UV = state_array[..., UV_slice]
 
         # Find the normal velocity
         # 2D: U = np.einsum("ijk,ijk->ij", UV, normals)
         U = np.einsum("...k,...k->...", UV, normals)
 
         # Speed of sound
-        c = state_array[:, :, fields.c]
+        c = state_array[..., fields.c]
 
-        # Eigenvalues (u is neglected, since not useful for numerical purposes)
-        Uplus = U + c
-        Uminus = U - c
+        sigma = np.abs(U) + c
 
-        eigs = np.empty((nx, ny, 2))
-        eigs[..., EigState.fields.UPLUS] = Uplus
-        eigs[..., EigState.fields.UMINUS] = Uminus
+        # Add a dimension to have the right broadcasting
+        sigma = sigma[..., np.newaxis]
 
-        return eigs
+        return sigma
 
-    def convective_flux(
+    def F(
         self,
         values: Q,
         neigh_values: Q,
         normals: np.ndarray,
         surfaces: np.ndarray,
     ):
-        """ This schemes implements the Rusanov scheme. See :cite: `rusanov` for
-        a detailed view on compressible schemes
 
+        """ This method implements the Rusanov scheme. See :cite: `rusanov` for
+        a detailed view on compressible schemes, given a suitable
         """
+
         FS = np.empty_like(values).view(Q)
 
         # First four variables of the total state are the conservative
@@ -212,17 +169,20 @@ class Rusanov(EulerScheme):
         values_cons = values.get_conservative()
         neigh_values_cons = neigh_values.get_conservative()
 
-        # Let's retrieve the values of the eigenvalues
-        eigs_values = self.eigs(values, normals)
-        eigs_neigh_values = self.eigs(neigh_values, normals)
+        # Let's retrieve the values of the sigma on every cell
+        # for current cell
+        sigma = self.sigma(values, normals)
+        # and its neighbour
+        sigma_neigh = self.sigma(neigh_values, normals)
 
-        sigma_array = np.concatenate((eigs_values, eigs_neigh_values), axis=-1)
+        # Concatenate everything in a single array
+        sigma_array = np.concatenate((sigma, sigma_neigh), axis=-1)
 
         # And the we found the max on the last axis (i.e. the maximum value
         # of sigma for each cell)
         sigma = np.max(sigma_array, axis=-1)
 
-        DeltaF = 0.5 * (flux(values) + flux(neigh_values))
+        DeltaF = 0.5 * (self.problem.F(values) + self.problem.F(neigh_values))
 
         # This is the flux tensor dot the normal
         DeltaF = np.einsum("...kl,...l->...k", DeltaF, normals)
