@@ -119,7 +119,7 @@ imgmath_latex_preamble = r"""
 }
 
 \newcommand{\numNonConservativeFaces}{%
-    \sum{f \in \text{faces}} \qty|\pdeState \hat{\vb{n}}|_f S_f
+    \sum_{f \in \text{faces}} \numNonConservative
 }
 
 \newcommand{\numPreMultipliedNonConservativeFaces}{%

@@ -29,7 +29,7 @@ from __future__ import annotations
 from enum import IntEnum
 
 from josie.solver.state import State
-from josie.solver.euler import Q as EulerQ
+from josie.solver.euler.state import Q as EulerQ
 
 
 class Phases(IntEnum):
@@ -40,6 +40,14 @@ class Phases(IntEnum):
 
     PHASE1 = 1
     PHASE2 = 10
+
+
+class PhaseList:
+    """ A list of objects that are indexable by :class:`Phases`.
+    """
+
+    def __getitem__(self, phase: Phases):
+        pass
 
 
 class Fields(IntEnum):

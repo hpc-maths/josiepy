@@ -27,16 +27,14 @@
 import abc
 import numpy as np
 
-from .scheme import Scheme
 from josie.solver.state import State
+
+from .scheme import Scheme
 
 
 class ConvectiveScheme(Scheme):
-    r"""
-    A mixin that provides the convective scheme implementation.
-
-
-    """
+    """ A mixin that provides the scheme implementation for the convective
+    term"""
 
     @abc.abstractmethod
     def F(

@@ -27,16 +27,49 @@
 
 import numpy as np
 
-from josie.solver.euler.schemes import Rusanov as EulerRusanov
+from typing import Tuple, Union
 
+from josie.solver.euler.schemes import EulerScheme, Rusanov as EulerRusanov
+from josie.solver.scheme.nonconservative import NonConservativeScheme
+
+from .clousure import Closure
+from .eos import EOS
+from .problem import TwoPhaseProblem
 from .state import Q, Phases
 
 
-class Rusanov(EulerRusanov):
-    """ A general base class for two-phase schemes. A two-phase scheme is
-    built applying a :class:`EulerScheme` for each partition of the state
-    associated to one phase
-    """
+class TwoPhaseScheme(EulerScheme):
+    """ A base class for a twophase scheme """
+
+    def __init__(self, eos: Union[EOS, Closure]):
+        self.problem = TwoPhaseProblem(eos)
+
+
+class AlphaGradient(NonConservativeScheme):
+    def G(
+        self,
+        values: Q,
+        neigh_values: Q,
+        normals: np.ndarray,
+        surfaces: np.ndarray,
+    ) -> Q:
+
+        # Get vector of UI
+        # UI_VI = 0
+        pass
+
+
+class Rusanov(TwoPhaseScheme):
+    def __init__(self, eos: Union[EOS, Closure]):
+
+        # I want to reuse the Rusanov scheme for both phases, that potentially
+        # have differnet EOS
+        self._schemes: Tuple[EulerRusanov] = (
+            EulerRusanov(eos[Phases.PHASE1]),
+            EulerRusanov(eos[Phases.PHASE2]),
+        )
+
+        super().__init__(eos)
 
     def F(
         self,
@@ -44,7 +77,7 @@ class Rusanov(EulerRusanov):
         neigh_values: Q,
         normals: np.ndarray,
         surfaces: np.ndarray,
-    ):
+    ) -> Q:
         r""" This schemes implements the Rusanov scheme for a
         :class:`~.TwoPhaseProblem`. It applies the :class:`~.euler.Rusanov`
         scheme indipendently for each phase (with the :math:`\sigma` correctly
@@ -74,6 +107,7 @@ class Rusanov(EulerRusanov):
         sigmas = []
 
         for phase in Phases:
+            scheme = self._schemes[phase]
             phase_values = values.get_phase(phase)
             values.append(phase_values)
 
@@ -82,9 +116,9 @@ class Rusanov(EulerRusanov):
 
             # Let's retrieve the values of the sigma on every cell
             # for current cell
-            sigmas.append(self.sigma(phase_values, normals))
+            sigmas.append(scheme.sigma(phase_values, normals))
             # and its neighbour
-            sigmas.append(self.sigma(phase_neigh_values, normals))
+            sigmas.append(scheme.sigma(phase_neigh_values, normals))
 
         # Concatenate all the sigmas in a single array
         sigma_array = np.concatenate(sigmas, axis=-1)

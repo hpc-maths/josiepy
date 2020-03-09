@@ -85,7 +85,7 @@ class TwoPhaseProblem(EulerProblem):
 
         B = np.zeros((num_fields * num_fields * DIMENSIONALITY))
 
-        # Compute pI and uI
+        # Compute pI
         pI = eos.pI(state_array)
 
         # This is the vector (uI, vI)

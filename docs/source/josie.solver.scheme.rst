@@ -17,6 +17,14 @@ josie.solver.scheme.convective module
    :undoc-members:
    :show-inheritance:
 
+josie.solver.scheme.nonconservative module
+------------------------------------------
+
+.. automodule:: josie.solver.scheme.nonconservative
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 josie.solver.scheme.scheme module
 ---------------------------------
 
