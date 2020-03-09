@@ -59,16 +59,24 @@ imgmath_latex_preamble = r"""
 \usepackage[T1]{fontenc}
 
 \newcommand{\pdeNormal}{\ensuremath{\hat{\vb{n}}}}
+\newcommand{\ipdeNormal}{\ensuremath{\hat{n_r}}}
 
 \newcommand{\pdeState}{\ensuremath{\vb{q}}}
+\newcommand{\ipdeState}{\ensuremath{q_p}}
 
 \newcommand{\pdeConvective}{\ensuremath{\vb{F}\qty(\pdeState)}}
+\newcommand{\ipdeConvective}{\ensuremath{F_{pr}\qty(\ipdeState)}}
 
-\newcommand{\pdeNonConservativeMultiplier}{\ensuremath{\vb{B}\qty{\pdeState}}}
+\newcommand{\pdeNonConservativeMultiplier}{\ensuremath{\vb{B}\qty(\pdeState)}}
+\newcommand{\ipdeNonConservativeMultiplier}{%
+    \ensuremath{B_{pqr}\qty(\ipdeState)}
+}
 
 \newcommand{\pdeGradient}{\ensuremath{\gradient{\pdeState}}}
+\newcommand{\ipdeGradient}{\ensuremath{\pdv{\ipdeState}{x_r}}}
 
 \newcommand{\pdeSource}{\ensuremath{\vb{s}\qty(\pdeState)}}
+\newcommand{\ipdeSource}{\ensuremath{s_p\qty(\ipdeState)}}
 
 \newcommand{\pdeTermList}{\ensuremath{%
          \pdeConvective, \pdeNonConservativeMultiplier, \pdeSource
@@ -76,17 +84,39 @@ imgmath_latex_preamble = r"""
 
 \newcommand{\pdeFull}{\ensuremath{%
     \pdv{\pdeState}{t} + \divergence{\pdeConvective} +
-    \pdeNonConservativeMultiplier \cdot \pdeGradient = \pdeSource
+    \pdeNonConservativeMultiplier \cdot \pdeGradient = \pdeSource \\
+    \pdv{\ipdeState}{t} + \pdv{\ipdeConvective}{x_r} +
+    \ipdeNonConservativeMultiplier \ipdeGradient = \ipdeSource
 }}
 
 \newcommand{\numConvective}{%
-    \sum_{f \in \text{faces}} \qty|\vb{F} \cdot \hat{\vb{n}}|_f S_f
+    \qty|\vb{F} \cdot \hat{\vb{n}}|_f S_f
+}
+
+\newcommand{\numConvectiveFaces}{%
+    \sum_{f \in \text{faces}} \numConvective
 }
 
 \newcommand{\numConvectiveFull}{%
-    \int_{V_i} \div{\vb{F}\qty(\vb{q})} \dd{V} =
-        \oint_{\partial V_i} \vb{F}\qty(\vb{q}) \cdot \hat{\vb{n}} \dd{S}
-        \approx \numConvective
+    \int_{V_i} \div{\pdeConvective} \dd{V} =
+        \oint_{\partial V_i} \pdeConvective \cdot \pdeNormal \dd{S}
+        \approx \numConvectiveFaces
+}
+
+\newcommand{\numSourceFull}{%
+    \int_{V_i} \pdeSource \dd{V} \approx \expval{\pdeSource}_{V_i} V_i
+}
+
+\newcommand{\numNonConservative}{%
+    \qty|\pdeState \hat{\vb{n}}|_f S_f
+}
+
+\newcommand{\numNonConservativeFaces}{%
+    \sum{f \in \text{faces}} \qty|\pdeState \hat{\vb{n}}|_f S_f
+}
+
+\newcommand{\numNonConservativeFull}{%
+    \int_{V_i} \pdeNonConservativeMultiplier \cdot \pdeGradient \dd{V}
 }
 
 

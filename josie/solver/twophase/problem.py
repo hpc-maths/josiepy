@@ -55,7 +55,7 @@ class TwoPhaseProblem(EulerProblem):
 
         .. math::
 
-            \pdeNonConservativeMutliplier_x =
+            \pdeNonConservativeMultiplier_x =
             \begin{bmatrix}
             u_I & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 \\
             0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 \\

@@ -37,15 +37,28 @@ class Scheme(metaclass=abc.ABCMeta):
 
     A general problem can be written in a compact way:
 
-    ..math::
+    .. math::
 
-    |pde_full|
+        \pdeFull
+
 
     A concrete instance of this class needs to implement discretization
     strategies for the terms that are present in a specific :class:`Problem`
     within a Finite Volume discretization method
 
-    |scheme_terms|
+    * .. math::
+
+        \numConvectiveFull
+
+    * .. math::
+
+        \numNonConservativeFull
+
+    * .. math::
+
+        \numSourceFull
+
+
 
     Attributes
     ----------

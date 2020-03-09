@@ -52,7 +52,7 @@ class ConvectiveScheme(Scheme):
 
         A general problem can be written in a compact way:
 
-        ..math::
+        .. math::
 
             \pdeFull
 
@@ -61,7 +61,7 @@ class ConvectiveScheme(Scheme):
         of the numerical flux on **one** face of a cell. It needs to implement
         the term :math:`\numConvective`
 
-        ..math::
+        .. math::
 
             \numConvectiveFull
         """

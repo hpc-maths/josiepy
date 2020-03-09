@@ -74,7 +74,7 @@ class EulerProblem(Problem):
 
             .. math::
 
-                \pdeConservative =
+                \pdeConvective =
                 \begin{bmatrix}
                     \rho u & \rho v \\
                     \rho u^2 + p & \rho uv \\

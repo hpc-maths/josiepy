@@ -60,7 +60,7 @@ class Problem(metaclass=abc.ABCMeta):
         -------
         F
             An array of dimension :math:`Nx \times Ny \times N_\text{state}
-            \times \N_\text{dim}` containing the computed convective flux for
+            \times N_\text{dim}` containing the computed convective flux for
             the given problem
         """
         pass
