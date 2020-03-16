@@ -30,8 +30,17 @@ import abc
 import numpy as np
 import os
 
+from dataclasses import dataclass
 from meshio import XdmfTimeSeriesWriter
-from typing import Callable, List, NoReturn, Union, Type, TYPE_CHECKING
+from typing import (
+    Callable,
+    List,
+    NoReturn,
+    Union,
+    Tuple,
+    Type,
+    TYPE_CHECKING,
+)
 
 from .state import State
 from .scheme import Scheme
@@ -42,10 +51,22 @@ if TYPE_CHECKING:
     from josie.mesh import Mesh
 
 
+@dataclass
+class Neighbour:
+    """ A :class:`namedtuple` representing the set of neighbours to some values.
+    It ships the values of the fields in the neighbour cells, together with the
+    face normals and the face surfaces"""
+
+    values: State
+    normals: np.ndarray
+    surfaces: np.ndarray
+
+
 class Solver(metaclass=abc.ABCMeta):
 
     # Type Checking
     _values: State
+    _neighs: Tuple[Neighbour, ...]
 
     def __init__(self, mesh: Mesh, Q: Type[State], scheme: Scheme):
         """ This class is used to solve a problem governed by PDEs.
@@ -150,6 +171,50 @@ class Solver(metaclass=abc.ABCMeta):
     def values(self, value: np.ndarray):
         self._values[1:-1, 1:-1, :] = value
 
+    @property
+    def neighbours(self) -> Tuple[Neighbour, ...]:
+        """ A property returning an iterable of neighbours of the
+        :attr:`values`
+
+        Returns
+        -------
+        neighbours
+            A tuple of :class:`Neighbour`.
+        """
+
+        if not (self._neighs):
+            neighs = []
+
+            left: Neighbour = Neighbour(
+                values=self._values[:-2, 1:-1],
+                normals=self.mesh.normals[..., NormalDirection.LEFT, :],
+                surfaces=self.mesh.surfaces[..., NormalDirection.LEFT],
+            )
+
+            right: Neighbour = Neighbour(
+                values=self._values[2:, 1:-1],
+                normals=self.mesh.normals[..., NormalDirection.RIGHT, :],
+                surfaces=self.mesh.surfaces[..., NormalDirection.RIGHT],
+            )
+
+            neighs.extend((left, right))
+
+            if not (self.mesh.oneD):
+                top: Neighbour = Neighbour(
+                    values=self._values[1:-1, 2:],
+                    normals=self.mesh.normals[..., NormalDirection.TOP, :],
+                    surfaces=self.mesh.surfaces[..., NormalDirection.TOP],
+                )
+                btm: Neighbour = Neighbour(
+                    values=self._values[1:-1, :-2],
+                    normals=self.mesh.normals[..., NormalDirection.BOTTOM, :],
+                    surfaces=self.mesh.surfaces[..., NormalDirection.BOTTOM],
+                )
+
+                neighs.extend((top, btm))
+            self._neighs = tuple(neighs)
+        return self._neighs
+
     def init(self, init_fun: Callable[[Solver], NoReturn]):
         """
         This method initialize the internal values of the cells of the
@@ -172,6 +237,9 @@ class Solver(metaclass=abc.ABCMeta):
         # Init data structure
         self._values = self.Q.from_mesh(self.mesh)
 
+        # Init neighs iterable
+        self._neighs = None
+
         # First set all the values for the internal cells
         # The actual values are a view of only the internal cells
         init_fun(self)
@@ -187,6 +255,9 @@ class Solver(metaclass=abc.ABCMeta):
     def _update_ghosts(self):
         """ This method updates the ghost cells of the mesh with the current
         values depending on the specified boundary condition """
+
+        # TODO: Make this a loop over self.mesh.boundaries as we did for
+        # neighbours
 
         # Left BC: Create the left layer of ghost cells
         self.left_ghost = self.mesh.left.bc(
@@ -258,43 +329,13 @@ class Solver(metaclass=abc.ABCMeta):
         # We accumulate the delta fluxes for each set of neighbours
         fluxes = np.zeros_like(self.values)
 
-        # Left Neighbours
-        neighs = self._values[:-2, 1:-1]
-        fluxes += self.scheme.F(
-            self.values,
-            neighs,
-            self.mesh.normals[:, :, NormalDirection.LEFT, :],
-            self.mesh.surfaces[:, :, NormalDirection.LEFT],
-        )
-
-        # Right Neighbours
-        neighs = self._values[2:, 1:-1]
-        fluxes += self.scheme.F(
-            self.values,
-            neighs,
-            self.mesh.normals[:, :, NormalDirection.RIGHT, :],
-            self.mesh.surfaces[:, :, NormalDirection.RIGHT],
-        )
-
-        if not (self.mesh.oneD):
-            # Top Neighbours
-            neighs = self._values[1:-1, 2:]
+        # Loop on all the cells neigbours
+        for neighs in self.neighbours:
             fluxes += self.scheme.F(
-                self.values,
-                neighs,
-                self.mesh.normals[:, :, NormalDirection.TOP, :],
-                self.mesh.surfaces[:, :, NormalDirection.TOP],
+                self.values, neighs.values, neighs.normals, neighs.surfaces
             )
 
-            # Bottom Neighbours
-            neighs = self._values[1:-1, :-2]
-            fluxes += self.scheme.F(
-                self.values,
-                neighs,
-                self.mesh.normals[:, :, NormalDirection.BOTTOM, :],
-                self.mesh.surfaces[:, :, NormalDirection.BOTTOM],
-            )
-
+        # Update
         self.values -= fluxes * dt / self.mesh.volumes[:, :, np.newaxis]
 
         # Let's put here an handy post step if needed after the values update

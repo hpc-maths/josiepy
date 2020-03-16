@@ -123,6 +123,7 @@ class Mesh:
         right: BoundaryCurve,
         top: BoundaryCurve,
         cell_type: Type[Cell],
+        backend: PlotBackend = DefaultBackend(),
     ):
         self.left = left
         self.bottom = bottom
@@ -150,8 +151,6 @@ class Mesh:
                     "be set to `None`"
                 )
             self.oneD = True
-
-        self.backend: PlotBackend = DefaultBackend()
 
     def interpolate(
         self, num_cells_x: int, num_cells_y: int
