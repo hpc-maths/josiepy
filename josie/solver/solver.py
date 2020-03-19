@@ -336,7 +336,7 @@ class Solver(metaclass=abc.ABCMeta):
             )
 
         # Update
-        self.values -= fluxes * dt / self.mesh.volumes[:, :, np.newaxis]
+        self.values -= self.scheme.update(fluxes, self.mesh, dt)
 
         # Let's put here an handy post step if needed after the values update
         self.scheme.post_step(self.values)

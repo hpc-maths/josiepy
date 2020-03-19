@@ -58,6 +58,12 @@ class Scheme(metaclass=abc.ABCMeta):
 
         \numSourceFull
 
+    Together with the time update scheme to solve:
+
+    .. math::
+
+        \numTime
+
 
 
     Attributes
@@ -70,6 +76,22 @@ class Scheme(metaclass=abc.ABCMeta):
 
     def __init__(self, problem: Problem):
         self.problem = problem
+
+    @abc.abstractmethod
+    def update(self, fluxes: State, mesh: Mesh, dt: float) -> State:
+        r""" This method implements the discretization of the time derivative
+
+        .. math::
+
+            \numTimeFull
+
+        Returns
+        -------
+        The term :math:`\numTime`
+
+        """
+
+        raise NotImplementedError
 
     @abc.abstractmethod
     def CFL(
