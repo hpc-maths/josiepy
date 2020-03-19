@@ -25,3 +25,11 @@ josie.solver.scheme.scheme module
    :undoc-members:
    :show-inheritance:
 
+josie.solver.scheme.time module
+-------------------------------
+
+.. automodule:: josie.solver.scheme.time
+   :members:
+   :undoc-members:
+   :show-inheritance:
+

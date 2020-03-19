@@ -30,6 +30,7 @@ import numpy as np
 
 from josie.solver.state import State
 from josie.solver.problem import Problem
+from josie.mesh.mesh import Mesh
 
 
 class Scheme(metaclass=abc.ABCMeta):
@@ -126,9 +127,8 @@ class Scheme(metaclass=abc.ABCMeta):
 
         Returns
         -------
-        dt
-            The Optimal `dt` fulfilling the CFL condition for the given
-            CFL number
+        The Optimal `dt` fulfilling the CFL condition for the given
+        CFL number
         """
 
         raise NotImplementedError

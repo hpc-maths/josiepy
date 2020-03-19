@@ -46,6 +46,9 @@ templates_path = ["_templates"]
 
 # -- Extensions Configuration -------------------------------------------------
 
+# :: napoleon
+napoleon_use_param = True
+
 # :: sphinx_autodoc_typehints
 set_type_checking_flag = False
 
@@ -103,8 +106,12 @@ imgmath_latex_preamble = r"""
         \approx \numConvectiveFaces
 }
 
+\newcommand{\numSource}{%
+    \expval{\pdeSource}_{V_i} V_i
+}
+
 \newcommand{\numSourceFull}{%
-    \int_{V_i} \pdeSource \dd{V} \approx \expval{\pdeSource}_{V_i} V_i
+    \int_{V_i} \pdeSource \dd{V} \approx \numSource
 }
 
 \newcommand{\numNonConservative}{%
@@ -115,8 +122,26 @@ imgmath_latex_preamble = r"""
     \sum{f \in \text{faces}} \qty|\pdeState \hat{\vb{n}}|_f S_f
 }
 
+\newcommand{\numPreMultipliedNonConservativeFaces}{%
+    \qty|\pdeNonConservativeMultiplier|_i \cdot \numNonConservativeFaces
+}
+
 \newcommand{\numNonConservativeFull}{%
-    \int_{V_i} \pdeNonConservativeMultiplier \cdot \pdeGradient \dd{V}
+    \int_{V_i} \pdeNonConservativeMultiplier \cdot \pdeGradient \dd{V} \approx
+    \oint_{\partial V_i} \pdeNonConservativeMultiplier \cdot \pdeState
+    \dd{S} \approx \numPreMultipliedNonConservativeFaces
+}
+
+\newcommand{\numSpaceTerms}{%
+    \numConvectiveFaces, \numPreMultipliedNonConservativeFaces, \numSource
+}
+
+\newcommand{\numTime}{%
+    \int_t \vb{f}\qty(\pdeState^*,\pdeGradient^*) \dd{t}
+}
+
+\newcommand{\numTimeFull}{%
+    \pdeState^{k+1} = \pdeState^k + \numTime
 }
 
 

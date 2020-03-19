@@ -27,26 +27,41 @@
 import abc
 import numpy as np
 
-from .scheme import Scheme
 from josie.solver.state import State
 
+from .scheme import Scheme
 
-class ConvectiveScheme(Scheme):
-    r"""
-    A mixin that provides the convective scheme implementation.
+
+class NonConservativeScheme(Scheme):
+    r""" A mixin that provides the scheme implementation for the non
+    conservative term
+
+    A general problem can be written in a compact way:
+
+    .. math::
+
+        \pdeFull
+
+    A concrete instance of this class needs to implement the discretization
+    of the numerical flux on **one** face of a cell. It needs to implement
+    the term :math:`\vb{G}\qty(\pdeState) = \numNonConservative`
+
+    .. math::
+
+        \numNonConservativeFull
 
 
     """
 
     @abc.abstractmethod
-    def F(
+    def G(
         self,
         values: State,
         neigh_values: State,
         normals: np.ndarray,
         surfaces: np.ndarray,
     ) -> State:
-        r""" This is the convective flux implementation of the scheme. See
+        r""" This is the nonconservative flux implementation of the scheme. See
         :cite:`toro` for a great overview on numerical methods for hyperbolic
         problems.
 
@@ -59,11 +74,11 @@ class ConvectiveScheme(Scheme):
 
         A concrete instance of this class needs to implement the discretization
         of the numerical flux on **one** face of a cell. It needs to implement
-        the term :math:`\numConvective`
+        the term :math:`\numNonConservative`
 
         .. math::
 
-            \numConvectiveFull
+            \numNonConservativeFull
 
         Parameters
         ----------
@@ -83,12 +98,8 @@ class ConvectiveScheme(Scheme):
 
         Returns
         -------
-        The value of the numerical convective flux multiplied by the surface
-        value
-
-        .. math::
-
-            \numConvective
+        The value of the numerical nonconservative flux multiplied by
+        the surface value :math:`\numNonConservative`
 
         """
-        raise NotImplementedError
+        pass
