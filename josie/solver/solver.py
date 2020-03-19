@@ -331,7 +331,7 @@ class Solver(metaclass=abc.ABCMeta):
 
         # Loop on all the cells neigbours
         for neighs in self.neighbours:
-            fluxes += self.scheme.F(
+            fluxes += self.scheme.accumulate(
                 self.values, neighs.values, neighs.normals, neighs.surfaces
             )
 

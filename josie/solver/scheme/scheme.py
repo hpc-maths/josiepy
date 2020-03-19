@@ -79,6 +79,23 @@ class Scheme(metaclass=abc.ABCMeta):
         self.problem = problem
 
     @abc.abstractmethod
+    def accumulate(
+        self,
+        values: State,
+        neigh_values: State,
+        normals: np.ndarray,
+        surfaces: np.ndarray,
+    ) -> State:
+        r""" This method implements the accumulation of all fluxes between
+        each cell and its neigbhour
+
+        Potentially if the :attr:`problem` is a full problem featuring all
+        the terms, this method accumulates the terms :math:`\numSpaceTerms`
+        """
+
+        return np.zeros_like(values)
+
+    @abc.abstractmethod
     def update(self, fluxes: State, mesh: Mesh, dt: float) -> State:
         r""" This method implements the discretization of the time derivative
 

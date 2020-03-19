@@ -6,8 +6,14 @@ from josie.geom import Line
 from josie.mesh import Mesh, SimpleCell
 from josie.solver.euler.eos import PerfectGas
 from josie.solver.euler.schemes import Rusanov
+from josie.solver.scheme.time import ExplicitEuler
 from josie.solver.euler.solver import EulerSolver
 from josie.solver.euler.state import Q
+
+
+class ToroScheme(Rusanov, ExplicitEuler):
+    pass
+
 
 riemann_states = [
     {
@@ -93,7 +99,6 @@ def init_test(direction, riemann_problem, bc_fun):
     top = Line([0, 1], [1, 1])
 
     eos = PerfectGas(gamma=1.4)
-    scheme = Rusanov(eos)
 
     rhoL = riemann_problem["rhoL"]
     pL = riemann_problem["pL"]
@@ -146,6 +151,7 @@ def init_test(direction, riemann_problem, bc_fun):
     mesh.interpolate(30, 30)
     mesh.generate()
 
+    scheme = ToroScheme(eos)
     solver = EulerSolver(mesh, scheme)
     solver.init(init_fun)
 

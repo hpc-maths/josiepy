@@ -9,8 +9,14 @@ from josie.geom import Line
 from josie.mesh import Mesh, SimpleCell
 from josie.solver.euler.eos import PerfectGas
 from josie.solver.euler.schemes import Rusanov
+from josie.solver.scheme.time import ExplicitEuler
 from josie.solver.euler.solver import EulerSolver
 from josie.solver.euler.state import Q
+
+
+class ToroScheme(Rusanov, ExplicitEuler):
+    pass
+
 
 riemann_states = [
     {
@@ -110,7 +116,7 @@ def test_toro(riemann_problem, plot):
         solver.values[np.where(xc > 0.5), :, :] = Q_right
         solver.values[np.where(xc <= 0.5), :, :] = Q_left
 
-    scheme = Rusanov(eos)
+    scheme = ToroScheme(eos)
     solver = EulerSolver(mesh, scheme)
     solver.init(init_fun)
 
