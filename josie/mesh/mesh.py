@@ -123,13 +123,14 @@ class Mesh:
         right: BoundaryCurve,
         top: BoundaryCurve,
         cell_type: Type[Cell],
-        backend: PlotBackend = DefaultBackend(),
+        Backend: PlotBackend = DefaultBackend,
     ):
         self.left = left
         self.bottom = bottom
         self.right = right
         self.top = top
         self.cell_type = cell_type
+        self.backend = Backend()
 
         self.centroids: np.ndarray = np.empty(0)
         self.volumes: np.ndarray = np.empty(0)

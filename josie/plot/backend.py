@@ -82,10 +82,6 @@ class PlotBackend(metaclass=abc.ABCMeta):
         solver
             An instance of :class:`Solver` that stores the current state of the
             simulation
-        t
-            The time instant for which to store the state of the simulation.
-            Useful if you want to produce an anumation instead of a static
-            image.
         """
 
         raise NotImplementedError
