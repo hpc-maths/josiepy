@@ -27,22 +27,21 @@
 
 import numpy as np
 
-from typing import Tuple, Union
-
-from josie.solver.euler.schemes import EulerScheme, Rusanov as EulerRusanov
+from josie.solver.scheme import Scheme
+from josie.solver.euler.schemes import Rusanov as EulerRusanov
 from josie.solver.scheme.nonconservative import NonConservativeScheme
 
-from .clousure import Closure
+from .closure import Closure
 from .eos import EOS
 from .problem import TwoPhaseProblem
 from .state import Q, Phases
 
 
-class TwoPhaseScheme(EulerScheme):
+class TwoPhaseScheme(Scheme):
     """ A base class for a twophase scheme """
 
-    def __init__(self, eos: Union[EOS, Closure]):
-        self.problem = TwoPhaseProblem(eos)
+    def __init__(self, eos: EOS, closure: Closure):
+        self.problem = TwoPhaseProblem(eos, closure)
 
 
 class AlphaGradient(NonConservativeScheme):
@@ -54,23 +53,12 @@ class AlphaGradient(NonConservativeScheme):
         surfaces: np.ndarray,
     ) -> Q:
 
+        reveal_type(self.problem)
         # Get vector of UI
-        # UI_VI = 0
-        pass
+        # UI_VI = self.problem.eos.
 
 
 class Rusanov(TwoPhaseScheme):
-    def __init__(self, eos: Union[EOS, Closure]):
-
-        # I want to reuse the Rusanov scheme for both phases, that potentially
-        # have differnet EOS
-        self._schemes: Tuple[EulerRusanov] = (
-            EulerRusanov(eos[Phases.PHASE1]),
-            EulerRusanov(eos[Phases.PHASE2]),
-        )
-
-        super().__init__(eos)
-
     def F(
         self,
         values: Q,

@@ -25,13 +25,11 @@
 # are those of the authors and should not be interpreted as representing
 # official policies, either expressed or implied, of Ruben Di Battista.
 
-from typing import List
-
 from josie.solver.euler.eos import EOS as SinglePhaseEOS
-from .state import Phases
+from .state import PhasePair
 
 
-class EOS:
+class EOS(PhasePair):
     """ An Abstract Base Class representing en EOS for a twophase system.  In
     particular two :class:`~euler.eos.EOS`instances for each phase need to be
     provided.
@@ -53,15 +51,4 @@ class EOS:
             single phase #2
         """
 
-        self._eoses: List[SinglePhaseEOS] = [phase1, phase2]
-
-    def __getitem__(self, phase: Phases):
-        if phase is Phases.PHASE1:
-            return self._eoses[0]
-        elif phase is Phases.PHASE2:
-            return self._eoses[1]
-        else:
-            raise ValueError(
-                f"`phase` function argument not recognized. Valid phase "
-                "identifiers are {[phase for phase in Phases]}"
-            )
+        super().__init__(phase1, phase2)

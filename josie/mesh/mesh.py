@@ -123,7 +123,7 @@ class Mesh:
         right: BoundaryCurve,
         top: BoundaryCurve,
         cell_type: Type[Cell],
-        Backend: PlotBackend = DefaultBackend,
+        Backend: Type[PlotBackend] = DefaultBackend,
     ):
         self.left = left
         self.bottom = bottom

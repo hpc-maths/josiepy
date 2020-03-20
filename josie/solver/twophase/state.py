@@ -27,6 +27,7 @@
 from __future__ import annotations
 
 from enum import IntEnum
+from typing import Any, Dict
 
 from josie.solver.state import State
 from josie.solver.euler.state import Q as EulerQ
@@ -42,12 +43,18 @@ class Phases(IntEnum):
     PHASE2 = 10
 
 
-class PhaseList:
-    """ A list of objects that are indexable by :class:`Phases`.
+class PhasePair:
+    """ A tuple of objects that are indexable by :class:`Phases`.
     """
 
+    # Remap the phases int values to the right one for this tuple
+    _index: Dict[Phases, int] = {Phases.PHASE1: 0, Phases.PHASE2: 1}
+
+    def __init__(self, obj1: Any, obj2: Any):
+        self._data = (obj1, obj2)
+
     def __getitem__(self, phase: Phases):
-        pass
+        return self._data[self._index[phase]]
 
 
 class Fields(IntEnum):

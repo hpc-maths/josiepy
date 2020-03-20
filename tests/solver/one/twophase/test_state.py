@@ -1,12 +1,19 @@
 import numpy as np
 import pytest
 
-from josie.solver.twophase.state import Q, Phases
+from josie.solver.twophase.state import Q, Phases, PhasePair
 
 
 @pytest.fixture
 def state():
     yield np.array(range(len(Q.fields))).view(Q)
+
+
+def test_phase_pair():
+    pair = PhasePair(3, 4)
+
+    assert pair[Phases.PHASE1] == 3
+    assert pair[Phases.PHASE2] == 4
 
 
 def test_phase(state):

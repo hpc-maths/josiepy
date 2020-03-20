@@ -90,7 +90,7 @@ class State(np.ndarray):
 
         return IntEnum(  # type: ignore
             cls._FIELDS_ENUM_NAME, dict(zip(fields, range(len(fields))))
-        )
+        )  # type: ignore
 
     @classmethod
     def from_mesh(cls, mesh: Mesh) -> State:
@@ -135,6 +135,6 @@ def StateTemplate(*fields: str) -> Type[State]:
     # Dynamically create a class of type "State" (actually a subclass)
     # with the right :attr:`fields`
     enum_fields: IntEnum = State.list_to_enum(fields)
-    state_cls = type("DerivedState", (State,), {"fields": enum_fields})
+    state_cls = type("DerivedState", (State,), {"fields": enum_fields})  # type: ignore # noqa: E501
 
     return state_cls

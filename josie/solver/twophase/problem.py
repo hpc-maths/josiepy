@@ -26,21 +26,30 @@
 # official policies, either expressed or implied, of Ruben Di Battista.
 import numpy as np
 
-from typing import Union
 
-from josie.solver.euler.eos import EOS
+from josie.solver.problem import Problem
 from josie.solver.euler.problem import EulerProblem
 from josie.math import Direction
 
+from .eos import EOS
 from .closure import Closure
-from .state import Q, Phases
+from .state import Q, Phases, PhasePair
 
 
-class TwoPhaseProblem(EulerProblem):
+class TwoPhaseProblem(Problem):
     """ A class representing a two-phase system problem governed by the
     equations first described in :cite:`baer_nunziato` """
 
-    def B(state_array: Q, eos: Union[EOS, Closure]):
+    def __init__(self, eos: EOS, closure: Closure):
+        # We re-use the EulerProblem code
+        eos1 = eos[Phases.PHASE1]
+        eos2 = eos[Phases.PHASE2]
+        self._subproblems = PhasePair(EulerProblem(eos1), EulerProblem(eos2))
+
+        self.eos = eos
+        self.closure = closure
+
+    def B(self, state_array: Q):
         r""" This returns the tensor that pre-multiplies the non-conservative
         term of the problem.
 
@@ -83,13 +92,13 @@ class TwoPhaseProblem(EulerProblem):
 
         num_fields = len(Q.fields)
 
-        B = np.zeros((num_fields * num_fields * DIMENSIONALITY))
+        B = np.zeros((num_fields, num_fields, DIMENSIONALITY))
 
         # Compute pI
-        pI = eos.pI(state_array)
+        pI = self.closure.pI(state_array)
 
         # This is the vector (uI, vI)
-        UI_VI = eos.uI(state_array)
+        UI_VI = self.closure.uI(state_array)
 
         # First component of (uI, vI) along x
         UI = UI_VI[..., Direction.X]
@@ -115,7 +124,7 @@ class TwoPhaseProblem(EulerProblem):
 
         return B
 
-    def F(state_array: Q) -> np.ndarray:
+    def F(self, state_array: Q) -> np.ndarray:
         r""" This returns the tensor representing the flux for a two-fluid model
         as described originally by :cite:`baer_nunziato`
 
@@ -157,16 +166,11 @@ class TwoPhaseProblem(EulerProblem):
         # Flux tensor
         F = np.zeros((num_cells_x, num_cells_y, 9, 2))
 
-        # First part of the flux (from rho1 to rhoE1] is the same as the Euler
-        # flux, but computed for phase 1
-        F[..., Q.fields.rho1 : Q.fields.rhoE1, :] = super().F(
-            Q.phase(Phases.PHASE1)
-        )
-
-        # Second part of the flux (from rho2 to rhoE2] is the same as the Euler
-        # flux, but computed for phase 2
-        F[..., Q.fields.rho2 : Q.fields.rhoE2, :] = super().F(
-            Q.phase(Phases.PHASE2)
-        )
+        # Calculate the flux using the Euler flux per each phase
+        # each phase state hase 9 fields
+        for phase in Phases:
+            F[..., phase : phase + 9, :] = self._subproblems[phase].F(
+                state_array.get_phase(phase)
+            )
 
         return F
