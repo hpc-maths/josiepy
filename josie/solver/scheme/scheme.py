@@ -113,7 +113,7 @@ class Scheme(metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
     def CFL(
-        self,
+        cls,
         values: State,
         volumes: State,
         normals: np.ndarray,

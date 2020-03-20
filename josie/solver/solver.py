@@ -182,8 +182,10 @@ class Solver(metaclass=abc.ABCMeta):
             A tuple of :class:`Neighbour`.
         """
 
-        if not (self._neighs):
-            neighs = []
+        try:
+            return self._neighs
+        except AttributeError:
+            neighs: List[Neighbour] = []
 
             left: Neighbour = Neighbour(
                 values=self._values[:-2, 1:-1],
@@ -212,8 +214,9 @@ class Solver(metaclass=abc.ABCMeta):
                 )
 
                 neighs.extend((top, btm))
+
             self._neighs = tuple(neighs)
-        return self._neighs
+            return self._neighs
 
     def init(self, init_fun: Callable[[Solver], NoReturn]):
         """
@@ -236,9 +239,6 @@ class Solver(metaclass=abc.ABCMeta):
         """
         # Init data structure
         self._values = self.Q.from_mesh(self.mesh)
-
-        # Init neighs iterable
-        self._neighs = None
 
         # First set all the values for the internal cells
         # The actual values are a view of only the internal cells

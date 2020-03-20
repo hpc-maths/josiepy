@@ -39,37 +39,6 @@ class EulerScheme(ConvectiveScheme):
     def __init__(self, eos: EOS):
         self.problem = EulerProblem(eos)
 
-    def CFL(
-        self,
-        values: np.ndarray,
-        volumes: np.ndarray,
-        normals: np.ndarray,
-        surfaces: np.ndarray,
-        CFL_value,
-    ) -> float:
-        UV = values[..., Q.fields.U : Q.fields.V + 1]
-        c = values[..., Q.fields.c]
-
-        # TODO: We can probably optimize this since we compute `sigma` in
-        # the rusanov scheme, so we could find a way to store it and avoid
-        # to recompute it here
-
-        # Absolute value squared for each cell
-        # Equivalent to: U[:, :]**2 + V[:, :]**2
-        UU_abs = np.einsum("...k,...k->...", UV, UV)
-
-        # Max speed value over all cells
-        U_abs = np.sqrt(np.max(UU_abs))
-
-        # Max sound velocity
-        c_max = np.max(c)
-
-        # Min face surface
-        # TODO: This probably needs to be generalized for 3D
-        dx = np.min(surfaces)
-
-        return CFL_value * dx / (U_abs + c_max)
-
     def post_step(self, values: Q):
         """ During the step we update the conservative values. After the
         step we update the non-conservative variables. This method updates
@@ -194,3 +163,34 @@ class Rusanov(EulerScheme):
         FS.set_conservative(surfaces[..., np.newaxis] * (DeltaF - DeltaQ))
 
         return FS
+
+    def CFL(
+        self,
+        values: Q,
+        volumes: np.ndarray,
+        normals: np.ndarray,
+        surfaces: np.ndarray,
+        CFL_value,
+    ) -> float:
+        UV = values[..., Q.fields.U : Q.fields.V + 1]
+        c = values[..., Q.fields.c]
+
+        # TODO: We can probably optimize this since we compute `sigma` in
+        # the rusanov scheme, so we could find a way to store it and avoid
+        # to recompute it here
+
+        # Absolute value squared for each cell
+        # Equivalent to: U[:, :]**2 + V[:, :]**2
+        UU_abs = np.einsum("...k,...k->...", UV, UV)
+
+        # Max speed value over all cells
+        U_abs = np.sqrt(np.max(UU_abs))
+
+        # Max sound velocity
+        c_max = np.max(c)
+
+        # Min face surface
+        # TODO: This probably needs to be generalized for 3D
+        dx = np.min(surfaces)
+
+        return CFL_value * dx / (U_abs + c_max)

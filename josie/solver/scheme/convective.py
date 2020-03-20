@@ -38,23 +38,6 @@ class ConvectiveScheme(Scheme):
 
     """
 
-    def accumulate(
-        self,
-        values: State,
-        neigh_values: State,
-        normals: np.ndarray,
-        surfaces: np.ndarray,
-    ) -> State:
-
-        # Compute fluxes computed eventually by the other schemes (e.g.
-        # nonconscervative)
-        fluxes = super().accumulate(values, neigh_values, normals, surfaces)
-
-        # Add conservative contribution
-        fluxes += self.F(values, neigh_values, normals, surfaces)
-
-        return fluxes
-
     @abc.abstractmethod
     def F(
         self,
@@ -109,3 +92,20 @@ class ConvectiveScheme(Scheme):
 
         """
         raise NotImplementedError
+
+    def accumulate(
+        self,
+        values: State,
+        neigh_values: State,
+        normals: np.ndarray,
+        surfaces: np.ndarray,
+    ) -> State:
+
+        # Compute fluxes computed eventually by the other schemes (e.g.
+        # nonconservative)
+        fluxes = super().accumulate(values, neigh_values, normals, surfaces)
+
+        # Add conservative contribution
+        fluxes += self.F(values, neigh_values, normals, surfaces)
+
+        return fluxes
