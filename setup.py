@@ -33,7 +33,14 @@ REQUIRED = [
 
 # Optional
 GRAPHICS = ["mayavi"]
-DEV = ["pytest", "pytest-cov", "pytest-mypy", "pytest-flake8", "pytest-xdist"]
+DEV = [
+    "pytest",
+    "pytest-cov",
+    "pytest-flake8",
+    "pytest-mock",
+    "pytest-mypy",
+    "pytest-xdist",
+]
 DOCS = [
     "sphinx",
     "sphinx_rtd_theme",
