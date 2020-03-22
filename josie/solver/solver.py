@@ -237,6 +237,7 @@ class Solver(metaclass=abc.ABCMeta):
             The function to use to initialize the value in the domain
 
         """
+
         # Init data structure
         self._values = self.Q.from_mesh(self.mesh)
 
@@ -249,6 +250,8 @@ class Solver(metaclass=abc.ABCMeta):
         self._values[0, -1] = np.nan
         self._values[-1, -1] = np.nan
         self._values[-1, 0] = np.nan
+
+        self.scheme.post_init(self.values)
 
         self._update_ghosts()
 

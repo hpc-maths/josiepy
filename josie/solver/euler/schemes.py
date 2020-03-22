@@ -26,7 +26,9 @@
 # official policies, either expressed or implied, of Ruben Di Battista.
 import numpy as np
 
+
 from josie.solver.scheme import ConvectiveScheme
+
 
 from .eos import EOS
 from .problem import EulerProblem
@@ -37,7 +39,7 @@ class EulerScheme(ConvectiveScheme):
     """ A general base class for Euler schemes """
 
     def __init__(self, eos: EOS):
-        self.problem = EulerProblem(eos)
+        self.problem: EulerProblem = EulerProblem(eos)
 
     def post_step(self, values: Q):
         """ During the step we update the conservative values. After the
@@ -70,7 +72,7 @@ class EulerScheme(ConvectiveScheme):
 
 
 class Rusanov(EulerScheme):
-    def sigma(self, state_array: Q, normals: np.ndarray) -> np.ndarray:
+    def compute_sigma(self, U_norm: np.ndarray, c: np.ndarray) -> np.ndarray:
         r""" Returns the value of the :math:`\sigma`(i.e. the wave velocity) for
         the the Rusanov scheme.
 
@@ -84,14 +86,13 @@ class Rusanov(EulerScheme):
 
         Parameters
         ----------
-        state_array
-            A :class:`Q` object that has dimension :math:`Nx \times Ny \times
-            9` containing the values for all the states in all the mesh points
+        U_norm
+            The value of scalar velocity (generally is the normal velocity
+            to the face) to use to compute the sigma
 
-        normals
-            A :class:`np.ndarray` that has the dimensions :math:`Nx \times Ny
-            \times 2` containing the values of the normals to the face
-            connecting the cell to its neighbour
+        c
+
+            The value of sound velocity to use to compute the sigma
 
         Returns
         -------
@@ -99,20 +100,8 @@ class Rusanov(EulerScheme):
             A :math:`Nx \times Ny \times 1` containing the value of the sigma
             per each cell
         """
-        fields = Q.fields
 
-        # Get the velocity components
-        UV_slice = slice(fields.U, fields.V + 1)
-        UV = state_array[..., UV_slice]
-
-        # Find the normal velocity
-        # 2D: U = np.einsum("ijk,ijk->ij", UV, normals)
-        U = np.einsum("...k,...k->...", UV, normals)
-
-        # Speed of sound
-        c = state_array[..., fields.c]
-
-        sigma = np.abs(U) + c
+        sigma = np.abs(U_norm) + c
 
         # Add a dimension to have the right broadcasting
         sigma = sigma[..., np.newaxis]
@@ -132,17 +121,27 @@ class Rusanov(EulerScheme):
         """
 
         FS = np.empty_like(values).view(Q)
+        fields = Q.fields
 
-        # First four variables of the total state are the conservative
-        # variables (rho, rhoU, rhoV, rhoE)
-        values_cons = values.get_conservative()
-        neigh_values_cons = neigh_values.get_conservative()
+        # Get the velocity components
+        UV_slice = slice(fields.U, fields.V + 1)
+        UV = values[..., UV_slice]
+        UV_neigh = neigh_values[..., UV_slice]
+
+        # Find the normal velocity
+        # 2D: U = np.einsum("ijk,ijk->ij", UV, normals)
+        U = np.einsum("...k,...k->...", UV, normals)
+        U_neigh = np.einsum("...k,...k->...", UV_neigh, normals)
+
+        # Speed of sound
+        c = values[..., fields.c]
+        c_neigh = neigh_values[..., fields.c]
 
         # Let's retrieve the values of the sigma on every cell
         # for current cell
-        sigma = self.sigma(values, normals)
+        sigma = self.compute_sigma(U, c)
         # and its neighbour
-        sigma_neigh = self.sigma(neigh_values, normals)
+        sigma_neigh = self.compute_sigma(U_neigh, c_neigh)
 
         # Concatenate everything in a single array
         sigma_array = np.concatenate((sigma, sigma_neigh), axis=-1)
@@ -155,6 +154,11 @@ class Rusanov(EulerScheme):
 
         # This is the flux tensor dot the normal
         DeltaF = np.einsum("...kl,...l->...k", DeltaF, normals)
+
+        # First four variables of the total state are the conservative
+        # variables (rho, rhoU, rhoV, rhoE)
+        values_cons = values.get_conservative()
+        neigh_values_cons = neigh_values.get_conservative()
 
         DeltaQ = (
             0.5 * sigma[..., np.newaxis] * (neigh_values_cons - values_cons)
@@ -172,25 +176,20 @@ class Rusanov(EulerScheme):
         surfaces: np.ndarray,
         CFL_value,
     ) -> float:
-        UV = values[..., Q.fields.U : Q.fields.V + 1]
-        c = values[..., Q.fields.c]
 
-        # TODO: We can probably optimize this since we compute `sigma` in
-        # the rusanov scheme, so we could find a way to store it and avoid
-        # to recompute it here
+        fields = Q.fields
 
-        # Absolute value squared for each cell
-        # Equivalent to: U[:, :]**2 + V[:, :]**2
-        UU_abs = np.einsum("...k,...k->...", UV, UV)
+        # Get the velocity components
+        UV_slice = slice(fields.U, fields.V + 1)
+        UV = values[..., UV_slice]
 
-        # Max speed value over all cells
-        U_abs = np.sqrt(np.max(UU_abs))
+        U = np.linalg.norm(UV, axis=-1)
+        c = values[..., fields.c]
 
-        # Max sound velocity
-        c_max = np.max(c)
+        sigma = np.max(self.compute_sigma(U, c))
 
         # Min face surface
         # TODO: This probably needs to be generalized for 3D
-        dx = np.min(surfaces)
+        dx = np.min(volumes[..., np.newaxis] / surfaces)
 
-        return CFL_value * dx / (U_abs + c_max)
+        return CFL_value * dx / sigma

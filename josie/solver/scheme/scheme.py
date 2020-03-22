@@ -150,13 +150,18 @@ class Scheme(metaclass=abc.ABCMeta):
 
         raise NotImplementedError
 
-    def pre_init(self):
-        """ :class:`Scheme` can implement a :meth:`pre_init` in order to
-        perform operations before the :meth:`Solver.init` initialize the
+    def post_init(self, values: State):
+        """ :class:`Scheme` can implement a :meth:`post_init` in order to
+        perform operations after the :meth:`Solver.init` initialize the
         solver state
 
-        Can be used, for example, to modify the :class:`State` in order to
-        inject more information that need to be stored
+        Can be used to store additional data, for example, to compute the
+        CFL in an optimized way
+
+        Parameters
+        ----------
+        values
+            The values of the fields in the mesh cells
         """
 
         pass

@@ -7,13 +7,30 @@ from numba import njit
 
 from .adv1d import main as main_1d
 
-from josie.solver.state import StateTemplate
+from josie.solver.state import State
 from josie.solver.solver import Solver
-from josie.solver.scheme import Scheme as AbstractScheme
-
+from josie.solver.problem import Problem
+from josie.solver.scheme.time import ExplicitEuler
+from josie.solver.scheme.convective import ConvectiveScheme
 
 # Advection velocity in x-direction
 V = np.array([1.0, 0.0])
+
+
+class Q(State):
+    fields = State.list_to_enum(["u"])  # type: ignore
+
+
+def flux(state_array: Q) -> np.ndarray:
+    return V * state_array[:, np.newaxis]
+
+
+class AdvectionProblem(Problem):
+    def F(self, state_array: Q) -> np.ndarray:
+        # I multiply each element of the given state array by the velocity
+        # vector. I obtain an Nx2 array where each row is the flux on each
+        # cell
+        return flux(state_array)
 
 
 def upwind(
@@ -22,11 +39,6 @@ def upwind(
     normals: np.ndarray,
     surfaces: np.ndarray,
 ):
-    def flux(state_array: np.ndarray) -> np.ndarray:
-        # I multiply each element of the given state array by the velocity
-        # vector. I obtain an Nx2 array where each row is the flux on each
-        # cell
-        return V * state_array[:, np.newaxis]
 
     F = np.zeros_like(values)
 
@@ -57,11 +69,7 @@ def upwind_jit(
     surfaces: np.ndarray,
 ):
     def flux(state):
-        # I multiply each element of the given state array by the velocity
-        # vector. I obtain an Nx2 array where each row is the flux on each
-        # cell
-
-        return V * (state)
+        return V * state
 
     F = np.zeros_like(values)
 
@@ -85,25 +93,10 @@ def upwind_jit(
     return F
 
 
-@pytest.fixture
-def Q():
-    yield StateTemplate("u")
-
-
-@pytest.fixture
-def solver(mesh, init_fun, Q):
-    mesh.interpolate(100, 1)
-    mesh.generate()
-    solver = Solver(mesh, Q)
-    solver.init(init_fun)
-
-    yield solver
-
-
 @pytest.fixture(params=[upwind, upwind_jit])
-def Scheme(request):
-    class Upwind(AbstractScheme):
-        def convective_flux(
+def scheme(request):
+    class Upwind(ConvectiveScheme, ExplicitEuler):
+        def F(
             self,
             values: np.ndarray,
             neigh_values: np.ndarray,
@@ -126,10 +119,20 @@ def Scheme(request):
 
             return CFL_value * dx / U_abs
 
-    yield Upwind
+    yield Upwind(AdvectionProblem())
 
 
-def test_against_real_1D(solver, Scheme, plot, tol):
+@pytest.fixture
+def solver(scheme, mesh, init_fun, Q):
+    mesh.interpolate(100, 1)
+    mesh.generate()
+    solver = Solver(mesh, Q, scheme)
+    solver.init(init_fun)
+
+    yield solver
+
+
+def test_against_real_1D(solver, plot, tol):
     """ Testing against the real 1D solver """
 
     time, x_1d, solution = main_1d(100, 4, 0.9, plot)
@@ -141,8 +144,6 @@ def test_against_real_1D(solver, Scheme, plot, tol):
 
     ims = []
 
-    upwind = Scheme()
-
     for i, t in enumerate(time):
         x = solver.mesh.centroids[:, :, 0]
         x = x.reshape(x.size)
@@ -152,15 +153,15 @@ def test_against_real_1D(solver, Scheme, plot, tol):
         err = u - solution[i, :]
 
         if plot:
-            im1, = ax1.plot(x, u, "ro-")
-            im2, = ax1.plot(x_1d, solution[i, :], "ks-")
+            (im1,) = ax1.plot(x, u, "ro-")
+            (im2,) = ax1.plot(x_1d, solution[i, :], "ks-")
             ims.append([im1, im2])
-            im_err, = ax2.plot(x_1d, err, "ks-")
+            (im_err,) = ax2.plot(x_1d, err, "ks-")
             ims.append([im1, im2, im_err])
 
         # Check same solution with 1D-only
         # assert np.sum(err < tol) == len(x)
-        solver.step(dt, upwind)
+        solver.step(dt)
 
     if plot:
         _ = ArtistAnimation(fig, ims, interval=50)

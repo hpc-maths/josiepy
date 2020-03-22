@@ -88,7 +88,7 @@ class State(np.ndarray):
         """ Convert a list of textual fields to the class:`IntEnum` that needs
         to be stored in this class :attr:`fields` """
 
-        return IntEnum(
+        return IntEnum(  # type: ignore
             cls._FIELDS_ENUM_NAME, dict(zip(fields, range(len(fields))))
         )
 

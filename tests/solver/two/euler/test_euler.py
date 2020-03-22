@@ -25,7 +25,7 @@ riemann_states = [
         "uR": 0,
         "vR": 0,
         "pR": 0.1,
-        "CFL": 0.9,
+        "CFL": 0.4,
     },
     {
         "rhoL": 1.0,
@@ -36,7 +36,7 @@ riemann_states = [
         "uR": 2.0,
         "vR": 0,
         "pR": 0.4,
-        "CFL": 0.85,
+        "CFL": 0.4,
     },
     {
         "rhoL": 1.0,
@@ -47,7 +47,7 @@ riemann_states = [
         "uR": 0,
         "vR": 0,
         "pR": 0.01,
-        "CFL": 0.45,
+        "CFL": 0.4,
     },
     {
         "rhoL": 5.99924,
@@ -58,7 +58,7 @@ riemann_states = [
         "uR": -6.19633,
         "vR": 0,
         "pR": 46.0950,
-        "CFL": 0.85,
+        "CFL": 0.4,
     },
     {
         "rhoL": 1.0,
@@ -69,7 +69,7 @@ riemann_states = [
         "uR": -19.59745,
         "vR": 0,
         "pR": 0.01,
-        "CFL": 0.5,
+        "CFL": 0.4,
     },
 ]
 

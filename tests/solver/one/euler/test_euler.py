@@ -28,6 +28,7 @@ riemann_states = [
         "uR": 0,
         "vR": 0,
         "pR": 0.1,
+        "CFL": 0.5,
     },
     {
         "rhoL": 1.0,
@@ -38,6 +39,7 @@ riemann_states = [
         "uR": 2.0,
         "vR": 0,
         "pR": 0.4,
+        "CFL": 0.5,
     },
     {
         "rhoL": 1.0,
@@ -48,6 +50,7 @@ riemann_states = [
         "uR": 0,
         "vR": 0,
         "pR": 0.01,
+        "CFL": 0.45,
     },
     {
         "rhoL": 5.99924,
@@ -58,6 +61,7 @@ riemann_states = [
         "uR": -6.19633,
         "vR": 0,
         "pR": 46.0950,
+        "CFL": 0.5,
     },
     {
         "rhoL": 1.0,
@@ -68,6 +72,7 @@ riemann_states = [
         "uR": -19.59745,
         "vR": 0,
         "pR": 0.01,
+        "CFL": 0.5,
     },
 ]
 
@@ -122,7 +127,7 @@ def test_toro(riemann_problem, plot):
 
     final_time = 0.25
     t = 0
-    CFL = 0.85
+    CFL = riemann_problem["CFL"]
 
     if plot:
         ims = []

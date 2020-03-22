@@ -38,8 +38,9 @@ def test_animate(solver):
     solver.show("u")
 
 
-def test_linear_index(mesh, Q):
-    solver = Solver(mesh, Q)
+def test_linear_index(mocker, mesh, Q):
+    scheme = mocker.Mock()
+    solver = Solver(mesh, Q, scheme)
     _values = np.array(
         [
             [0, 1, 2, 3, 4],
