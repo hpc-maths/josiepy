@@ -158,7 +158,7 @@ class Rusanov(EulerScheme):
         fields = values.fields
 
         U = self.compute_U_norm(values, normals)
-        U_neigh = self.compute_U_norm(values, normals)
+        U_neigh = self.compute_U_norm(neigh_values, normals)
 
         # Speed of sound
         c = values[..., fields.c]
