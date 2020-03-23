@@ -68,7 +68,7 @@ class NonConservativeScheme(Scheme):
         # Add nonconservative contribution
         B = 0.5 * (self.problem.B(values) + self.problem.B(neigh_values))
         G = self.G(values, neigh_values, normals, surfaces)
-        fluxes += np.einsum("ijk,jk->i", B, G)
+        fluxes += np.einsum("...ijk,...jk->...i", B, G)
 
         return fluxes
 

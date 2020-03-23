@@ -29,7 +29,7 @@ from josie.solver.euler.eos import EOS as SinglePhaseEOS
 from .state import PhasePair
 
 
-class EOS(PhasePair):
+class TwoPhaseEOS(PhasePair):
     """ An Abstract Base Class representing en EOS for a twophase system.  In
     particular two :class:`~euler.eos.EOS`instances for each phase need to be
     provided.

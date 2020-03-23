@@ -111,6 +111,7 @@ class Scheme(metaclass=abc.ABCMeta):
 
         raise NotImplementedError
 
+    @classmethod
     @abc.abstractmethod
     def CFL(
         cls,
@@ -127,7 +128,8 @@ class Scheme(metaclass=abc.ABCMeta):
         ----------
         values
             A :class:`np.ndarray` that has dimension :math:`Nx \times Ny \times
-            9` containing the values for all the states in all the mesh points
+            N_\text{fields}` containing the values for all the states in all
+            the mesh points
         volumes
             A :class:`np.ndarray` that has the dimensions :math:`Nx \times Ny`
             containing the values of the cell volumes

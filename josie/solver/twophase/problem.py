@@ -31,7 +31,7 @@ from josie.solver.problem import Problem
 from josie.solver.euler.problem import EulerProblem
 from josie.math import Direction
 
-from .eos import EOS
+from .eos import TwoPhaseEOS
 from .closure import Closure
 from .state import Q, Phases, PhasePair
 
@@ -40,7 +40,7 @@ class TwoPhaseProblem(Problem):
     """ A class representing a two-phase system problem governed by the
     equations first described in :cite:`baer_nunziato` """
 
-    def __init__(self, eos: EOS, closure: Closure):
+    def __init__(self, eos: TwoPhaseEOS, closure: Closure):
         # We re-use the EulerProblem code
         eos1 = eos[Phases.PHASE1]
         eos2 = eos[Phases.PHASE2]
@@ -48,6 +48,12 @@ class TwoPhaseProblem(Problem):
 
         self.eos = eos
         self.closure = closure
+
+    def __getitem__(self, phase: Phases) -> EulerProblem:
+        """ Return the :class:`~.EulerProblem` associated to the required
+        phase"""
+
+        return self._subproblems[phase]
 
     def B(self, state_array: Q):
         r""" This returns the tensor that pre-multiplies the non-conservative
@@ -90,9 +96,11 @@ class TwoPhaseProblem(Problem):
         # TODO: Needs to be generalized for 3D
         DIMENSIONALITY = 2
 
-        num_fields = len(Q.fields)
+        num_cells_x, num_cells_y, num_fields = state_array.shape
 
-        B = np.zeros((num_fields, num_fields, DIMENSIONALITY))
+        B = np.zeros(
+            (num_cells_x, num_cells_y, num_fields, num_fields, DIMENSIONALITY)
+        )
 
         # Compute pI
         pI = self.closure.pI(state_array)
@@ -109,18 +117,18 @@ class TwoPhaseProblem(Problem):
         pIVI = np.multiply(pI, VI)
 
         # Gradient component along x
-        B[Q.fields.alpha, Q.fields.alpha, Direction.X] = UI
-        B[Q.fields.rhoU1, Q.fields.alpha, Direction.X] = -pI
-        B[Q.fields.rhoE1, Q.fields.alpha, Direction.X] = -pIUI
-        B[Q.fields.rhoU2, Q.fields.alpha, Direction.X] = pI
-        B[Q.fields.rhoE2, Q.fields.alpha, Direction.X] = pIUI
+        B[..., Q.fields.alpha, Q.fields.alpha, Direction.X] = UI
+        B[..., Q.fields.rhoU1, Q.fields.alpha, Direction.X] = -pI
+        B[..., Q.fields.rhoE1, Q.fields.alpha, Direction.X] = -pIUI
+        B[..., Q.fields.rhoU2, Q.fields.alpha, Direction.X] = pI
+        B[..., Q.fields.rhoE2, Q.fields.alpha, Direction.X] = pIUI
 
         # Gradient component along y
-        B[Q.fields.alpha, Q.fields.alpha, Direction.Y] = VI
-        B[Q.fields.rhoV1, Q.fields.alpha, Direction.Y] = -pI
-        B[Q.fields.rhoE1, Q.fields.alpha, Direction.Y] = -pIVI
-        B[Q.fields.rhoV2, Q.fields.alpha, Direction.Y] = pI
-        B[Q.fields.rhoE2, Q.fields.alpha, Direction.Y] = pIVI
+        B[..., Q.fields.alpha, Q.fields.alpha, Direction.Y] = VI
+        B[..., Q.fields.rhoV1, Q.fields.alpha, Direction.Y] = -pI
+        B[..., Q.fields.rhoE1, Q.fields.alpha, Direction.Y] = -pIVI
+        B[..., Q.fields.rhoV2, Q.fields.alpha, Direction.Y] = pI
+        B[..., Q.fields.rhoE2, Q.fields.alpha, Direction.Y] = pIVI
 
         return B
 

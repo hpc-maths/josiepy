@@ -30,21 +30,22 @@ import numpy as np
 from josie.solver.scheme import Scheme
 from josie.solver.euler.schemes import Rusanov as EulerRusanov
 from josie.solver.scheme.nonconservative import NonConservativeScheme
+from josie.solver.scheme.convective import ConvectiveScheme
 
 from .closure import Closure
-from .eos import EOS
+from .eos import TwoPhaseEOS
 from .problem import TwoPhaseProblem
-from .state import Q, Phases, PhasePair
+from .state import Q, Phases
 
 
 class TwoPhaseScheme(Scheme):
     """ A base class for a twophase scheme """
 
-    def __init__(self, eos: EOS, closure: Closure):
+    def __init__(self, eos: TwoPhaseEOS, closure: Closure):
         self.problem: TwoPhaseProblem = TwoPhaseProblem(eos, closure)
 
 
-class Upwind(TwoPhaseScheme, NonConservativeScheme):
+class Upwind(NonConservativeScheme, TwoPhaseScheme):
     def G(
         self,
         values: Q,
@@ -77,12 +78,7 @@ class Upwind(TwoPhaseScheme, NonConservativeScheme):
         return np.einsum("...i,...j->...ij", Q_face, normals)
 
 
-class Rusanov(TwoPhaseScheme):
-    def __init__(self, eos: EOS, closure: Closure):
-        self._euler_schemes = PhasePair(
-            EulerRusanov(eos[Phases.PHASE1]), EulerRusanov(eos[Phases.PHASE2]),
-        )
-
+class Rusanov(ConvectiveScheme, TwoPhaseScheme):
     def F(
         self,
         values: Q,
@@ -119,35 +115,44 @@ class Rusanov(TwoPhaseScheme):
         sigmas = []
 
         for phase in Phases:
-            euler_scheme = self._euler_schemes[phase]
             phase_values = values.get_phase(phase)
-            values.append(phase_values)
-
             phase_neigh_values = neigh_values.get_phase(phase)
-            neigh_values.append(phase_neigh_values)
+
+            fields = phase_values.fields
+
+            U = EulerRusanov.compute_U_norm(phase_values, normals)
+            U_neigh = EulerRusanov.compute_U_norm(phase_neigh_values, normals)
+
+            # Speed of sound
+            c = phase_values[..., fields.c]
+            c_neigh = phase_neigh_values[..., fields.c]
 
             # Let's retrieve the values of the sigma on every cell
             # for current cell
-            sigmas.append(euler_scheme.sigma(phase_values, normals))
+            sigmas.append(EulerRusanov.compute_sigma(U, c))
             # and its neighbour
-            sigmas.append(euler_scheme.sigma(phase_neigh_values, normals))
+            sigmas.append(EulerRusanov.compute_sigma(U_neigh, c_neigh))
 
         # Concatenate all the sigmas in a single array
         sigma_array = np.concatenate(sigmas, axis=-1)
+        __import__("ipdb").set_trace()
 
         # And the we found the max on the last axis (i.e. the maximum value
         # of sigma for each cell)
         sigma = np.max(sigma_array, axis=-1)
 
-        # We apply the Euler scheme per each phase
+        # We apply the Euler flux per each phase
         for phase in Phases:
             phase_values = values.get_phase(phase)
             phase_neigh_values = neigh_values.get_phase(phase)
 
             DeltaF = 0.5 * (
-                self.problem.F(phase_values)
-                + self.problem.F(phase_neigh_values)
+                self.problem[Phases.PHASE1].F(phase_values)
+                + self.problem[Phases.PHASE2].F(phase_neigh_values)
             )
+
+            # This is the flux tensor dot the normal
+            DeltaF = np.einsum("...kl,...l->...k", DeltaF, normals)
 
             DeltaQ = (
                 0.5
@@ -158,12 +163,15 @@ class Rusanov(TwoPhaseScheme):
                 )
             )
 
-            FS.set_phase(surfaces[..., np.newaxis] * (DeltaF - DeltaQ))
+            FS.set_phase_conservative(
+                phase, surfaces[..., np.newaxis] * (DeltaF - DeltaQ)
+            )
 
         return FS
 
+    @classmethod
     def CFL(
-        self,
+        cls,
         values: np.ndarray,
         volumes: np.ndarray,
         normals: np.ndarray,
@@ -177,10 +185,12 @@ class Rusanov(TwoPhaseScheme):
         for phase in Phases:
             phase_values = values.get_phase(phase)
             dt = np.min(
-                self._euler_schemes[phase].CFL(
-                    phase_values, volumes, normals, surfaces, CFL_value
-                ),
-                dt,
+                (
+                    EulerRusanov.CFL(
+                        phase_values, volumes, normals, surfaces, CFL_value
+                    ),
+                    dt,
+                )
             )
 
         return dt

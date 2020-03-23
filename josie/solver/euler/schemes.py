@@ -48,7 +48,7 @@ class EulerScheme(ConvectiveScheme):
         :class:`~.EOS`
         """
 
-        fields = Q.fields
+        fields = values.fields
 
         rho = values[..., fields.rho]
         rhoU = values[..., fields.rhoU]
@@ -72,7 +72,8 @@ class EulerScheme(ConvectiveScheme):
 
 
 class Rusanov(EulerScheme):
-    def compute_sigma(self, U_norm: np.ndarray, c: np.ndarray) -> np.ndarray:
+    @classmethod
+    def compute_sigma(cls, U_norm: np.ndarray, c: np.ndarray) -> np.ndarray:
         r""" Returns the value of the :math:`\sigma`(i.e. the wave velocity) for
         the the Rusanov scheme.
 
@@ -108,6 +109,39 @@ class Rusanov(EulerScheme):
 
         return sigma
 
+    @classmethod
+    def compute_U_norm(cls, values: Q, normals: np.ndarray):
+        """ Returns the value of the normal velocity component to the given
+        ``normals``.
+
+        Parameters
+        ----------
+        values
+            A :class:`np.ndarray` that has dimension :math:`Nx \times Ny \times
+            N_\text{fields}` containing the values for all the states in all
+            the mesh points
+
+        normals
+            A :class:`np.ndarray` that has the dimensions :math:`Nx \times Ny
+            \times N_\text{centroids} \times 2` containing the values of the
+            normals to the faces of the cell
+
+        Returns
+        -------
+        The value of the normal velocity
+        """
+        fields = values.fields
+
+        # Get the velocity components
+        UV_slice = slice(fields.U, fields.V + 1)
+        UV = values[..., UV_slice]
+
+        # Find the normal velocity
+        # 2D: U = np.einsum("ijk,ijk->ij", UV, normals)
+        U = np.einsum("...k,...k->...", UV, normals)
+
+        return U
+
     def F(
         self,
         values: Q,
@@ -121,17 +155,10 @@ class Rusanov(EulerScheme):
         """
 
         FS = np.empty_like(values).view(Q)
-        fields = Q.fields
+        fields = values.fields
 
-        # Get the velocity components
-        UV_slice = slice(fields.U, fields.V + 1)
-        UV = values[..., UV_slice]
-        UV_neigh = neigh_values[..., UV_slice]
-
-        # Find the normal velocity
-        # 2D: U = np.einsum("ijk,ijk->ij", UV, normals)
-        U = np.einsum("...k,...k->...", UV, normals)
-        U_neigh = np.einsum("...k,...k->...", UV_neigh, normals)
+        U = self.compute_U_norm(values, normals)
+        U_neigh = self.compute_U_norm(values, normals)
 
         # Speed of sound
         c = values[..., fields.c]
@@ -168,8 +195,9 @@ class Rusanov(EulerScheme):
 
         return FS
 
+    @classmethod
     def CFL(
-        self,
+        cls,
         values: Q,
         volumes: np.ndarray,
         normals: np.ndarray,
@@ -177,7 +205,7 @@ class Rusanov(EulerScheme):
         CFL_value,
     ) -> float:
 
-        fields = Q.fields
+        fields = values.fields
 
         # Get the velocity components
         UV_slice = slice(fields.U, fields.V + 1)
@@ -186,7 +214,7 @@ class Rusanov(EulerScheme):
         U = np.linalg.norm(UV, axis=-1)
         c = values[..., fields.c]
 
-        sigma = np.max(self.compute_sigma(U, c))
+        sigma = np.max(cls.compute_sigma(U, c))
 
         # Min face surface
         # TODO: This probably needs to be generalized for 3D

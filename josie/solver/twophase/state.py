@@ -30,7 +30,7 @@ from enum import IntEnum
 from typing import Any, Dict
 
 from josie.solver.state import State
-from josie.solver.euler.state import Q as EulerQ
+from josie.solver.euler.state import Q as EulerQ, ConsQ
 
 
 class Phases(IntEnum):
@@ -47,14 +47,34 @@ class PhasePair:
     """ A tuple of objects that are indexable by :class:`Phases`.
     """
 
-    # Remap the phases int values to the right one for this tuple
-    _index: Dict[Phases, int] = {Phases.PHASE1: 0, Phases.PHASE2: 1}
-
-    def __init__(self, obj1: Any, obj2: Any):
-        self._data = (obj1, obj2)
+    def __init__(self, phase1: Any, phase2: Any):
+        self._data: Dict[Phases, int] = {
+            Phases.PHASE1: phase1,
+            Phases.PHASE2: phase2,
+        }
 
     def __getitem__(self, phase: Phases):
-        return self._data[self._index[phase]]
+        return self._data[phase]
+
+    def __iter__(self):
+        return iter(self._data)
+
+    def keys(self):
+        return self._data.keys()
+
+    def items(self):
+        return self._data.items()
+
+    def values(self):
+        return self._data.values()
+
+    @property
+    def phase1(self) -> Any:
+        return self._data[Phases.PHASE1]
+
+    @property
+    def phase2(self) -> Any:
+        return self._data[Phases.PHASE2]
 
 
 class Fields(IntEnum):
@@ -93,7 +113,7 @@ class Q(State):
     fields = Fields
 
     def get_phase(self, phase: Phases) -> EulerQ:
-        r""" Returns the part of the state associated to a specified phase
+        r""" Returns the part of the state associated to a specified ``phase``
         as an instance of :class:`~euler.state.Q`
 
         .. warning::
@@ -117,8 +137,8 @@ class Q(State):
         return self[..., phase : phase + 9].view(EulerQ)
 
     def set_phase(self, phase: Phases, values: EulerQ):
-        """ Sets the part of the system associated to the given `phase` with
-        the provided `values`
+        """ Sets the part of the system associated to the specified ``phase``
+        with the provided `values`
 
         Parameters
         ---------
@@ -131,3 +151,8 @@ class Q(State):
         """
 
         self[..., phase : phase + 9] = values
+
+    def set_phase_conservative(self, phase: Phases, values: ConsQ):
+        """ Sets the conservative part of the state of the given ``phase`` """
+
+        self[..., phase : phase + 4] = values
