@@ -35,15 +35,15 @@ class EOS(metaclass=abc.ABCMeta):
     """ An Abstract Base Class representing an EOS for an Euler System """
 
     @abc.abstractmethod
-    def rhoe(self, rho: np.ndarray, p: np.ndarray):
+    def rhoe(self, rho: np.ndarray, p: np.ndarray) -> np.ndarray:
         raise NotImplementedError
 
     @abc.abstractmethod
-    def p(self, rho: np.ndarray, e: np.ndarray):
+    def p(self, rho: np.ndarray, e: np.ndarray) -> np.ndarray:
         raise NotImplementedError
 
     @abc.abstractmethod
-    def sound_velocity(self, rho: np.ndarray, p: np.ndarray):
+    def sound_velocity(self, rho: np.ndarray, p: np.ndarray) -> np.ndarray:
         raise NotImplementedError
 
 
@@ -129,3 +129,22 @@ class PerfectGas(EOS):
         """
 
         return np.sqrt(self.gamma * np.divide(p, rho))
+
+
+class StiffenedGas(PerfectGas):
+    def __init__(self, gamma: float = 3, p0: float = 1e9):
+        self.gamma = gamma
+        self.p0 = p0
+
+    def rhoe(self, rho: np.ndarray, p: np.ndarray) -> np.ndarray:
+
+        # We re-use the perfect gas equation of the parent class
+        return (p + self.gamma * self.p0) / (self.gamma - 1)
+
+    def p(self, rho: np.ndarray, e: np.ndarray) -> np.ndarray:
+
+        # We re-use the perfect gas equation of the parent class
+        return (self.gamma - 1) * np.multiply(rho, e) - self.p0 * self.gamma
+
+    def sound_velocity(self, rho: np.ndarray, p: np.ndarray) -> np.ndarray:
+        return np.sqrt(self.gamma * np.divide((p + self.p0), rho))

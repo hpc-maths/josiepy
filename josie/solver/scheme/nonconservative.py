@@ -79,7 +79,7 @@ class NonConservativeScheme(Scheme):
         neigh_values: State,
         normals: np.ndarray,
         surfaces: np.ndarray,
-    ) -> State:
+    ) -> np.ndarray:
         r""" This is the nonconservative flux implementation of the scheme. See
         :cite:`toro` for a great overview on numerical methods for hyperbolic
         problems.

@@ -34,17 +34,17 @@ from josie.solver.scheme.nonconservative import NonConservativeScheme
 from .closure import Closure
 from .eos import EOS
 from .problem import TwoPhaseProblem
-from .state import Q, Phases
+from .state import Q, Phases, PhasePair
 
 
 class TwoPhaseScheme(Scheme):
     """ A base class for a twophase scheme """
 
     def __init__(self, eos: EOS, closure: Closure):
-        self.problem = TwoPhaseProblem(eos, closure)
+        self.problem: TwoPhaseProblem = TwoPhaseProblem(eos, closure)
 
 
-class AlphaGradient(NonConservativeScheme):
+class Upwind(TwoPhaseScheme, NonConservativeScheme):
     def G(
         self,
         values: Q,
@@ -53,12 +53,36 @@ class AlphaGradient(NonConservativeScheme):
         surfaces: np.ndarray,
     ) -> Q:
 
-        reveal_type(self.problem)
-        # Get vector of UI
-        # UI_VI = self.problem.eos.
+        Q_face = np.empty_like(values).view(Q)
+
+        # Get vector of uI
+        UI_VI = self.problem.closure.uI(values)
+        UI_VI_neigh = self.problem.closure.uI(values)
+
+        # Normal uI
+        UI = np.einsum("...k,...k->...", UI_VI, normals)
+        UI_neigh = np.einsum("...k,...k->...", UI_VI_neigh, normals)
+
+        U_face = 0.5 * (UI + UI_neigh)
+
+        # Upwind
+        # Cells where the normal interfacial velocity is > 0
+        idx = np.where(U_face > 0)
+        Q_face[idx, ...] = neigh_values[idx, ...]
+
+        # Cells where the normal interfacial velocity is < 0
+        idx = np.where(U_face < 0)
+        Q_face[idx, ...] = values[idx, ...]
+
+        return np.einsum("...i,...j->...ij", Q_face, normals)
 
 
 class Rusanov(TwoPhaseScheme):
+    def __init__(self, eos: EOS, closure: Closure):
+        self._euler_schemes = PhasePair(
+            EulerRusanov(eos[Phases.PHASE1]), EulerRusanov(eos[Phases.PHASE2]),
+        )
+
     def F(
         self,
         values: Q,
@@ -69,7 +93,7 @@ class Rusanov(TwoPhaseScheme):
         r""" This schemes implements the Rusanov scheme for a
         :class:`~.TwoPhaseProblem`. It applies the :class:`~.euler.Rusanov`
         scheme indipendently for each phase (with the :math:`\sigma` correctly
-        calculated among all the two phases state
+        calculated among all the two phases state)
 
         Parameters
         ----------
@@ -95,7 +119,7 @@ class Rusanov(TwoPhaseScheme):
         sigmas = []
 
         for phase in Phases:
-            scheme = self._schemes[phase]
+            euler_scheme = self._euler_schemes[phase]
             phase_values = values.get_phase(phase)
             values.append(phase_values)
 
@@ -104,9 +128,9 @@ class Rusanov(TwoPhaseScheme):
 
             # Let's retrieve the values of the sigma on every cell
             # for current cell
-            sigmas.append(scheme.sigma(phase_values, normals))
+            sigmas.append(euler_scheme.sigma(phase_values, normals))
             # and its neighbour
-            sigmas.append(scheme.sigma(phase_neigh_values, normals))
+            sigmas.append(euler_scheme.sigma(phase_neigh_values, normals))
 
         # Concatenate all the sigmas in a single array
         sigma_array = np.concatenate(sigmas, axis=-1)
@@ -153,7 +177,7 @@ class Rusanov(TwoPhaseScheme):
         for phase in Phases:
             phase_values = values.get_phase(phase)
             dt = np.min(
-                super().CFL(
+                self._euler_schemes[phase].CFL(
                     phase_values, volumes, normals, surfaces, CFL_value
                 ),
                 dt,
