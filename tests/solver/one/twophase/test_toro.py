@@ -4,7 +4,8 @@ import pytest
 
 from collections import namedtuple
 from dataclasses import dataclass
-from matplotlib.animation import ArtistAnimation
+from matplotlib.animation import FuncAnimation
+from matplotlib.gridspec import GridSpec
 
 from josie.solver.euler.eos import (
     PerfectGas,
@@ -17,13 +18,15 @@ from josie.solver.scheme.time import ExplicitEuler
 from josie.solver.twophase.eos import TwoPhaseEOS
 from josie.solver.twophase.closure import Closure, Classical
 from josie.solver.twophase.schemes import Rusanov, Upwind
-from josie.solver.twophase.state import PhasePair, Q
+from josie.solver.twophase.state import Phases, PhasePair, Q
 from josie.solver.twophase.solver import TwoPhaseSolver
 
 
 class ToroScheme(ExplicitEuler, Rusanov):
     pass
 
+
+# These class are used to store the left/right state for each phase
 
 RiemannState = namedtuple("RiemannState", ["rho", "U", "V", "p", "eos"])
 
@@ -51,7 +54,7 @@ riemann_states = [
                     rho=1, U=0, V=0, p=1, eos=PerfectGas(gamma=1.4)
                 ),
                 phase2=RiemannState(
-                    rho=0, U=0, V=0, p=0, eos=PerfectGas(gamma=1.4)
+                    rho=1, U=0, V=0, p=1, eos=PerfectGas(gamma=1.4)
                 ),
             ),
         ),
@@ -62,7 +65,7 @@ riemann_states = [
                     rho=0.125, U=0, V=0, p=0.1, eos=PerfectGas(gamma=1.4)
                 ),
                 phase2=RiemannState(
-                    rho=0, U=0, V=0, p=0, eos=PerfectGas(gamma=1.4)
+                    rho=0.125, U=0, V=0, p=0.1, eos=PerfectGas(gamma=1.4)
                 ),
             ),
         ),
@@ -124,7 +127,26 @@ def set_bc_state(bc_state: RiemannBCState):
             phase, np.asarray((rho, rhoU, rhoV, rhoE, rhoe, U, V, p, c))
         )
 
-        return state_array
+    return state_array
+
+
+def plot_func(data, lines, axes, fields_to_plot):
+    x = data[0]
+    values = data[1]
+
+    # Alpha
+    line = lines[0]
+    line.set_data(x, values[..., Q.fields.alpha])
+    ax = axes[0]
+    ax.relim()
+    ax.autoscale_view()
+
+    for i, field in enumerate(fields_to_plot, 1):
+        line = lines[i]
+        line.set_data(x, values[..., field])
+        ax = axes[i]
+        ax.relim()
+        ax.autoscale_view()
 
 
 @pytest.mark.parametrize("riemann_problem", riemann_states)
@@ -160,7 +182,6 @@ def test_toro(riemann_problem: RiemannProblem, plot):
     closure = riemann_problem.closure
 
     scheme = ToroScheme(eos, closure)
-    __import__("ipdb").set_trace()
     solver = TwoPhaseSolver(mesh, scheme)
     solver.init(init_fun)
 
@@ -168,48 +189,54 @@ def test_toro(riemann_problem: RiemannProblem, plot):
     t = 0
     CFL = riemann_problem.CFL
 
+    # Initialize stuff per each phase, plot only conservative stuff
     if plot:
-        ims = []
-        fig = plt.figure()
-        ax1 = plt.subplot(221)
-        ax2 = plt.subplot(222)
-        ax3 = plt.subplot(223)
-        ax4 = plt.subplot(224)
+        fields = Q.fields
+        fields_to_plot = [
+            fields.rho1,
+            fields.rho2,
+            fields.U1,
+            fields.U2,
+            fields.p1,
+            fields.p2,
+        ]
+        num_fields = len(fields_to_plot) // 2
 
-    while t <= final_time:
+        time_series = []
+        artists = []
+        axes = []
+
         x = solver.mesh.centroids[..., 0]
         x = x.reshape(x.size)
 
-        alpha = solver.values[..., Q.fields.alpha]
-        alpha = alpha.reshape(alpha.size)
+        fig = plt.figure()
 
-        rho = solver.values[..., Q.fields.rho1]
-        rho = rho.reshape(rho.size)
+        # First plot alpha
+        num_fields += 1
+        gs = GridSpec(num_fields, 2)
+        ax: plt.Axes = fig.add_subplot(gs[0, :])
+        field_value = solver.values[..., fields.alpha]
+        (line,) = ax.plot(x, field_value, label=r"$\alpha$")
+        ax.legend(loc="best")
+        artists.append(line)
+        axes.append(ax)
 
-        U = solver.values[..., Q.fields.U1]
-        U = U.reshape(U.size)
+        for i, field in enumerate(fields_to_plot, 2):
+            # Indices in the plot grid
+            idx, idy = np.unravel_index(i, (num_fields, 2))
+            ax: plt.Axes = fig.add_subplot(gs[idx, idy])
+            field_value = solver.values[..., field]
+            (line,) = ax.plot(x, field_value, label=field.name)
+            ax.legend(loc="best")
+            artists.append(line)
+            axes.append(ax)
 
-        p = solver.values[:, :, Q.fields.p1]
-        p = p.reshape(p.size)
-
+    while t <= final_time:
         if plot:
-            (im1,) = ax1.plot(x, rho, "k-")
-            ax1.set_xlabel("x")
-            ax1.set_ylabel(r"$\rho$")
+            x = solver.mesh.centroids[..., 0]
+            x = x.reshape(x.size)
 
-            (im2,) = ax2.plot(x, U, "k-")
-            ax2.set_xlabel("x")
-            ax2.set_ylabel("U")
-
-            (im3,) = ax3.plot(x, p, "k-")
-            ax3.set_xlabel("x")
-            ax3.set_ylabel("p")
-
-            (im4,) = ax4.plot(x, alpha, "k-")
-            ax4.set_xlabel("x")
-            ax4.set_ylabel(r"$\alpha$")
-
-            ims.append([im1, im2, im3, im4])
+            time_series.append((x, np.copy(solver.values).view(Q)))
 
         dt = scheme.CFL(
             solver.values,
@@ -218,13 +245,19 @@ def test_toro(riemann_problem: RiemannProblem, plot):
             solver.mesh.surfaces,
             CFL,
         )
+        assert ~np.isnan(dt)
         solver.step(dt)
 
         t += dt
         print(f"Time: {t}, dt: {dt}")
 
     if plot:
-        plt.tight_layout()
-        _ = ArtistAnimation(fig, ims, interval=50)
+        fig.tight_layout()
+        _ = FuncAnimation(
+            fig,
+            plot_func,
+            [(data[0], data[1]) for data in time_series],
+            fargs=(artists, axes, fields_to_plot),
+        )
         plt.show()
         plt.close()

@@ -154,7 +154,7 @@ class Rusanov(EulerScheme):
         a detailed view on compressible schemes, given a suitable
         """
 
-        FS = np.empty_like(values).view(Q)
+        FS = np.zeros_like(values).view(Q)
         fields = values.fields
 
         U = self.compute_U_norm(values, normals)
@@ -175,7 +175,7 @@ class Rusanov(EulerScheme):
 
         # And the we found the max on the last axis (i.e. the maximum value
         # of sigma for each cell)
-        sigma = np.max(sigma_array, axis=-1)
+        sigma = np.max(sigma_array, axis=-1, keepdims=True)
 
         DeltaF = 0.5 * (self.problem.F(values) + self.problem.F(neigh_values))
 
@@ -187,9 +187,7 @@ class Rusanov(EulerScheme):
         values_cons = values.get_conservative()
         neigh_values_cons = neigh_values.get_conservative()
 
-        DeltaQ = (
-            0.5 * sigma[..., np.newaxis] * (neigh_values_cons - values_cons)
-        )
+        DeltaQ = 0.5 * sigma * (neigh_values_cons - values_cons)
 
         FS.set_conservative(surfaces[..., np.newaxis] * (DeltaF - DeltaQ))
 

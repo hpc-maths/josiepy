@@ -44,6 +44,37 @@ class TwoPhaseScheme(Scheme):
     def __init__(self, eos: TwoPhaseEOS, closure: Closure):
         self.problem: TwoPhaseProblem = TwoPhaseProblem(eos, closure)
 
+    def post_step(self, values: Q):
+        """ During the step we update the conservative values. After the
+        step we update the non-conservative variables. This method updates
+        the values of the non-conservative (auxiliary) variables using the
+        :class:`~.EOS`
+        """
+
+        for phase in Phases:
+            phase_values = values.get_phase(phase)
+            fields = phase_values.fields
+
+            rho = phase_values[..., fields.rho]
+            rhoU = phase_values[..., fields.rhoU]
+            rhoV = phase_values[..., fields.rhoV]
+            rhoE = phase_values[..., fields.rhoE]
+
+            U = np.divide(rhoU, rho)
+            V = np.divide(rhoV, rho)
+
+            rhoe = rhoE - 0.5 * rho * (np.power(U, 2) + np.power(V, 2))
+            e = np.divide(rhoe, rho)
+
+            p = self.problem[phase].eos.p(rho, e)
+            c = self.problem[phase].eos.sound_velocity(rho, p)
+
+            phase_values[..., fields.rhoe] = rhoe
+            phase_values[..., fields.U] = U
+            phase_values[..., fields.V] = V
+            phase_values[..., fields.p] = p
+            phase_values[..., fields.c] = c
+
 
 class Upwind(NonConservativeScheme, TwoPhaseScheme):
     def G(
@@ -109,7 +140,7 @@ class Rusanov(ConvectiveScheme, TwoPhaseScheme):
             the values of the face surfaces of the face connecting the cell to
             is neighbour
         """
-        FS = np.empty_like(values).view(Q)
+        FS = np.zeros_like(values).view(Q)
 
         # Compute the sigma per each phase
         sigmas = []
@@ -129,17 +160,23 @@ class Rusanov(ConvectiveScheme, TwoPhaseScheme):
 
             # Let's retrieve the values of the sigma on every cell
             # for current cell
-            sigmas.append(EulerRusanov.compute_sigma(U, c))
+            sigma = EulerRusanov.compute_sigma(U, c)
             # and its neighbour
-            sigmas.append(EulerRusanov.compute_sigma(U_neigh, c_neigh))
+            sigma_neigh = EulerRusanov.compute_sigma(U_neigh, c_neigh)
 
-        # Concatenate all the sigmas in a single array
+            # Concatenate everything in a single array
+            sigma_array = np.concatenate((sigma, sigma_neigh), axis=-1)
+
+            # And the we found the max on the last axis (i.e. the maximum value
+            # of sigma for each cell)
+            sigmas.append(np.max(sigma_array, axis=-1, keepdims=True))
+
+        # Concatenate the sigmas for both phases in a single array
         sigma_array = np.concatenate(sigmas, axis=-1)
-        __import__("ipdb").set_trace()
 
         # And the we found the max on the last axis (i.e. the maximum value
         # of sigma for each cell)
-        sigma = np.max(sigma_array, axis=-1)
+        sigma = np.max(sigma_array, axis=-1, keepdims=True)
 
         # We apply the Euler flux per each phase
         for phase in Phases:
@@ -147,8 +184,8 @@ class Rusanov(ConvectiveScheme, TwoPhaseScheme):
             phase_neigh_values = neigh_values.get_phase(phase)
 
             DeltaF = 0.5 * (
-                self.problem[Phases.PHASE1].F(phase_values)
-                + self.problem[Phases.PHASE2].F(phase_neigh_values)
+                self.problem[phase].F(phase_values)
+                + self.problem[phase].F(phase_neigh_values)
             )
 
             # This is the flux tensor dot the normal
@@ -156,7 +193,7 @@ class Rusanov(ConvectiveScheme, TwoPhaseScheme):
 
             DeltaQ = (
                 0.5
-                * sigma[..., np.newaxis]
+                * sigma
                 * (
                     phase_neigh_values.get_conservative()
                     - phase_values.get_conservative()
