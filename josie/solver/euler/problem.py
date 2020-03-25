@@ -88,25 +88,25 @@ class EulerProblem(Problem):
         # Flux tensor
         F = np.empty((num_cells_x, num_cells_y, 4, 2))
 
-        rhoU = state_array[:, :, Q.fields.rhoU]
-        rhoV = state_array[:, :, Q.fields.rhoV]
-        rhoE = state_array[:, :, Q.fields.rhoE]
-        U = state_array[:, :, Q.fields.U]
-        V = state_array[:, :, Q.fields.V]
-        p = state_array[:, :, Q.fields.p]
+        rhoU = state_array[..., Q.fields.rhoU]
+        rhoV = state_array[..., Q.fields.rhoV]
+        rhoE = state_array[..., Q.fields.rhoE]
+        U = state_array[..., Q.fields.U]
+        V = state_array[..., Q.fields.V]
+        p = state_array[..., Q.fields.p]
 
         rhoUU = np.multiply(rhoU, U)
         rhoUV = np.multiply(rhoU, V)
         rhoVV = np.multiply(rhoV, V)
         rhoVU = np.multiply(rhoV, U)
 
-        F[:, :, 0, 0] = rhoU
-        F[:, :, 0, 1] = rhoV
-        F[:, :, 1, 0] = rhoUU + p
-        F[:, :, 1, 1] = rhoUV
-        F[:, :, 2, 0] = rhoVU
-        F[:, :, 2, 1] = rhoVV + p
-        F[:, :, 3, 0] = np.multiply(rhoE + p, U)
-        F[:, :, 3, 1] = np.multiply(rhoE + p, V)
+        F[..., 0, 0] = rhoU
+        F[..., 0, 1] = rhoV
+        F[..., 1, 0] = rhoUU + p
+        F[..., 1, 1] = rhoUV
+        F[..., 2, 0] = rhoVU
+        F[..., 2, 1] = rhoVV + p
+        F[..., 3, 0] = np.multiply(rhoE + p, U)
+        F[..., 3, 1] = np.multiply(rhoE + p, V)
 
         return F

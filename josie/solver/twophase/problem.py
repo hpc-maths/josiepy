@@ -106,19 +106,17 @@ class TwoPhaseProblem(Problem):
 
         # Gradient component along x
         B[..., Q.fields.alpha, Q.fields.alpha, Direction.X] = UI
-        B[..., Q.fields.rhoU1, Q.fields.alpha, Direction.X] = -pI
-        B[..., Q.fields.rhoE1, Q.fields.alpha, Direction.X] = -pIUI
-        B[..., Q.fields.rhoU2, Q.fields.alpha, Direction.X] = pI
-        B[..., Q.fields.rhoE2, Q.fields.alpha, Direction.X] = pIUI
+        B[..., Q.fields.arhoU1, Q.fields.alpha, Direction.X] = -pI
+        B[..., Q.fields.arhoE1, Q.fields.alpha, Direction.X] = -pIUI
+        B[..., Q.fields.arhoU2, Q.fields.alpha, Direction.X] = pI
+        B[..., Q.fields.arhoE2, Q.fields.alpha, Direction.X] = pIUI
 
         # Gradient component along y
         B[..., Q.fields.alpha, Q.fields.alpha, Direction.Y] = VI
-        B[..., Q.fields.rhoV1, Q.fields.alpha, Direction.Y] = -pI
-        B[..., Q.fields.rhoE1, Q.fields.alpha, Direction.Y] = -pIVI
-        B[..., Q.fields.rhoV2, Q.fields.alpha, Direction.Y] = pI
-        B[..., Q.fields.rhoE2, Q.fields.alpha, Direction.Y] = pIVI
-
-        __import__("ipdb").set_trace()
+        B[..., Q.fields.arhoV1, Q.fields.alpha, Direction.Y] = -pI
+        B[..., Q.fields.arhoE1, Q.fields.alpha, Direction.Y] = -pIVI
+        B[..., Q.fields.arhoV2, Q.fields.alpha, Direction.Y] = pI
+        B[..., Q.fields.arhoE2, Q.fields.alpha, Direction.Y] = pIVI
 
         return B
 
@@ -164,46 +162,48 @@ class TwoPhaseProblem(Problem):
         # Flux tensor
         F = np.zeros((num_cells_x, num_cells_y, 9, 2))
 
-        arhoU1 = state_array[:, :, Q.fields.arhoU1]
-        arhoV1 = state_array[:, :, Q.fields.arhoV1]
-        arhoE1 = state_array[:, :, Q.fields.arhoE1]
-        U1 = state_array[:, :, Q.fields.U1]
-        V1 = state_array[:, :, Q.fields.V1]
-        p1 = state_array[:, :, Q.fields.p1]
+        arhoU1 = state_array[..., Q.fields.arhoU1]
+        arhoV1 = state_array[..., Q.fields.arhoV1]
+        arhoE1 = state_array[..., Q.fields.arhoE1]
+        U1 = state_array[..., Q.fields.U1]
+        V1 = state_array[..., Q.fields.V1]
+        p1 = state_array[..., Q.fields.p1]
 
         arhoUU1 = np.multiply(arhoU1, U1)
         arhoUV1 = np.multiply(arhoU1, V1)
         arhoVV1 = np.multiply(arhoV1, V1)
         arhoVU1 = np.multiply(arhoV1, U1)
 
-        arhoU2 = state_array[:, :, Q.fields.arhoU2]
-        arhoV2 = state_array[:, :, Q.fields.arhoV2]
-        arhoE2 = state_array[:, :, Q.fields.arhoE2]
-        U2 = state_array[:, :, Q.fields.U2]
-        V2 = state_array[:, :, Q.fields.V2]
-        p2 = state_array[:, :, Q.fields.p2]
+        arhoU2 = state_array[..., Q.fields.arhoU2]
+        arhoV2 = state_array[..., Q.fields.arhoV2]
+        arhoE2 = state_array[..., Q.fields.arhoE2]
+        U2 = state_array[..., Q.fields.U2]
+        V2 = state_array[..., Q.fields.V2]
+        p2 = state_array[..., Q.fields.p2]
 
         arhoUU2 = np.multiply(arhoU2, U2)
         arhoUV2 = np.multiply(arhoU2, V2)
         arhoVV2 = np.multiply(arhoV2, V2)
         arhoVU2 = np.multiply(arhoV2, U2)
 
-        F[:, :, 1, 0] = arhoU1
-        F[:, :, 1, 1] = arhoV1
-        F[:, :, 2, 0] = arhoUU1 + p1
-        F[:, :, 2, 1] = arhoUV1
-        F[:, :, 3, 0] = arhoVU1
-        F[:, :, 3, 1] = arhoVV1 + p1
-        F[:, :, 4, 0] = np.multiply(arhoE1 + p1, U1)
-        F[:, :, 4, 1] = np.multiply(arhoE1 + p1, V1)
+        # First row F[..., 0, k] is related to alpha, that has no conservative
+        # flux
+        F[..., 1, 0] = arhoU1
+        F[..., 1, 1] = arhoV1
+        F[..., 2, 0] = arhoUU1 + p1
+        F[..., 2, 1] = arhoUV1
+        F[..., 3, 0] = arhoVU1
+        F[..., 3, 1] = arhoVV1 + p1
+        F[..., 4, 0] = np.multiply(arhoE1 + p1, U1)
+        F[..., 4, 1] = np.multiply(arhoE1 + p1, V1)
 
-        F[:, :, 5, 0] = arhoU2
-        F[:, :, 5, 1] = arhoV2
-        F[:, :, 6, 0] = arhoUU2 + p2
-        F[:, :, 6, 1] = arhoUV2
-        F[:, :, 7, 0] = arhoVU2
-        F[:, :, 7, 1] = arhoVV2 + p2
-        F[:, :, 8, 0] = np.multiply(arhoE2 + p2, U2)
-        F[:, :, 8, 1] = np.multiply(arhoE2 + p2, V2)
+        F[..., 5, 0] = arhoU2
+        F[..., 5, 1] = arhoV2
+        F[..., 6, 0] = arhoUU2 + p2
+        F[..., 6, 1] = arhoUV2
+        F[..., 7, 0] = arhoVU2
+        F[..., 7, 1] = arhoVV2 + p2
+        F[..., 8, 0] = np.multiply(arhoE2 + p2, U2)
+        F[..., 8, 1] = np.multiply(arhoE2 + p2, V2)
 
         return F

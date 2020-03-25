@@ -104,7 +104,7 @@ class Upwind(NonConservativeScheme, TwoPhaseScheme):
 
         # Upwind
         # Cells where the normal interfacial velocity is > 0
-        idx = np.where(U_face > 0)
+        idx = np.where(U_face >= 0)
         Q_face[idx, ...] = neigh_values[idx, ...]
 
         # Cells where the normal interfacial velocity is < 0
