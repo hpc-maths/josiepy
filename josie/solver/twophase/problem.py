@@ -28,12 +28,11 @@ import numpy as np
 
 
 from josie.solver.problem import Problem
-from josie.solver.euler.problem import EulerProblem
 from josie.math import Direction
 
 from .eos import TwoPhaseEOS
 from .closure import Closure
-from .state import Q, Phases, PhasePair
+from .state import Q
 
 
 class TwoPhaseProblem(Problem):
@@ -41,19 +40,8 @@ class TwoPhaseProblem(Problem):
     equations first described in :cite:`baer_nunziato` """
 
     def __init__(self, eos: TwoPhaseEOS, closure: Closure):
-        # We re-use the EulerProblem code
-        eos1 = eos[Phases.PHASE1]
-        eos2 = eos[Phases.PHASE2]
-        self._subproblems = PhasePair(EulerProblem(eos1), EulerProblem(eos2))
-
         self.eos = eos
         self.closure = closure
-
-    def __getitem__(self, phase: Phases) -> EulerProblem:
-        """ Return the :class:`~.EulerProblem` associated to the required
-        phase"""
-
-        return self._subproblems[phase]
 
     def B(self, state_array: Q):
         r""" This returns the tensor that pre-multiplies the non-conservative
@@ -130,6 +118,8 @@ class TwoPhaseProblem(Problem):
         B[..., Q.fields.rhoV2, Q.fields.alpha, Direction.Y] = pI
         B[..., Q.fields.rhoE2, Q.fields.alpha, Direction.Y] = pIVI
 
+        __import__("ipdb").set_trace()
+
         return B
 
     def F(self, state_array: Q) -> np.ndarray:
@@ -174,11 +164,46 @@ class TwoPhaseProblem(Problem):
         # Flux tensor
         F = np.zeros((num_cells_x, num_cells_y, 9, 2))
 
-        # Calculate the flux using the Euler flux per each phase
-        # each phase state hase 9 fields
-        for phase in Phases:
-            F[..., phase : phase + 9, :] = self._subproblems[phase].F(
-                state_array.get_phase(phase)
-            )
+        arhoU1 = state_array[:, :, Q.fields.arhoU1]
+        arhoV1 = state_array[:, :, Q.fields.arhoV1]
+        arhoE1 = state_array[:, :, Q.fields.arhoE1]
+        U1 = state_array[:, :, Q.fields.U1]
+        V1 = state_array[:, :, Q.fields.V1]
+        p1 = state_array[:, :, Q.fields.p1]
+
+        arhoUU1 = np.multiply(arhoU1, U1)
+        arhoUV1 = np.multiply(arhoU1, V1)
+        arhoVV1 = np.multiply(arhoV1, V1)
+        arhoVU1 = np.multiply(arhoV1, U1)
+
+        arhoU2 = state_array[:, :, Q.fields.arhoU2]
+        arhoV2 = state_array[:, :, Q.fields.arhoV2]
+        arhoE2 = state_array[:, :, Q.fields.arhoE2]
+        U2 = state_array[:, :, Q.fields.U2]
+        V2 = state_array[:, :, Q.fields.V2]
+        p2 = state_array[:, :, Q.fields.p2]
+
+        arhoUU2 = np.multiply(arhoU2, U2)
+        arhoUV2 = np.multiply(arhoU2, V2)
+        arhoVV2 = np.multiply(arhoV2, V2)
+        arhoVU2 = np.multiply(arhoV2, U2)
+
+        F[:, :, 1, 0] = arhoU1
+        F[:, :, 1, 1] = arhoV1
+        F[:, :, 2, 0] = arhoUU1 + p1
+        F[:, :, 2, 1] = arhoUV1
+        F[:, :, 3, 0] = arhoVU1
+        F[:, :, 3, 1] = arhoVV1 + p1
+        F[:, :, 4, 0] = np.multiply(arhoE1 + p1, U1)
+        F[:, :, 4, 1] = np.multiply(arhoE1 + p1, V1)
+
+        F[:, :, 5, 0] = arhoU2
+        F[:, :, 5, 1] = arhoV2
+        F[:, :, 6, 0] = arhoUU2 + p2
+        F[:, :, 6, 1] = arhoUV2
+        F[:, :, 7, 0] = arhoVU2
+        F[:, :, 7, 1] = arhoVV2 + p2
+        F[:, :, 8, 0] = np.multiply(arhoE2 + p2, U2)
+        F[:, :, 8, 1] = np.multiply(arhoE2 + p2, V2)
 
         return F

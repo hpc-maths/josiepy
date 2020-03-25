@@ -14,21 +14,26 @@ from josie.solver.euler.eos import (
 from josie.geom import Line
 from josie.bc import Dirichlet
 from josie.mesh import Mesh, SimpleCell
+from josie.solver.scheme.scheme import Scheme
 from josie.solver.scheme.time import ExplicitEuler
 from josie.solver.twophase.eos import TwoPhaseEOS
-from josie.solver.twophase.closure import Closure, Classical
+from josie.solver.twophase.closure import Classical
 from josie.solver.twophase.schemes import Rusanov, Upwind
-from josie.solver.twophase.state import Phases, PhasePair, Q
+from josie.solver.twophase.state import PhasePair, Q
 from josie.solver.twophase.solver import TwoPhaseSolver
 
 
-class ToroScheme(ExplicitEuler, Rusanov):
+class ToroConvectiveScheme(Rusanov, ExplicitEuler):
+    pass
+
+
+class ToroScheme(Rusanov, Upwind, ExplicitEuler):
     pass
 
 
 # These class are used to store the left/right state for each phase
 
-RiemannState = namedtuple("RiemannState", ["rho", "U", "V", "p", "eos"])
+RiemannState = namedtuple("RiemannState", ["rho", "U", "V", "p"])
 
 
 @dataclass
@@ -41,76 +46,78 @@ class RiemannBCState:
 class RiemannProblem:
     left: RiemannBCState
     right: RiemannBCState
-    closure: Closure
     CFL: float
+    scheme: Scheme
 
 
 riemann_states = [
+    #############
+    #  Test #0  #
+    #############
     RiemannProblem(
         left=RiemannBCState(
-            alpha=0,
+            alpha=0.5,
             state=PhasePair(
-                phase1=RiemannState(
-                    rho=1, U=0, V=0, p=1, eos=PerfectGas(gamma=1.4)
-                ),
-                phase2=RiemannState(
-                    rho=1, U=0, V=0, p=1, eos=PerfectGas(gamma=1.4)
-                ),
+                phase1=RiemannState(rho=1, U=0, V=0, p=1,),
+                phase2=RiemannState(rho=1, U=0, V=0, p=1,),
             ),
         ),
         right=RiemannBCState(
-            alpha=0,
+            alpha=0.5,
             state=PhasePair(
-                phase1=RiemannState(
-                    rho=0.125, U=0, V=0, p=0.1, eos=PerfectGas(gamma=1.4)
-                ),
-                phase2=RiemannState(
-                    rho=0.125, U=0, V=0, p=0.1, eos=PerfectGas(gamma=1.4)
-                ),
+                phase1=RiemannState(rho=0.125, U=0, V=0, p=0.1,),
+                phase2=RiemannState(rho=0.125, U=0, V=0, p=0.1,),
             ),
         ),
-        closure=Classical(),
         CFL=0.5,
+        scheme=ToroConvectiveScheme(
+            eos=TwoPhaseEOS(
+                phase1=PerfectGas(gamma=1.4), phase2=PerfectGas(gamma=1.4)
+            ),
+            closure=Classical(),
+        ),
     ),
+    #############
+    #  Test #1  #
+    #############
     RiemannProblem(
         left=RiemannBCState(
             alpha=0.8,
             state=PhasePair(
-                phase1=RiemannState(
-                    rho=1, U=0, V=0, p=1, eos=PerfectGas(gamma=1.4)
-                ),
-                phase2=RiemannState(
-                    rho=0.2, U=0, V=0, p=0.3, eos=PerfectGas(gamma=1.4)
-                ),
+                phase1=RiemannState(rho=1, U=0, V=0, p=1,),
+                phase2=RiemannState(rho=0.2, U=0, V=0, p=0.3,),
             ),
         ),
         right=RiemannBCState(
             alpha=0.3,
             state=PhasePair(
-                phase1=RiemannState(
-                    rho=1, U=0, V=0, p=1, eos=PerfectGas(gamma=1.4)
-                ),
-                phase2=RiemannState(
-                    rho=1, U=0, V=0, p=1, eos=PerfectGas(gamma=1.4)
-                ),
+                phase1=RiemannState(rho=1, U=0, V=0, p=1,),
+                phase2=RiemannState(rho=1, U=0, V=0, p=1,),
             ),
         ),
-        closure=Classical(),
         CFL=0.1,
+        scheme=ToroScheme(
+            eos=TwoPhaseEOS(
+                phase1=PerfectGas(gamma=1.4), phase2=PerfectGas(gamma=1.4)
+            ),
+            closure=Classical(),
+        ),
     ),
 ]
 
 
-def set_bc_state(bc_state: RiemannBCState):
+def set_bc_state(bc_state: RiemannBCState, eos: TwoPhaseEOS):
     fields = Q.fields
     state_array: Q = np.zeros(len(fields)).view(Q)
 
     alpha = bc_state.alpha
     state_array[..., fields.alpha] = alpha
 
-    for phase, phase_data in bc_state.state.items():
-        eos: PerfectGas = phase_data.eos
+    alphas = PhasePair(alpha, 1 - alpha)
 
+    for phase, phase_data in bc_state.state.items():
+        alpha = alphas[phase]
+        phase_eos = eos[phase]
         rho = phase_data.rho
         U = phase_data.U
         rhoU = rho * U
@@ -118,13 +125,26 @@ def set_bc_state(bc_state: RiemannBCState):
         rhoV = rho * V
         p = phase_data.p
 
-        rhoe = eos.rhoe(rho, p)
+        rhoe = phase_eos.rhoe(rho, p)
         E = rhoe / rho + 0.5 * (U ** 2 + V ** 2)
         rhoE = rho * E
-        c = eos.sound_velocity(rho, p)
+        c = phase_eos.sound_velocity(rho, p)
 
         state_array.set_phase(
-            phase, np.asarray((rho, rhoU, rhoV, rhoE, rhoe, U, V, p, c))
+            phase,
+            np.asarray(
+                (
+                    alpha * rho,
+                    alpha * rhoU,
+                    alpha * rhoV,
+                    alpha * rhoE,
+                    rhoe,
+                    U,
+                    V,
+                    p,
+                    c,
+                )
+            ),
         )
 
     return state_array
@@ -149,16 +169,16 @@ def plot_func(data, lines, axes, fields_to_plot):
         ax.autoscale_view()
 
 
-@pytest.mark.parametrize("riemann_problem", riemann_states)
-def test_toro(riemann_problem: RiemannProblem, plot):
+@pytest.mark.parametrize("riemann", riemann_states)
+def test_toro(riemann: RiemannProblem, plot):
     left = Line([0, 0], [0, 1])
     bottom = Line([0, 0], [1, 0])
     right = Line([1, 0], [1, 1])
     top = Line([0, 1], [1, 1])
 
     # BC
-    Q_left: Q = set_bc_state(riemann_problem.left)
-    Q_right: Q = set_bc_state(riemann_problem.right)
+    Q_left: Q = set_bc_state(riemann.left, riemann.scheme.problem.eos)
+    Q_right: Q = set_bc_state(riemann.right, riemann.scheme.problem.eos)
 
     left.bc = Dirichlet(Q_left)
     right.bc = Dirichlet(Q_right)
@@ -175,26 +195,20 @@ def test_toro(riemann_problem: RiemannProblem, plot):
         solver.values[np.where(xc > 0.5), :, :] = Q_right
         solver.values[np.where(xc <= 0.5), :, :] = Q_left
 
-    eos = TwoPhaseEOS(
-        phase1=riemann_problem.left.state.phase1.eos,
-        phase2=riemann_problem.left.state.phase2.eos,
-    )
-    closure = riemann_problem.closure
-
-    scheme = ToroScheme(eos, closure)
+    scheme = riemann.scheme
     solver = TwoPhaseSolver(mesh, scheme)
     solver.init(init_fun)
 
     final_time = 0.25
     t = 0
-    CFL = riemann_problem.CFL
+    CFL = riemann.CFL
 
     # Initialize stuff per each phase, plot only conservative stuff
     if plot:
         fields = Q.fields
         fields_to_plot = [
-            fields.rho1,
-            fields.rho2,
+            fields.arho1,
+            fields.arho2,
             fields.U1,
             fields.U2,
             fields.p1,

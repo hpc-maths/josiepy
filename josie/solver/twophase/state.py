@@ -26,21 +26,12 @@
 # official policies, either expressed or implied, of Ruben Di Battista.
 from __future__ import annotations
 
+import numpy as np
+
 from enum import IntEnum
 from typing import Any, Dict
 
 from josie.solver.state import State
-from josie.solver.euler.state import Q as EulerQ, ConsQ
-
-
-class Phases(IntEnum):
-    """ A phase indicator :class:`IntEnum`. It gives the index within the
-    :class:`State` array where that phase state variables begin
-
-    """
-
-    PHASE1 = 1
-    PHASE2 = 10
 
 
 class PhasePair:
@@ -77,28 +68,99 @@ class PhasePair:
         return self._data[Phases.PHASE2]
 
 
+class Phases(IntEnum):
+    """ A phase indicator :class:`IntEnum`. It gives the index within the
+    :class:`Q` array where that phase state variables begin
+
+    """
+
+    PHASE1 = 1
+    PHASE2 = 10
+
+
 class Fields(IntEnum):
     alpha = 0
 
-    rho1 = 1
-    rhoU1 = 2
-    rhoV1 = 3
-    rhoE1 = 4
-    rhoe1 = 5
+    arho1 = 1
+    arhoU1 = 2
+    arhoV1 = 3
+    arhoE1 = 4
+    arhoe1 = 5
     U1 = 6
     V1 = 7
     p1 = 8
     c1 = 9
 
-    rho2 = 10
-    rhoU2 = 11
-    rhoV2 = 12
-    rhoE2 = 13
-    rhoe2 = 14
+    arho2 = 10
+    arhoU2 = 11
+    arhoV2 = 12
+    arhoE2 = 13
+    arhoe2 = 14
     U2 = 15
     V2 = 16
     p2 = 17
     c2 = 18
+
+
+class ConsFields(IntEnum):
+    arho1 = 0
+    arhoU1 = 1
+    arhoV1 = 2
+    arhoE1 = 3
+
+    arho2 = 4
+    arhoU2 = 5
+    arhoV2 = 6
+    arhoE2 = 7
+
+
+class PhaseFields(IntEnum):
+    """ Indexing fields for a substate associated to a phase """
+
+    arho = 0
+    arhoU = 1
+    arhoV = 2
+    arhoE = 3
+    arhoe = 4
+    U = 5
+    V = 6
+    p = 7
+    c = 8
+
+
+class ConsPhaseFields(IntEnum):
+    """ Indexing fields for the conservative part of a phase state"""
+
+    arho = 0
+    arhoU = 1
+    arhoV = 2
+    arhoE = 3
+
+
+class ConsPhaseQ(State):
+    """ State array for the conservative part of a phase state """
+
+    fields = ConsPhaseFields
+
+
+class PhaseQ(State):
+    """ State array for one single phase """
+
+    fields = PhaseFields
+
+    def get_conservative(self) -> ConsPhaseQ:
+        return self[..., self.fields.arho : self.fields.arhoE + 1].view(
+            ConsPhaseQ
+        )
+
+    def set_conservative(self, values: ConsPhaseQ):
+        self[..., self.fields.arho : self.fields.arhoE + 1] = values
+
+
+class ConsQ(State):
+    """ State array for conservtive part of the state of one single phase """
+
+    fields = ConsFields
 
 
 class Q(State):
@@ -112,9 +174,9 @@ class Q(State):
 
     fields = Fields
 
-    def get_phase(self, phase: Phases) -> EulerQ:
+    def get_phase(self, phase: Phases) -> PhaseQ:
         r""" Returns the part of the state associated to a specified ``phase``
-        as an instance of :class:`~euler.state.Q`
+        as an instance of :class:`~PhaseQ`
 
         .. warning::
 
@@ -134,9 +196,9 @@ class Q(State):
             of the system associated to the requested phase
         """
 
-        return self[..., phase : phase + 9].view(EulerQ)
+        return self[..., phase : phase + 9].view(PhaseQ)
 
-    def set_phase(self, phase: Phases, values: EulerQ):
+    def set_phase(self, phase: Phases, values: PhaseQ):
         """ Sets the part of the system associated to the specified ``phase``
         with the provided `values`
 
@@ -152,7 +214,42 @@ class Q(State):
 
         self[..., phase : phase + 9] = values
 
-    def set_phase_conservative(self, phase: Phases, values: ConsQ):
+    def get_conservative(self) -> ConsQ:
+        """ Returns the conservative part of the state """
+        fields = self.fields
+        indices = np.array(
+            [
+                fields.arho1,
+                fields.arhoU1,
+                fields.arhoV1,
+                fields.arhoE1,
+                fields.arho2,
+                fields.arhoU2,
+                fields.arhoV2,
+                fields.arhoE2,
+            ]
+        )
+
+        return self[..., indices].view(ConsQ)
+
+    def set_conservative(self, values: ConsQ):
+        fields = self.fields
+        indices = np.array(
+            [
+                fields.arho1,
+                fields.arhoU1,
+                fields.arhoV1,
+                fields.arhoE1,
+                fields.arho2,
+                fields.arhoU2,
+                fields.arhoV2,
+                fields.arhoE2,
+            ]
+        )
+
+        self[..., indices] = values
+
+    def set_phase_conservative(self, phase: Phases, values: ConsPhaseQ):
         """ Sets the conservative part of the state of the given ``phase`` """
 
         self[..., phase : phase + 4] = values
