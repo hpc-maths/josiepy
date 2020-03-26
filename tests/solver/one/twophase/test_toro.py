@@ -155,15 +155,16 @@ def plot_func(data, lines, axes, fields_to_plot):
     values = data[1]
 
     # Alpha
+    alpha = values[..., Q.fields.alpha]
     line = lines[0]
-    line.set_data(x, values[..., Q.fields.alpha])
+    line.set_data(x, alpha)
     ax = axes[0]
     ax.relim()
     ax.autoscale_view()
 
     for i, field in enumerate(fields_to_plot, 1):
         line = lines[i]
-        line.set_data(x, values[..., field])
+        line.set_data(x, values[..., field] / alpha)
         ax = axes[i]
         ax.relim()
         ax.autoscale_view()
@@ -186,7 +187,7 @@ def test_toro(riemann: RiemannProblem, plot):
     bottom.bc = None
 
     mesh = Mesh(left, bottom, right, top, SimpleCell)
-    mesh.interpolate(500, 1)
+    mesh.interpolate(100, 1)
     mesh.generate()
 
     def init_fun(solver: TwoPhaseSolver):
@@ -199,7 +200,7 @@ def test_toro(riemann: RiemannProblem, plot):
     solver = TwoPhaseSolver(mesh, scheme)
     solver.init(init_fun)
 
-    final_time = 0.25
+    final_time = 0.15
     t = 0
     CFL = riemann.CFL
 
@@ -209,10 +210,10 @@ def test_toro(riemann: RiemannProblem, plot):
         fields_to_plot = [
             fields.arho1,
             fields.arho2,
-            fields.U1,
-            fields.U2,
-            fields.p1,
-            fields.p2,
+            fields.aU1,
+            fields.aU2,
+            fields.ap1,
+            fields.ap2,
         ]
         num_fields = len(fields_to_plot) // 2
 
@@ -229,8 +230,8 @@ def test_toro(riemann: RiemannProblem, plot):
         num_fields += 1
         gs = GridSpec(num_fields, 2)
         ax: plt.Axes = fig.add_subplot(gs[0, :])
-        field_value = solver.values[..., fields.alpha]
-        (line,) = ax.plot(x, field_value, label=r"$\alpha$")
+        alpha = solver.values[..., fields.alpha]
+        (line,) = ax.plot(x, alpha, label=r"$\alpha$")
         ax.legend(loc="best")
         artists.append(line)
         axes.append(ax)
@@ -240,7 +241,7 @@ def test_toro(riemann: RiemannProblem, plot):
             idx, idy = np.unravel_index(i, (num_fields, 2))
             ax: plt.Axes = fig.add_subplot(gs[idx, idy])
             field_value = solver.values[..., field]
-            (line,) = ax.plot(x, field_value, label=field.name)
+            (line,) = ax.plot(x, field_value / alpha, label=field.name)
             ax.legend(loc="best")
             artists.append(line)
             axes.append(ax)
@@ -253,11 +254,7 @@ def test_toro(riemann: RiemannProblem, plot):
             time_series.append((x, np.copy(solver.values).view(Q)))
 
         dt = scheme.CFL(
-            solver.values,
-            solver.mesh.volumes,
-            solver.mesh.normals,
-            solver.mesh.surfaces,
-            CFL,
+            solver.values, solver.mesh.volumes, solver.mesh.surfaces, CFL,
         )
         assert ~np.isnan(dt)
         solver.step(dt)
@@ -272,6 +269,7 @@ def test_toro(riemann: RiemannProblem, plot):
             plot_func,
             [(data[0], data[1]) for data in time_series],
             fargs=(artists, axes, fields_to_plot),
+            repeat=False,
         )
         plt.show()
         plt.close()

@@ -77,8 +77,8 @@ riemann_states = [
 ]
 
 
-@pytest.mark.parametrize("riemann_problem", riemann_states)
-def test_toro(riemann_problem, plot):
+@pytest.mark.parametrize("riemann", riemann_states)
+def test_toro(riemann, plot):
     left = Line([0, 0], [0, 1])
     bottom = Line([0, 0], [1, 0])
     right = Line([1, 0], [1, 1])
@@ -87,18 +87,18 @@ def test_toro(riemann_problem, plot):
     eos = PerfectGas(gamma=1.4)
 
     # BC
-    rhoL = riemann_problem["rhoL"]
-    uL = riemann_problem["uL"]
-    vL = riemann_problem["vL"]
-    pL = riemann_problem["pL"]
+    rhoL = riemann["rhoL"]
+    uL = riemann["uL"]
+    vL = riemann["vL"]
+    pL = riemann["pL"]
     rhoeL = eos.rhoe(rhoL, pL)
     EL = rhoeL / rhoL + 0.5 * (uL ** 2 + vL ** 2)
     cL = eos.sound_velocity(rhoL, pL)
 
-    rhoR = riemann_problem["rhoR"]
-    uR = riemann_problem["uR"]
-    vR = riemann_problem["vR"]
-    pR = riemann_problem["pR"]
+    rhoR = riemann["rhoR"]
+    uR = riemann["uR"]
+    vR = riemann["vR"]
+    pR = riemann["pR"]
     rhoeR = eos.rhoe(rhoR, pR)
     ER = rhoeR / rhoR + 0.5 * (uR ** 2 + vR ** 2)
     cR = eos.sound_velocity(rhoR, pR)
@@ -127,7 +127,7 @@ def test_toro(riemann_problem, plot):
 
     final_time = 0.25
     t = 0
-    CFL = riemann_problem["CFL"]
+    CFL = riemann["CFL"]
 
     if plot:
         ims = []
@@ -165,11 +165,7 @@ def test_toro(riemann_problem, plot):
             ims.append([im1, im2, im3])
 
         dt = scheme.CFL(
-            solver.values,
-            solver.mesh.volumes,
-            solver.mesh.normals,
-            solver.mesh.surfaces,
-            CFL,
+            solver.values, solver.mesh.volumes, solver.mesh.surfaces, CFL,
         )
         solver.step(dt)
 
@@ -178,5 +174,6 @@ def test_toro(riemann_problem, plot):
 
     if plot:
         _ = ArtistAnimation(fig, ims, interval=50)
+        plt.tight_layout()
         plt.show()
         plt.close()

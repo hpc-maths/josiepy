@@ -82,7 +82,11 @@ class Classical(Closure):
     """
 
     def pI(self, state_array: Q) -> np.ndarray:
-        return state_array[..., Q.fields.p2]
+        alpha = state_array[..., Q.fields.alpha]
+        return state_array[..., Q.fields.ap2] / (1 - alpha)
 
     def uI(self, state_array: Q) -> np.ndarray:
-        return state_array[..., Q.fields.U1 : Q.fields.V1 + 1]
+        alpha = state_array[..., Q.fields.alpha]
+        aU1_V1 = state_array[..., Q.fields.aU1 : Q.fields.aV1 + 1]
+
+        return np.einsum("...ij,...i->...ij", aU1_V1, 1 / alpha)

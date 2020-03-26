@@ -89,7 +89,8 @@ imgmath_latex_preamble = r"""
     \pdv{\pdeState}{t} + \divergence{\pdeConvective} +
     \pdeNonConservativeMultiplier \cdot \pdeGradient = \pdeSource \\
     \pdv{\ipdeState}{t} + \pdv{\ipdeConvective}{x_r} +
-    \ipdeNonConservativeMultiplier \ipdeGradient = \ipdeSource
+    \ipdeNonConservativeMultiplier \ipdeGradient = \ipdeSource \\
+    \qquad p,q = 1 \dotso N_\text{state} \; r = 1 \dotso N_\text{dim}
 }}
 
 \newcommand{\numConvective}{%

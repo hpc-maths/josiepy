@@ -72,8 +72,8 @@ class EulerScheme(ConvectiveScheme):
 
 
 class Rusanov(EulerScheme):
-    @classmethod
-    def compute_sigma(cls, U_norm: np.ndarray, c: np.ndarray) -> np.ndarray:
+    @staticmethod
+    def compute_sigma(U_norm: np.ndarray, c: np.ndarray) -> np.ndarray:
         r""" Returns the value of the :math:`\sigma`(i.e. the wave velocity) for
         the the Rusanov scheme.
 
@@ -109,8 +109,8 @@ class Rusanov(EulerScheme):
 
         return sigma
 
-    @classmethod
-    def compute_U_norm(cls, values: Q, normals: np.ndarray):
+    @staticmethod
+    def compute_U_norm(values: Q, normals: np.ndarray):
         """ Returns the value of the normal velocity component to the given
         ``normals``.
 
@@ -157,8 +157,13 @@ class Rusanov(EulerScheme):
         FS = np.zeros_like(values).view(Q)
         fields = values.fields
 
-        U = self.compute_U_norm(values, normals)
-        U_neigh = self.compute_U_norm(neigh_values, normals)
+        # Get the velocity components
+        UV_slice = slice(fields.U, fields.V + 1)
+        UV = values[..., UV_slice]
+        UV_neigh = neigh_values[..., UV_slice]
+
+        U = np.linalg.norm(UV, axis=-1)
+        U_neigh = np.linalg.norm(UV_neigh, axis=-1)
 
         # Speed of sound
         c = values[..., fields.c]
@@ -193,14 +198,8 @@ class Rusanov(EulerScheme):
 
         return FS
 
-    @classmethod
     def CFL(
-        cls,
-        values: Q,
-        volumes: np.ndarray,
-        normals: np.ndarray,
-        surfaces: np.ndarray,
-        CFL_value,
+        self, values: Q, volumes: np.ndarray, surfaces: np.ndarray, CFL_value,
     ) -> float:
 
         fields = values.fields
@@ -212,7 +211,7 @@ class Rusanov(EulerScheme):
         U = np.linalg.norm(UV, axis=-1)
         c = values[..., fields.c]
 
-        sigma = np.max(cls.compute_sigma(U, c))
+        sigma = np.max(Rusanov.compute_sigma(U, c))
 
         # Min face surface
         # TODO: This probably needs to be generalized for 3D

@@ -111,13 +111,11 @@ class Scheme(metaclass=abc.ABCMeta):
 
         raise NotImplementedError
 
-    @classmethod
     @abc.abstractmethod
     def CFL(
-        cls,
+        self,
         values: State,
         volumes: State,
-        normals: np.ndarray,
         surfaces: np.ndarray,
         CFL_value: float,
     ) -> float:
