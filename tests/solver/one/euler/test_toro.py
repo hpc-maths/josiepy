@@ -173,7 +173,7 @@ def test_toro(riemann, plot):
         print(f"Time: {t}, dt: {dt}")
 
     if plot:
-        _ = ArtistAnimation(fig, ims, interval=50)
+        _ = ArtistAnimation(fig, ims, interval=50, repeat=False)
         plt.tight_layout()
         plt.show()
         plt.close()

@@ -184,29 +184,33 @@ class TwoPhaseProblem(Problem):
         F = np.zeros((num_cells_x, num_cells_y, 9, 2)).view(FluxQ)
         fields = state_array.fields
 
+        alpha1 = state_array[..., fields.alpha]
         arhoU1 = state_array[..., fields.arhoU1]
         arhoV1 = state_array[..., fields.arhoV1]
         arhoE1 = state_array[..., fields.arhoE1]
-        aU1 = state_array[..., fields.aU1]
-        aV1 = state_array[..., fields.aV1]
-        ap1 = state_array[..., fields.ap1]
+        U1 = state_array[..., fields.U1]
+        V1 = state_array[..., fields.V1]
+        p1 = state_array[..., fields.p1]
+        ap1 = alpha1 * p1
 
-        arhoUU1 = np.multiply(arhoU1, aU1)
-        arhoUV1 = np.multiply(arhoU1, aV1)
-        arhoVV1 = np.multiply(arhoV1, aV1)
-        arhoVU1 = np.multiply(arhoV1, aU1)
+        alpha2 = 1 - alpha1
+        arhoUU1 = np.multiply(arhoU1, U1)
+        arhoUV1 = np.multiply(arhoU1, V1)
+        arhoVV1 = np.multiply(arhoV1, V1)
+        arhoVU1 = np.multiply(arhoV1, U1)
 
         arhoU2 = state_array[..., fields.arhoU2]
         arhoV2 = state_array[..., fields.arhoV2]
         arhoE2 = state_array[..., fields.arhoE2]
-        aU2 = state_array[..., fields.aU2]
-        aV2 = state_array[..., fields.aV2]
-        ap2 = state_array[..., fields.ap2]
+        U2 = state_array[..., fields.U2]
+        V2 = state_array[..., fields.V2]
+        p2 = state_array[..., fields.p2]
+        ap2 = alpha2 * p2
 
-        arhoUU2 = np.multiply(arhoU2, aU2)
-        arhoUV2 = np.multiply(arhoU2, aV2)
-        arhoVV2 = np.multiply(arhoV2, aV2)
-        arhoVU2 = np.multiply(arhoV2, aU2)
+        arhoUU2 = np.multiply(arhoU2, U2)
+        arhoUV2 = np.multiply(arhoU2, V2)
+        arhoVV2 = np.multiply(arhoV2, V2)
+        arhoVU2 = np.multiply(arhoV2, U2)
 
         F[..., F.fields.arho1, Direction.X] = arhoU1
         F[..., F.fields.arho1, Direction.Y] = arhoV1
@@ -214,8 +218,8 @@ class TwoPhaseProblem(Problem):
         F[..., F.fields.arhoU1, Direction.Y] = arhoUV1
         F[..., F.fields.arhoV1, Direction.X] = arhoVU1
         F[..., F.fields.arhoV1, Direction.Y] = arhoVV1 + ap1
-        F[..., F.fields.arhoE1, Direction.X] = np.multiply(arhoE1 + ap1, aU1)
-        F[..., F.fields.arhoE1, Direction.Y] = np.multiply(arhoE1 + ap1, aV1)
+        F[..., F.fields.arhoE1, Direction.X] = np.multiply(arhoE1 + ap1, U1)
+        F[..., F.fields.arhoE1, Direction.Y] = np.multiply(arhoE1 + ap1, V1)
 
         F[..., F.fields.arho2, Direction.X] = arhoU2
         F[..., F.fields.arho2, Direction.Y] = arhoV2
@@ -223,7 +227,7 @@ class TwoPhaseProblem(Problem):
         F[..., F.fields.arhoU2, Direction.Y] = arhoUV2
         F[..., F.fields.arhoV2, Direction.X] = arhoVU2
         F[..., F.fields.arhoV2, Direction.Y] = arhoVV2 + ap2
-        F[..., F.fields.arhoE2, Direction.X] = np.multiply(arhoE2 + ap2, aU2)
-        F[..., F.fields.arhoE2, Direction.Y] = np.multiply(arhoE2 + ap2, aV2)
+        F[..., F.fields.arhoE2, Direction.X] = np.multiply(arhoE2 + ap2, U2)
+        F[..., F.fields.arhoE2, Direction.Y] = np.multiply(arhoE2 + ap2, V2)
 
         return F

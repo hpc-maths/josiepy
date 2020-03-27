@@ -23,10 +23,6 @@ from josie.solver.twophase.state import PhasePair, Q
 from josie.solver.twophase.solver import TwoPhaseSolver
 
 
-class ToroConvectiveScheme(Rusanov, ExplicitEuler):
-    pass
-
-
 class ToroScheme(Rusanov, Upwind, ExplicitEuler):
     pass
 
@@ -46,8 +42,9 @@ class RiemannBCState:
 class RiemannProblem:
     left: RiemannBCState
     right: RiemannBCState
-    CFL: float
     scheme: Scheme
+    final_time: float
+    CFL: float
 
 
 riemann_states = [
@@ -69,13 +66,14 @@ riemann_states = [
                 phase2=RiemannState(rho=0.125, U=0, V=0, p=0.1,),
             ),
         ),
-        CFL=0.5,
-        scheme=ToroConvectiveScheme(
+        scheme=ToroScheme(
             eos=TwoPhaseEOS(
                 phase1=PerfectGas(gamma=1.4), phase2=PerfectGas(gamma=1.4)
             ),
             closure=Classical(),
         ),
+        final_time=0.25,
+        CFL=0.5,
     ),
     #############
     #  Test #1  #
@@ -95,13 +93,14 @@ riemann_states = [
                 phase2=RiemannState(rho=1, U=0, V=0, p=1,),
             ),
         ),
-        CFL=0.1,
         scheme=ToroScheme(
             eos=TwoPhaseEOS(
                 phase1=PerfectGas(gamma=1.4), phase2=PerfectGas(gamma=1.4)
             ),
             closure=Classical(),
         ),
+        final_time=0.15,
+        CFL=0.1,
     ),
 ]
 
@@ -164,7 +163,7 @@ def plot_func(data, lines, axes, fields_to_plot):
 
     for i, field in enumerate(fields_to_plot, 1):
         line = lines[i]
-        line.set_data(x, values[..., field] / alpha)
+        line.set_data(x, values[..., field])
         ax = axes[i]
         ax.relim()
         ax.autoscale_view()
@@ -187,7 +186,7 @@ def test_toro(riemann: RiemannProblem, plot):
     bottom.bc = None
 
     mesh = Mesh(left, bottom, right, top, SimpleCell)
-    mesh.interpolate(100, 1)
+    mesh.interpolate(500, 1)
     mesh.generate()
 
     def init_fun(solver: TwoPhaseSolver):
@@ -200,7 +199,7 @@ def test_toro(riemann: RiemannProblem, plot):
     solver = TwoPhaseSolver(mesh, scheme)
     solver.init(init_fun)
 
-    final_time = 0.15
+    final_time = riemann.final_time
     t = 0
     CFL = riemann.CFL
 
@@ -210,10 +209,10 @@ def test_toro(riemann: RiemannProblem, plot):
         fields_to_plot = [
             fields.arho1,
             fields.arho2,
-            fields.aU1,
-            fields.aU2,
-            fields.ap1,
-            fields.ap2,
+            fields.U1,
+            fields.U2,
+            fields.p1,
+            fields.p2,
         ]
         num_fields = len(fields_to_plot) // 2
 
@@ -241,7 +240,7 @@ def test_toro(riemann: RiemannProblem, plot):
             idx, idy = np.unravel_index(i, (num_fields, 2))
             ax: plt.Axes = fig.add_subplot(gs[idx, idy])
             field_value = solver.values[..., field]
-            (line,) = ax.plot(x, field_value / alpha, label=field.name)
+            (line,) = ax.plot(x, field_value, label=field.name)
             ax.legend(loc="best")
             artists.append(line)
             axes.append(ax)

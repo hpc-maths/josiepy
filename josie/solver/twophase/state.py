@@ -85,21 +85,21 @@ class Fields(IntEnum):
     arhoU1 = 2
     arhoV1 = 3
     arhoE1 = 4
-    arhoe1 = 5
-    aU1 = 6
-    aV1 = 7
-    ap1 = 8
-    ac1 = 9
+    rhoe1 = 5
+    U1 = 6
+    V1 = 7
+    p1 = 8
+    c1 = 9
 
     arho2 = 10
     arhoU2 = 11
     arhoV2 = 12
     arhoE2 = 13
     arhoe2 = 14
-    aU2 = 15
-    aV2 = 16
-    ap2 = 17
-    ac2 = 18
+    U2 = 15
+    V2 = 16
+    p2 = 17
+    c2 = 18
 
 
 class ConsFields(IntEnum):
@@ -134,11 +134,11 @@ class PhaseFields(IntEnum):
     arhoU = 1
     arhoV = 2
     arhoE = 3
-    arhoe = 4
-    aU = 5
-    aV = 6
-    ap = 7
-    ac = 8
+    rhoe = 4
+    U = 5
+    V = 6
+    p = 7
+    c = 8
 
 
 class ConsPhaseFields(IntEnum):

@@ -89,11 +89,11 @@ class TwoPhaseScheme(Scheme):
             p = self.problem.eos[phase].p(rho, e)
             c = self.problem.eos[phase].sound_velocity(rho, p)
 
-            phase_values[..., fields.arhoe] = alpha * rhoe
-            phase_values[..., fields.aU] = alpha * U
-            phase_values[..., fields.aV] = alpha * V
-            phase_values[..., fields.ap] = alpha * p
-            phase_values[..., fields.ac] = alpha * c
+            phase_values[..., fields.rhoe] = rhoe
+            phase_values[..., fields.U] = U
+            phase_values[..., fields.V] = V
+            phase_values[..., fields.p] = p
+            phase_values[..., fields.c] = c
 
 
 class Upwind(NonConservativeScheme, TwoPhaseScheme):
@@ -207,24 +207,22 @@ class Rusanov(ConvectiveScheme, TwoPhaseScheme):
             alpha = alphas[phase]
 
             # Get the velocity components
-            aUV_slice = slice(fields.aU, fields.aV + 1)
-            aUV = phase_values[..., aUV_slice]
-            aUV_neigh = phase_neigh_values[..., aUV_slice]
+            UV_slice = slice(fields.U, fields.V + 1)
+            UV = phase_values[..., UV_slice]
+            UV_neigh = phase_neigh_values[..., UV_slice]
 
-            aU = np.linalg.norm(aUV, axis=-1)
-            aU_neigh = np.linalg.norm(aUV_neigh, axis=-1)
+            U = np.linalg.norm(UV, axis=-1)
+            U_neigh = np.linalg.norm(UV_neigh, axis=-1)
 
             # Speed of sound
-            ac = phase_values[..., fields.ac]
-            ac_neigh = phase_neigh_values[..., fields.ac]
+            c = phase_values[..., fields.c]
+            c_neigh = phase_neigh_values[..., fields.c]
 
             # Let's retrieve the values of the sigma on every cell
             # for current cell
-            sigma = EulerRusanov.compute_sigma(aU / alpha, ac / alpha)
+            sigma = EulerRusanov.compute_sigma(U, c)
             # and its neighbour
-            sigma_neigh = EulerRusanov.compute_sigma(
-                aU_neigh / alpha, ac_neigh / alpha
-            )
+            sigma_neigh = EulerRusanov.compute_sigma(U_neigh, c_neigh)
 
             # Concatenate everything in a single array
             sigma_array = np.concatenate((sigma, sigma_neigh), axis=-1)
@@ -272,13 +270,13 @@ class Rusanov(ConvectiveScheme, TwoPhaseScheme):
             alpha = alphas[phase]
 
             # Get the velocity components
-            aUV_slice = slice(fields.aU, fields.aV + 1)
-            aUV = phase_values[..., aUV_slice]
+            UV_slice = slice(fields.U, fields.V + 1)
+            UV = phase_values[..., UV_slice]
 
-            aU = np.linalg.norm(aUV, axis=-1)
-            ac = phase_values[..., fields.ac]
+            U = np.linalg.norm(UV, axis=-1)
+            c = phase_values[..., fields.c]
 
-            sigma = np.max(EulerRusanov.compute_sigma(aU / alpha, ac / alpha))
+            sigma = np.max(EulerRusanov.compute_sigma(U, c))
 
             dt = np.min((dt, CFL_value * dx / sigma))
 
