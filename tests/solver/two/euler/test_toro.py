@@ -190,11 +190,7 @@ def test_toro(direction, riemann_problem, bc_fun, plot):
             # solver.save(t, "toro.xmf")
 
         dt = scheme.CFL(
-            solver.values,
-            solver.mesh.volumes,
-            solver.mesh.normals,
-            solver.mesh.surfaces,
-            CFL,
+            solver.values, solver.mesh.volumes, solver.mesh.surfaces, CFL,
         )
         assert ~np.isnan(dt)
         solver.step(dt)

@@ -103,15 +103,16 @@ class Fields(IntEnum):
 
 
 class ConsFields(IntEnum):
-    arho1 = 0
-    arhoU1 = 1
-    arhoV1 = 2
-    arhoE1 = 3
+    alpha = 0
+    arho1 = 1
+    arhoU1 = 2
+    arhoV1 = 3
+    arhoE1 = 4
 
-    arho2 = 4
-    arhoU2 = 5
-    arhoV2 = 6
-    arhoE2 = 7
+    arho2 = 5
+    arhoU2 = 6
+    arhoV2 = 7
+    arhoE2 = 8
 
 
 class FluxFields(IntEnum):
@@ -141,33 +142,10 @@ class PhaseFields(IntEnum):
     c = 8
 
 
-class ConsPhaseFields(IntEnum):
-    """ Indexing fields for the conservative part of a phase state"""
-
-    arho = 0
-    arhoU = 1
-    arhoV = 2
-    arhoE = 3
-
-
-class ConsPhaseQ(State):
-    """ State array for the conservative part of a phase state """
-
-    fields = ConsPhaseFields
-
-
 class PhaseQ(State):
     """ State array for one single phase """
 
     fields = PhaseFields
-
-    def get_conservative(self) -> ConsPhaseQ:
-        return self[..., self.fields.arho : self.fields.arhoE + 1].view(
-            ConsPhaseQ
-        )
-
-    def set_conservative(self, values: ConsPhaseQ):
-        self[..., self.fields.arho : self.fields.arhoE + 1] = values
 
 
 class ConsQ(State):
@@ -238,6 +216,7 @@ class Q(State):
         fields = self.fields
         indices = np.array(
             [
+                fields.alpha,
                 fields.arho1,
                 fields.arhoU1,
                 fields.arhoV1,
@@ -255,6 +234,7 @@ class Q(State):
         fields = self.fields
         indices = np.array(
             [
+                fields.alpha,
                 fields.arho1,
                 fields.arhoU1,
                 fields.arhoV1,
@@ -267,8 +247,3 @@ class Q(State):
         )
 
         self[..., indices] = values
-
-    def set_phase_conservative(self, phase: Phases, values: ConsPhaseQ):
-        """ Sets the conservative part of the state of the given ``phase`` """
-
-        self[..., phase : phase + 4] = values

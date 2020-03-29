@@ -50,6 +50,7 @@ class TwoPhaseScheme(Scheme):
         the values of the non-conservative (auxiliary) variables using the
         :class:`~.EOS`
         """
+
         alpha = values[..., values.fields.alpha]
 
         alphas = PhasePair(alpha, 1 - alpha)
@@ -63,22 +64,6 @@ class TwoPhaseScheme(Scheme):
             rhoU = phase_values[..., fields.arhoU] / alpha
             rhoV = phase_values[..., fields.arhoV] / alpha
             rhoE = phase_values[..., fields.arhoE] / alpha
-
-            # idx = np.where(alpha <= 1e-1)
-
-            # # Zero out fields with alpha too small
-            # rho[idx] = 1e-1
-            # rhoU[idx] = 1e-1
-            # rhoV[idx] = 1e-1
-            # rhoE[idx] = 1e-1
-
-            # idx = np.where(alpha > 1e-1)
-
-            # # The rest we can safely divide by alpha
-            # rho[idx] /= alpha[idx]
-            # rhoU[idx] /= alpha[idx]
-            # rhoV[idx] /= alpha[idx]
-            # rhoE[idx] /= alpha[idx]
 
             U = np.divide(rhoU, rho)
             V = np.divide(rhoV, rho)
@@ -110,9 +95,8 @@ class Upwind(NonConservativeScheme, TwoPhaseScheme):
         fluxes = super().accumulate(values, neigh_values, normals, surfaces)
 
         # Add nonconservative contribution
-        B = self.problem.B(values)
         G = self.G(values, neigh_values, normals, surfaces)
-        fluxes += np.einsum("...ij,...j->...i", B, G)
+        fluxes += G
 
         return fluxes
 
@@ -124,38 +108,37 @@ class Upwind(NonConservativeScheme, TwoPhaseScheme):
         surfaces: np.ndarray,
     ) -> np.ndarray:
 
-        # nx, ny, _ = values.shape
+        nx, ny, _ = values.shape
 
-        # alpha_face = np.zeros((nx, ny))
+        alpha_face = np.zeros((nx, ny))
 
-        # # Get vector of uI
-        # UI_VI = self.problem.closure.uI(values)
-        # UI_VI_neigh = self.problem.closure.uI(values)
+        # Get vector of uI
+        UI_VI = self.problem.closure.uI(values)
+        UI_VI_neigh = self.problem.closure.uI(neigh_values)
 
-        # # Normal uI
-        # UI = np.einsum("...k,...k->...", UI_VI, normals)
-        # UI_neigh = np.einsum("...k,...k->...", UI_VI_neigh, normals)
+        UI_VI_face = 0.5 * (UI_VI + UI_VI_neigh)
 
-        # UI_face = 0.5 * (UI + UI_neigh)
+        # Normal uI
+        U_face = np.einsum("...k,...k->...", UI_VI_face, normals)
 
         alpha = values[..., Q.fields.alpha]
         alpha_neigh = neigh_values[..., Q.fields.alpha]
 
-        # # Upwind
-        # # Cells where the normal interfacial velocity is > 0
-        # idx = np.where(UI_face >= 0)
+        idx = np.where(U_face >= 0)
+        if np.any(idx):
+            alpha_face[idx] = alpha[idx]
 
-        # alpha_face[idx] = alpha_neigh[idx]
+        idx = np.where(U_face < 0)
+        if np.any(idx):
+            alpha_face[idx] = alpha_neigh[idx]
 
-        # # Cells where the normal interfacial velocity is < 0
-        # idx = np.where(UI_face < 0)
-        # alpha_face[idx] = alpha[idx]
+        alphan_face = np.einsum("...i,...ij->...ij", alpha_face, normals)
 
-        alpha_face = 0.5 * (alpha + alpha_neigh)
+        G = np.einsum("...ij,...j->...i", self.problem.B(values), alphan_face)
 
-        alphan = np.einsum("...i,...ij->...ij", alpha_face, normals)
+        GS = surfaces[..., np.newaxis] * G
 
-        return surfaces[..., np.newaxis] * alphan
+        return GS
 
 
 class Rusanov(ConvectiveScheme, TwoPhaseScheme):
@@ -242,9 +225,6 @@ class Rusanov(ConvectiveScheme, TwoPhaseScheme):
 
         # This is the flux tensor dot the normal
         DeltaF = np.einsum("...kl,...l->...k", DeltaF, normals)
-
-        # Remove useless row related to alpha that has no convective flux
-        DeltaF = DeltaF[..., 1:]
 
         values_cons = values.get_conservative()
         neigh_values_cons = neigh_values.get_conservative()

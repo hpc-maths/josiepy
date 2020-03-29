@@ -22,7 +22,7 @@ class Q(State):
 
 
 def flux(state_array: Q) -> np.ndarray:
-    return V * state_array[:, np.newaxis]
+    return np.einsum("j,...i->...j", V, state_array)
 
 
 class AdvectionProblem(Problem):
@@ -40,28 +40,31 @@ def upwind(
     surfaces: np.ndarray,
 ):
 
-    F = np.zeros_like(values)
+    nx, ny, _ = values.shape
+
+    FS = np.zeros_like(values)
+    F = np.zeros((nx, ny, 2))
 
     # I do a dot product of each normal in `norm` by the advection velocity
     # Equivalent to: un = np.sum(Advection.V*(normals), axis=-1)
-    un = np.einsum("ijk,jk->ij", normals, V[np.newaxis, :])
+    Vn = np.einsum("...k,k->...", normals, V)
 
     # Check where un > 0
-    un_positive = np.all(un > 0)
+    idx = np.where(Vn > 0)
 
-    # Here the einsum is equivalent to a dot product element by element
-    # of flux and norm
-    if un_positive:
-        F = F + np.einsum("ijkl,ijl->ijk", flux(values), normals)
-    else:
-        F = F + np.einsum("ijkl,ijl->ijk", flux(neigh_values), normals)
+    if np.any(np.nonzero(idx)):
+        F[idx] = flux(values)[idx]
 
-    FS = np.einsum("ijk,ik->ij", F, surfaces)
+    idx = np.where(Vn < 0)
+    if np.any(np.nonzero(idx)):
+        F[idx] = flux(neigh_values)[idx]
 
-    return FS[:, np.newaxis, :]
+    FS = np.einsum("...j,...j->...", F, normals) * surfaces
+
+    return FS[..., np.newaxis]
 
 
-@njit(cache=True)
+@njit
 def upwind_jit(
     values: np.ndarray,
     neigh_values: np.ndarray,

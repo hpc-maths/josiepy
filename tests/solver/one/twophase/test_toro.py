@@ -23,8 +23,32 @@ from josie.solver.twophase.state import PhasePair, Q
 from josie.solver.twophase.solver import TwoPhaseSolver
 
 
+class AdvectionOnly(Upwind, ExplicitEuler):
+    def post_step(self, values):
+        pass
+
+    def CFL(
+        self, values: Q, volumes: np.ndarray, surfaces: np.ndarray, CFL_value,
+    ) -> float:
+
+        return 1e-3
+
+
 class ToroScheme(Rusanov, Upwind, ExplicitEuler):
     pass
+
+
+class NoPI(Classical):
+    def pI(self, state_array):
+        return np.zeros_like(state_array[..., state_array.fields.p1])
+
+    def uI(self, state_array):
+        uI = np.zeros_like(
+            state_array[..., state_array.fields.U1 : state_array.fields.V1 + 1]
+        )
+        uI[..., 0] = 1
+
+        return uI
 
 
 # These class are used to store the left/right state for each phase
@@ -48,9 +72,11 @@ class RiemannProblem:
 
 
 riemann_states = [
-    #############
-    #  Test #0  #
-    #############
+    # Test #1
+    # -------
+    # We set a constant value of alpha such that the non-conservative flux
+    # doesnt' intervene. The value for the rho, U, V, p values are the same as
+    # for the Test #1 in the Euler tests. We need to retrieve the same plots
     RiemannProblem(
         left=RiemannBCState(
             alpha=0.5,
@@ -75,9 +101,38 @@ riemann_states = [
         final_time=0.25,
         CFL=0.5,
     ),
-    #############
-    #  Test #1  #
-    #############
+    # Test #2
+    # -------
+    # We set a constant value of rho, U, V, p and just a non-constant alpha. In
+    # addition we set a Closure equation such that pI = 0. This should just
+    # make the non-conservative sheme work only for the alpha equation
+    RiemannProblem(
+        left=RiemannBCState(
+            alpha=0.8,
+            state=PhasePair(
+                phase1=RiemannState(rho=1, U=0, V=0, p=1,),
+                phase2=RiemannState(rho=1, U=0, V=0, p=1,),
+            ),
+        ),
+        right=RiemannBCState(
+            alpha=0.3,
+            state=PhasePair(
+                phase1=RiemannState(rho=1, U=0, V=0, p=1,),
+                phase2=RiemannState(rho=1, U=0, V=0, p=1,),
+            ),
+        ),
+        scheme=AdvectionOnly(
+            eos=TwoPhaseEOS(
+                phase1=PerfectGas(gamma=1.4), phase2=PerfectGas(gamma=1.4)
+            ),
+            closure=NoPI(),
+        ),
+        final_time=0.25,
+        CFL=0.5,
+    ),
+    # Test # 3
+    # -------
+    # The same as the test #1 in :cite:`tokareva_toro`
     RiemannProblem(
         left=RiemannBCState(
             alpha=0.8,
@@ -100,7 +155,7 @@ riemann_states = [
             closure=Classical(),
         ),
         final_time=0.15,
-        CFL=0.1,
+        CFL=0.25,
     ),
 ]
 
