@@ -30,6 +30,7 @@ badges:
     before_script: 
         - apt-get update && apt-get -y install git
     script: 
+        - git fetch --all --tags
         - pip install badgey
         - badgey LOCBadge loc.xml
         - badgey CoverageBadge cov.xml
