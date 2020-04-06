@@ -1,13 +1,13 @@
-*.egg-info/
 *.vtk
-/examples/.ipynb_checkpoints
-
 *.h5
 *.xmf
 *.xdmf
 *.mp4
 
+*.egg-info/
 
+/examples/.ipynb_checkpoints
+/examples/*.py
 
 # Testing stuff
 prof/

@@ -108,12 +108,18 @@ class AnimateState(NamedTuple):
 class MatplotlibBackend(PlotBackend):
     """ A :mod:`matplotlib`-based backend to plot 2D meshes.
 
-    The state is stored in a list of :class:`StateElement` objects.
+    Attributes
+    ----------
+    plot_state
+        A :class:`PlotState` storing the global state of the plot.
 
     """
 
+    _ani_states: Optional[List[AnimateState]]
+
     def __init__(self):
         self.plot_state: PlotState = PlotState()
+        self._ani_states = None
 
     @staticmethod
     def _create_patch_collection(mesh: Mesh) -> PatchCollection:
@@ -226,7 +232,8 @@ class MatplotlibBackend(PlotBackend):
             fig, ax = plt.subplots()
             fig.colorbar(patch_coll)
 
-            ax.add_collection(patch_coll)
+            ax.set_aspect("equal")
+            ax.add_collection(patch_coll, autolim=True)
             ax.autoscale_view()
 
             ani = FuncAnimation(
@@ -235,18 +242,22 @@ class MatplotlibBackend(PlotBackend):
                 repeat_delay=100,
                 func=ani_step,
                 frames=iter(self.plot_state),
-                fargs=(field),
+                fargs=(field,),
             )
             ani_states.append(AnimateState(fig=fig, animation=ani))
 
         plt.show()
 
+        # Store the animation list in the instance state in order to
+        # keep them from being garbage collected (e.g. in Jupyter notebooks)
+        self._ani_states = ani_states
+
     def show(self, fields: Union[List[str], str], fps=25):
         """ Show the plots on screen
 
-        The logic to plot here is that if :attr:`plot_state` is a list
-        with only 1 element, then single images are shown. Otherwise an
-        animation is shown
+        The logic to plot here is that if :attr:`plot_state` is an iterable
+        with only 1 class:`StateElement`:, then single images are shown.
+        Otherwise an animation is shown.
 
         Parameters
         ----------
