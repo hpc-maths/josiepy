@@ -17,7 +17,7 @@ test:
         - pytest
         - cd examples
         - "jupyter nbconvert *.ipynb --to python"
-        - "for pyfile in *.py; do echo \"$pyfile\"; python \"$pyfile\"; done"
+        - "for pyfile in *.py; do echo \"$pyfile\"; ipython \"$pyfile\"; done"
     artifacts:
         paths: 
             - "*.xml"
