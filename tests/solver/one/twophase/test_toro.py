@@ -351,9 +351,11 @@ def set_bc_state(bc_state: RiemannBCState, eos: TwoPhaseEOS):
     return state_array
 
 
-def plot_func(data, lines, axes, fields_to_plot):
-    x = data[0]
-    values = data[1]
+def plot_func(data, time_annotation, lines, axes, fields_to_plot):
+    t = data[0]
+    time_annotation.set_text(f"t={t:.3f}s")
+    x = data[1]
+    values = data[2]
 
     # Alpha
     alpha = values[..., Q.fields.alpha]
@@ -372,7 +374,7 @@ def plot_func(data, lines, axes, fields_to_plot):
 
 
 @pytest.mark.parametrize("riemann", riemann_states)
-def test_toro(riemann: RiemannProblem, plot):
+def test_toro(riemann: RiemannProblem, request, plot, write):
     left = Line([0, 0], [0, 1])
     bottom = Line([0, 0], [1, 0])
     right = Line([1, 0], [1, 1])
@@ -405,54 +407,60 @@ def test_toro(riemann: RiemannProblem, plot):
     t = 0
     CFL = riemann.CFL
 
-    # Initialize stuff per each phase, plot only conservative stuff
-    if plot:
-        fields = Q.fields
-        fields_to_plot = [
-            fields.arho1,
-            fields.arho2,
-            fields.U1,
-            fields.U2,
-            fields.p1,
-            fields.p2,
-        ]
-        num_fields = len(fields_to_plot) // 2
+    # :: Plot stuff ::
+    fields = Q.fields
+    fields_to_plot = [
+        fields.arho1,
+        fields.arho2,
+        fields.U1,
+        fields.U2,
+        fields.p1,
+        fields.p2,
+    ]
+    num_fields = len(fields_to_plot) // 2
 
-        time_series = []
-        artists = []
-        axes = []
+    time_series = []
+    artists = []
+    axes = []
 
-        x = solver.mesh.centroids[..., 0]
-        x = x.reshape(x.size)
+    x = solver.mesh.centroids[..., 0]
+    x = x.reshape(x.size)
 
-        fig = plt.figure()
+    fig = plt.figure()
 
-        # First plot alpha
-        num_fields += 1
-        gs = GridSpec(num_fields, 2)
-        ax: plt.Axes = fig.add_subplot(gs[0, :])
-        alpha = solver.values[..., fields.alpha]
-        (line,) = ax.plot(x, alpha, label=r"$\alpha$")
+    # First plot alpha
+    num_fields += 1
+    gs = GridSpec(num_fields, 2)
+    ax: plt.Axes = fig.add_subplot(gs[0, :])
+    alpha = solver.values[..., fields.alpha]
+    (line,) = ax.plot(x, alpha, label=r"$\alpha$")
+    ax.legend(loc="best")
+    time_annotation = fig.text(
+        0.5, 0.05, "t=0.00s", horizontalalignment="center"
+    )
+    artists.append(line)
+    axes.append(ax)
+
+    for i, field in enumerate(fields_to_plot, 2):
+        # Indices in the plot grid
+        idx, idy = np.unravel_index(i, (num_fields, 2))
+        ax: plt.Axes = fig.add_subplot(gs[idx, idy])
+        field_value = solver.values[..., field]
+        (line,) = ax.plot(x, field_value, label=field.name)
         ax.legend(loc="best")
         artists.append(line)
         axes.append(ax)
 
-        for i, field in enumerate(fields_to_plot, 2):
-            # Indices in the plot grid
-            idx, idy = np.unravel_index(i, (num_fields, 2))
-            ax: plt.Axes = fig.add_subplot(gs[idx, idy])
-            field_value = solver.values[..., field]
-            (line,) = ax.plot(x, field_value, label=field.name)
-            ax.legend(loc="best")
-            artists.append(line)
-            axes.append(ax)
+    # :: End Plot Stuff ::
 
     while t <= final_time:
-        if plot:
-            x = solver.mesh.centroids[..., 0]
-            x = x.reshape(x.size)
+        # :: Plot Stuff ::
+        x = solver.mesh.centroids[..., 0]
+        x = x.reshape(x.size)
 
-            time_series.append((x, np.copy(solver.values).view(Q)))
+        time_series.append((t, x, np.copy(solver.values).view(Q)))
+
+        # :: End Plot Stuff ::
 
         dt = scheme.CFL(
             solver.values, solver.mesh.volumes, solver.mesh.surfaces, CFL,
@@ -463,14 +471,22 @@ def test_toro(riemann: RiemannProblem, plot):
         t += dt
         print(f"Time: {t}, dt: {dt}")
 
+    fig.tight_layout()
+    fig.subplots_adjust(
+        bottom=0.15, top=0.95, hspace=0.35,
+    )
+    ani = FuncAnimation(
+        fig,
+        plot_func,
+        [(data[0], data[1], data[2]) for data in time_series],
+        fargs=(time_annotation, artists, axes, fields_to_plot),
+        repeat=False,
+    )
+
+    if write:
+        ani.save(f"twophase-{request.node.name}.mp4")
+
     if plot:
-        fig.tight_layout()
-        _ = FuncAnimation(
-            fig,
-            plot_func,
-            [(data[0], data[1]) for data in time_series],
-            fargs=(artists, axes, fields_to_plot),
-            repeat=False,
-        )
         plt.show()
-        plt.close()
+
+    plt.close()

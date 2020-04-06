@@ -14,6 +14,13 @@ def pytest_addoption(parser):
         "Set to true if you want to see them",
     )
 
+    parser.addoption(
+        "--write",
+        action="store_true",
+        help="Some tests can output to disk data. Set to true if you "
+        "want to write the data on disk",
+    )
+
 
 @pytest.fixture(
     params=(Line([0, 0], [1, 0]), CircleArc([0, 0], [1, 0], [0.2, 0.2]))
@@ -46,8 +53,13 @@ def plot(request):
     if not (request.config.getoption("--plot")):
         import matplotlib
 
-        matplotlib.use("Template")
+        matplotlib.use("SVG")
     yield request.config.getoption("--plot")
+
+
+@pytest.fixture(scope="session", autouse=True)
+def write(request):
+    yield request.config.getoption("--write")
 
 
 @pytest.fixture
