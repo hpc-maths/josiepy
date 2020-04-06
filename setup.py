@@ -19,7 +19,7 @@ URL = "https://gitlab.com/josiepy"
 EMAIL = "rubendibattista@gmail.com"
 AUTHOR = "RdB"
 REQUIRES_PYTHON = ">=3.7"
-VERSION = "0.2.0"
+VERSION = "1.0.1-beta"
 
 # What packages are required for this module to be executed?
 REQUIRED = [
@@ -32,7 +32,7 @@ REQUIRED = [
 ]
 
 # Optional
-GRAPHICS = ["mayavi"]
+GRAPHICS = []  # ["mayavi"]
 DEV = [
     "pytest",
     "pytest-cov",
