@@ -23,10 +23,10 @@ def test_phase(state):
         state[
             ...,
             [
-                fields.rho1,
-                fields.rhoU1,
-                fields.rhoV1,
-                fields.rhoE1,
+                fields.arho1,
+                fields.arhoU1,
+                fields.arhoV1,
+                fields.arhoE1,
                 fields.rhoe1,
                 fields.U1,
                 fields.V1,
@@ -41,10 +41,10 @@ def test_phase(state):
         state[
             ...,
             [
-                fields.rho2,
-                fields.rhoU2,
-                fields.rhoV2,
-                fields.rhoE2,
+                fields.arho2,
+                fields.arhoU2,
+                fields.arhoV2,
+                fields.arhoE2,
                 fields.rhoe2,
                 fields.U2,
                 fields.V2,
@@ -58,11 +58,19 @@ def test_phase(state):
 def test_conservative(state):
     fields = Q.fields
     assert np.array_equal(
-        state.get_phase(Phases.PHASE1).get_conservative(),
-        state[..., [fields.rho1, fields.rhoU1, fields.rhoV1, fields.rhoE1]],
-    )
-
-    assert np.array_equal(
-        state.get_phase(Phases.PHASE2).get_conservative(),
-        state[..., [fields.rho2, fields.rhoU2, fields.rhoV2, fields.rhoE2]],
+        state.get_conservative(),
+        state[
+            ...,
+            [
+                fields.alpha,
+                fields.arho1,
+                fields.arhoU1,
+                fields.arhoV1,
+                fields.arhoE1,
+                fields.arho2,
+                fields.arhoU2,
+                fields.arhoV2,
+                fields.arhoE2,
+            ],
+        ],
     )

@@ -95,7 +95,7 @@ class Fields(IntEnum):
     arhoU2 = 11
     arhoV2 = 12
     arhoE2 = 13
-    arhoe2 = 14
+    rhoe2 = 14
     U2 = 15
     V2 = 16
     p2 = 17
