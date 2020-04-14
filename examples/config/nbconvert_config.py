@@ -1,23 +1,42 @@
 import re
 
+from dataclasses import dataclass
+
 c = get_config()
 
-# This is a list of magics that we do not want in our output scripts
-magics_regexs = [r"get_ipython\(\).*"]
+
+@dataclass
+class RegexReplace:
+    regex: str
+    replace: str
+
+
+# This is a list of stuff we want to parse out
+magics_regexs = [
+    # Remove magic stuff
+    RegexReplace(r"(get_ipython\(\).*)", r"#\1"),
+    # Inject matplotlib backend for headless run
+    RegexReplace(
+        r"(import matplotlib\.pyplot as plt)",
+        r"import matplotlib\nmatplotlib.use('SVG')\n\1",
+    ),
+]
 
 
 def comment_magics(input, **kwargs):
     lines = input.splitlines(True)
     output = ""
     for line in lines:
-        new_line = ""
+        new_line = None
         for regex in magics_regexs:
-            if re.match(regex, line):
-                new_line = new_line + "#" + line
+            if re.match(regex.regex, line):
+                new_line = re.sub(regex.regex, regex.replace, line)
+
         if new_line:
-            output = output + new_line
+            output += new_line
         else:
-            output = output + line
+            output += line
+
     return output
 
 
