@@ -1,12 +1,9 @@
-# https://github.com/ipython/ipython/issues/3707/#issuecomment-327971946
-
 import re
 
+c = get_config()
+
 # This is a list of magics that we do not want in our output scripts
-magics_regexs = [
-    r"get_ipython\(\).magic\(u\'pylab .*\'\)",
-    r"get_ipython\(\).magic\(u\'matplotlib .*\'\)",
-]
+magics_regexs = [r"get_ipython\(\).*"]
 
 
 def comment_magics(input, **kwargs):
@@ -22,3 +19,10 @@ def comment_magics(input, **kwargs):
         else:
             output = output + line
     return output
+
+
+# Export all the notebooks in the current directory to the sphinx_howto format.
+c.NbConvertApp.notebooks = ["*.ipynb"]
+c.Exporter.filters = {"comment_magics": comment_magics}
+
+# https://github.com/ipython/ipython/issues/3707/#issuecomment-327971946

@@ -35,6 +35,7 @@ REQUIRED = [
 GRAPHICS = []  # ["mayavi"]
 DEV = [
     "pytest==5.3.5",
+    "pytest-benchmark",
     "pytest-cov",
     "pytest-flake8",
     "pytest-mock",
