@@ -49,7 +49,7 @@ DOCS = [
     "sphinx-markdown-tables",
     "recommonmark",
 ]
-EXAMPLES = ["jupyter", "ipywidgets", "ipyevents", "nbdime"]
+EXAMPLES = ["jupyter", "ipywidgets", "ipyevents", "nbdime", "RISE"]
 
 ALL = GRAPHICS + DEV + EXAMPLES + DOCS
 

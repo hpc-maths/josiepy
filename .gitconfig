@@ -1,6 +1,6 @@
 [filter "nbstrip_full"]
 clean = "jq \
-        '.cells[]  |=  (select(.cell_type=\"code\") | .outputs = [] | .metadata = {} | if has(\"execution_count\") then .execution_count = null else . end) | \
+        '.cells[]  |=  (select(.cell_type=\"code\" | .outputs = []) | if has(\"execution_count\") then .execution_count = null else . end) | \
         .metadata.kernelspec = {display_name: \"Python 3\", language: \"python\", name: \"python3\"} \
         '"
         
