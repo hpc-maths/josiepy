@@ -76,7 +76,7 @@ imgmath_latex_preamble = r"""
 }
 
 \newcommand{\pdeGradient}{\ensuremath{\gradient{\pdeState}}}
-\newcommand{\ipdeGradient}{\ensuremath{\pdv{\ipdeState}{x_r}}}
+\newcommand{\ipdeGradient}{\ensuremath{\pdv{\ensuremath{q_q}}{x_r}}}
 
 \newcommand{\pdeSource}{\ensuremath{\vb{s}\qty(\pdeState)}}
 \newcommand{\ipdeSource}{\ensuremath{s_p\qty(\ipdeState)}}
