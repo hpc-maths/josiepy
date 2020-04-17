@@ -165,7 +165,7 @@ def test_toro(riemann, plot):
             ims.append([im1, im2, im3])
 
         dt = scheme.CFL(
-            solver.values, solver.mesh.volumes, solver.mesh.surfaces, CFL,
+            solver.values, solver.mesh.volumes, solver.mesh.surfaces, CFL
         )
         solver.step(dt)
 
