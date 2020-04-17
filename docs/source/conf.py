@@ -124,7 +124,7 @@ imgmath_latex_preamble = r"""
 }
 
 \newcommand{\numPreMultipliedNonConservativeFaces}{%
-    \qty|\pdeNonConservativeMultiplier|_i \cdot \numNonConservativeFaces
+    \qty<\pdeNonConservativeMultiplier>_i \cdot \numNonConservativeFaces
 }
 
 \newcommand{\numNonConservativeFull}{%
