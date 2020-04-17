@@ -82,7 +82,7 @@ class TwoPhaseScheme(Scheme):
 
 
 class Upwind(NonConservativeScheme, TwoPhaseScheme):
-    def accumulate(
+    def accumulate_nonconservative(
         self,
         values: Q,
         neigh_values: Q,
@@ -92,7 +92,7 @@ class Upwind(NonConservativeScheme, TwoPhaseScheme):
 
         # Compute fluxes computed eventually by the other schemes (e.g.
         # conservative)
-        fluxes = super().accumulate(values, neigh_values, normals, surfaces)
+        fluxes = np.zeros_like(values)
 
         # Add nonconservative contribution
         G = self.G(values, neigh_values, normals, surfaces)

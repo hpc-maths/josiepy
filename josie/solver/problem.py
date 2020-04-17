@@ -80,7 +80,7 @@ class Problem(metaclass=abc.ABCMeta):
 
         Parameters
         ----------
-        Q
+        state_array
             The :class:`State` array containing the values of all the fields
 
         Returns
@@ -92,7 +92,7 @@ class Problem(metaclass=abc.ABCMeta):
         """
         pass
 
-    def s(self, state_arrau: State):
+    def s(self, state_array: State):
         r""" This returns the values of the source terms
 
         A general problem can be written in a compact way:

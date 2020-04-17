@@ -78,7 +78,57 @@ class Scheme(metaclass=abc.ABCMeta):
     def __init__(self, problem: Problem):
         self.problem = problem
 
-    @abc.abstractmethod
+    def accumulate_convective(
+        self,
+        values: State,
+        neigh_values: State,
+        normals: np.ndarray,
+        surfaces: np.ndarray,
+    ) -> State:
+        r""" This method implements the accumulation for the convective
+        fluxes between each cell and its neighbour.
+
+        .. math::
+
+            \numConvectiveFaces
+        """
+
+        return np.zeros_like(values)
+
+    def accumulate_nonconservative(
+        self,
+        values: State,
+        neigh_values: State,
+        normals: np.ndarray,
+        surfaces: np.ndarray,
+    ) -> State:
+        r""" This method implements the accumulation for the non-conservative
+        fluxes between each cell and its neighbour.
+
+        .. math::
+
+            \numNonConservativeFaces
+        """
+
+        return np.zeros_like(values)
+
+    def accumulate_source(
+        self,
+        values: State,
+        neigh_values: State,
+        normals: np.ndarray,
+        surfaces: np.ndarray,
+    ) -> State:
+        r""" This method implements the accumulation for the source
+        terms between each cell and its neighbour.
+
+        .. math::
+
+            \numSource
+        """
+
+        return np.zeros_like(values)
+
     def accumulate(
         self,
         values: State,
@@ -92,8 +142,16 @@ class Scheme(metaclass=abc.ABCMeta):
         Potentially if the :attr:`problem` is a full problem featuring all
         the terms, this method accumulates the terms :math:`\numSpaceTerms`
         """
+        fluxes = np.zeros_like(values)
 
-        return np.zeros_like(values)
+        for accumulate_fun in [
+            self.accumulate_convective,
+            self.accumulate_nonconservative,
+            self.accumulate_source,
+        ]:
+            fluxes += accumulate_fun(values, neigh_values, normals, surfaces)
+
+        return fluxes
 
     @abc.abstractmethod
     def update(self, fluxes: State, mesh: Mesh, dt: float) -> State:

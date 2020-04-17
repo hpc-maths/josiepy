@@ -91,7 +91,7 @@ class ConvectiveScheme(Scheme):
         """
         raise NotImplementedError
 
-    def accumulate(
+    def accumulate_convective(
         self,
         values: State,
         neigh_values: State,
@@ -101,7 +101,9 @@ class ConvectiveScheme(Scheme):
 
         # Compute fluxes computed eventually by the other schemes (e.g.
         # nonconservative)
-        fluxes = super().accumulate(values, neigh_values, normals, surfaces)
+        fluxes = super().accumulate_convective(
+            values, neigh_values, normals, surfaces
+        )
 
         # Add conservative contribution
         fluxes += self.F(values, neigh_values, normals, surfaces)
