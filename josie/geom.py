@@ -35,8 +35,10 @@ import abc
 import matplotlib.pyplot as plt
 import numpy as np
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Sequence, Union
 from josie.math import map01to
+
+PointType = Union[np.ndarray, Sequence[float]]
 
 if TYPE_CHECKING:
     from josie.bc import BoundaryCondition  # pragma: no cover
@@ -94,12 +96,15 @@ class BoundaryCurve(metaclass=abc.ABCMeta):
 class Line(BoundaryCurve):
     """ A line between two points
 
-    Parameters:
-        p1: Starting point of the line
-        p2: Ending point of the line
+    Parameters
+    ---------
+    p1
+        Starting point of the line
+    p2
+        Ending point of the line
     """
 
-    def __init__(self, p1, p2):
+    def __init__(self, p1: PointType, p2: PointType):
         self._p1 = p1
         self._p2 = p2
 

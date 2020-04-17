@@ -33,14 +33,13 @@ from enum import IntEnum
 import numpy as np
 
 from meshio import Mesh as MeshIO
-from typing import TYPE_CHECKING, Tuple, Union
+from typing import TYPE_CHECKING
+
+from josie.geom import PointType
 
 
 if TYPE_CHECKING:
     from josie.mesh import Mesh
-
-
-PointType = Union[Tuple[float, float], np.ndarray]
 
 
 class NormalDirection(IntEnum):
