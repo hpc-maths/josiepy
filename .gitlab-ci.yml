@@ -33,7 +33,7 @@ benchmark:
         - pytest --bench 
         - git checkout $CI_COMMIT_REF_NAME
         - pip install -e ".[all]"
-        - pytest --bench --benchmark-compare=0001
+        - pytest --bench --benchmark-compare=0001 --benchmark-compare-fail=min:10%
     except:
         - master
 
