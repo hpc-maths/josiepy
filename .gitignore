@@ -12,7 +12,8 @@
 # Testing stuff
 prof/
 htmlcov/
-.coverage
+.coverage*
+.benchmarks/
 .mypy_cache/
 .pytest_cache/
 *.xml
