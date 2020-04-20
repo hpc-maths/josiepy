@@ -47,6 +47,7 @@ DOCS = [
     "sphinx_rtd_theme",
     "sphinx-autodoc-typehints",
     "sphinx-markdown-tables",
+    "sphinxcontrib-bibtex",
     "recommonmark",
 ]
 EXAMPLES = ["jupyter", "ipywidgets", "ipyevents", "nbdime", "RISE"]

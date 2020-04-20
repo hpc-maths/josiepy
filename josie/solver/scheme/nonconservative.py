@@ -82,8 +82,8 @@ class NonConservativeScheme(Scheme):
         surfaces: np.ndarray,
     ) -> np.ndarray:
         r""" This is the nonconservative flux implementation of the scheme. See
-        :cite:`toro` for a great overview on numerical methods for hyperbolic
-        problems.
+        :cite:`toro_riemann_2009` for a great overview on numerical methods for
+        hyperbolic problems.
 
         A general problem can be written in a compact way:
 

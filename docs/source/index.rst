@@ -10,6 +10,8 @@ Welcome to josiepy's documentation!
    :maxdepth: 2
    :caption: Contents:
 
+   zbibliography
+
 
 
 Indices and tables

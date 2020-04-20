@@ -38,6 +38,7 @@ extensions = [
     "sphinx_autodoc_typehints",
     "recommonmark",
     "sphinx_markdown_tables",
+    "sphinxcontrib.bibtex",
     "sphinx_rtd_theme",
 ]
 

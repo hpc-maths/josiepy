@@ -73,7 +73,7 @@ class Closure(metaclass=abc.ABCMeta):
 
 class Classical(Closure):
     r""" This is the classical choice for :math:`p_I` and :math:`\vb{u}_I`
-    described in :cite:`baer_nunziato`
+    described in :cite:`baer_two-phase_1986`
 
     .. math::
 

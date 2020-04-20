@@ -165,8 +165,8 @@ class Q(State):
     variables that are used in the flux together with the "auxiliary" variables
     that are instead needed, for example, to compute the speed of sound.
 
-    The state of system described in :cite:`baer_nunziato` is actually two
-    Euler states togeter with the state associated to the volume fraction
+    The state of system described in :cite:`baer_two-phase_1986` is actually
+    two Euler states togeter with the state associated to the volume fraction
     :math:`\alpha` """
 
     fields = Fields

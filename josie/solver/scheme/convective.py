@@ -45,8 +45,8 @@ class ConvectiveScheme(Scheme):
         surfaces: np.ndarray,
     ) -> State:
         r""" This is the convective flux implementation of the scheme. See
-        :cite:`toro` for a great overview on numerical methods for hyperbolic
-        problems.
+        :cite:`toro_riemann_2009` for a great overview on numerical methods for
+        hyperbolic problems.
 
         A general problem can be written in a compact way:
 
@@ -62,6 +62,7 @@ class ConvectiveScheme(Scheme):
         .. math::
 
             \numConvectiveFull
+
 
         Parameters
         ----------

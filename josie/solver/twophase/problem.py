@@ -37,7 +37,7 @@ from .state import Q, FluxQ
 
 class TwoPhaseProblem(Problem):
     """ A class representing a two-phase system problem governed by the
-    equations first described in :cite:`baer_nunziato` """
+    equations first described in :cite:`baer_two-phase_1986` """
 
     def __init__(self, eos: TwoPhaseEOS, closure: Closure):
         self.eos = eos
@@ -143,7 +143,7 @@ class TwoPhaseProblem(Problem):
 
     def F(self, state_array: Q) -> np.ndarray:
         r""" This returns the tensor representing the flux for a two-fluid model
-        as described originally by :cite:`baer_nunziato`
+        as described originally by :cite:`baer_two-phase_1986`
 
 
         Parameters
