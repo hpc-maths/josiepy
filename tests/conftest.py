@@ -34,7 +34,9 @@ def pytest_collection_modifyitems(config, items):
             reason="Running Benchmarks, not unit tests"
         )
         for item in items:
-            if not ("bench") in item.keywords:
+            if not ("bench") in item.keywords and isinstance(
+                item, pytest.Function
+            ):
                 item.add_marker(skip_reason)
     else:
         skip_reason = pytest.mark.skip(reason="Skipping benchmarks")
