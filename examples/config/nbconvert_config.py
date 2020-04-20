@@ -15,10 +15,20 @@ class RegexReplace:
 magics_regexs = [
     # Remove magic stuff
     RegexReplace(r"(get_ipython\(\).*)", r"#\1"),
+    # If there's a comment to initalize matplotlib with headless backend
+    # that means even if matplotlib is not explicitly imported in the notebook
+    # it is probably called under the hoods. Let's uncomment it
+    RegexReplace(r"# *(import matplotlib; matplotlib.use\(.*\))", r"\1"),
     # Inject matplotlib backend for headless run
     RegexReplace(
         r"(import matplotlib\.pyplot as plt)",
         r"import matplotlib\nmatplotlib.use('SVG')\n\1",
+    ),
+    # Inject matplotlib backend for headless run when there's just the
+    # magic command
+    RegexReplace(
+        r"(.*get_ipython.*matplotlib.*)",
+        r"import matplotlib\nmatplotlib.use('SVG')\n#\1",
     ),
 ]
 
