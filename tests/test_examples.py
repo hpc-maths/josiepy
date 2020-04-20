@@ -39,7 +39,8 @@ def example(request):
     os.remove(py_notebook)
 
 
-def bench_example(example, benchmark):
+@pytest.mark.bench
+def test_example(example, benchmark):
     @benchmark
     def run_example():
         subprocess.run(["python", f"{example}"])

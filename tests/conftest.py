@@ -21,6 +21,28 @@ def pytest_addoption(parser):
         "want to write the data on disk",
     )
 
+    parser.addoption(
+        "--bench",
+        action="store_true",
+        help="Run benchmarks instead of unit tests",
+    )
+
+
+def pytest_collection_modifyitems(config, items):
+    if config.getoption("--bench"):
+        skip_reason = pytest.mark.skip(
+            reason="Running Benchmarks, not unit tests"
+        )
+        for item in items:
+            if not ("bench") in item.keywords:
+                item.add_marker(skip_reason)
+    else:
+        skip_reason = pytest.mark.skip(reason="Skipping benchmarks")
+
+        for item in items:
+            if "bench" in item.keywords:
+                item.add_marker(skip_reason)
+
 
 @pytest.fixture(
     params=(Line([0, 0], [1, 0]), CircleArc([0, 0], [1, 0], [0.2, 0.2]))
