@@ -5,7 +5,11 @@ variables:
 
 stages:
     - test
+    - bench
     - post
+
+before_script:
+    - pip install ".[all]"
 
 
 test:
@@ -13,21 +17,32 @@ test:
     script:
         - pip install pygount
         - pygount --format cloc-xml -o loc.xml
-        - pip install ".[all]"
         - pytest
     artifacts:
         paths: 
             - "*.xml"
         expire_in: 1 week
 
+benchmark:
+    stage: bench
+    dependencies: 
+        - test
+    script: 
+        - git checkout master
+        - pip install -e ".[all]"
+        - pytest --bench 
+        - git checkout $CI_COMMIT_REF_NAME
+        - pip install -e ".[all]"
+        - pytest --bench --benchmark-compare=0001
+    except:
+        - master
+
 pages:
-    before_script: 
+    stage: post
+    script: 
         - |
             apt-get update && apt-get -y install texlive texlive-science \
             texlive-latex-extra
-        - mkdir -p "public/$CI_COMMIT_REF_SLUG"
-        - pip install ".[docs]"
-    script: 
         - invoke docs
         - ls -l docs/build
         - mv docs/build/* public
