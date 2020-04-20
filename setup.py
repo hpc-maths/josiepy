@@ -34,6 +34,7 @@ REQUIRED = [
 # Optional
 GRAPHICS = []  # ["mayavi"]
 DEV = [
+    "invoke",
     "pytest==5.3.5",
     "pytest-benchmark",
     "pytest-cov",
@@ -43,6 +44,7 @@ DEV = [
     "pytest-xdist",
 ]
 DOCS = [
+    "invoke",
     "sphinx",
     "sphinx_rtd_theme",
     "sphinx-autodoc-typehints",
