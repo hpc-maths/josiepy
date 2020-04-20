@@ -20,6 +20,23 @@ test:
             - "*.xml"
         expire_in: 1 week
 
+pages:
+    before_script: 
+        - |
+            apt-get update && apt-get -y install texlive texlive-science \
+            texlive-latex-extra
+        - mkdir -p "public/$CI_COMMIT_REF_SLUG"
+        - pip install ".[docs]"
+    script: 
+        - invoke docs
+        - ls -l docs/build
+        - mv docs/build/* public
+    artifacts:
+        paths:
+            - public
+    only:
+        - master
+
 badges:
     stage: post
     dependencies:
@@ -35,3 +52,5 @@ badges:
     artifacts:
         paths:
             - "*.svg"
+    only:
+        - master

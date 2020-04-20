@@ -17,5 +17,6 @@ htmlcov/
 .pytest_cache/
 *.xml
 
-# Docs artifacta
+# Docs artifacts
 docs/build/
+public/
