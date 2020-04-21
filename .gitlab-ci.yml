@@ -30,7 +30,7 @@ benchmark:
     before_script:
         - apt-get update && apt-get -y install git
     script: 
-        - git checkout master
+        - git checkout origin/master
         - pip install -e ".[all]"
         - pytest --bench 
         - git checkout $CI_COMMIT_REF_NAME
