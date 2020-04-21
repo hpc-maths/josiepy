@@ -8,8 +8,10 @@ Welcome to josiepy's documentation!
 
 .. toctree::
    :maxdepth: 2
+   :glob:
    :caption: Contents:
-
+    
+   examples/*
    zbibliography
 
 
