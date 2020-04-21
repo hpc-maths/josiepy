@@ -5,6 +5,34 @@ import re
 from dataclasses import dataclass
 
 from nbconvert.exporters import TemplateExporter
+from nbconvert.preprocessors import Preprocessor
+
+
+class SkipPreprocessor(Preprocessor):
+    """ A Preprocessor that removes cell tagged as "skip" """
+
+    def preprocess(self, nb, resources):
+        """
+        Preprocessing to apply to each notebook. See base.py for details.
+        """
+        # Filter out cells that meet the conditions
+        nb.cells = [
+            cell
+            for index, cell in enumerate(nb.cells)
+            if self.check_cell_conditions(cell, resources, index)
+        ]
+
+        return nb, resources
+
+    def check_cell_conditions(self, cell, resources, index):
+        try:
+            if cell.metadata.slideshow.slide_type == "skip":
+                return False
+            else:
+                return True
+
+        except AttributeError:
+            return True
 
 
 class RSTBinderExporter(TemplateExporter):
@@ -14,15 +42,16 @@ class RSTBinderExporter(TemplateExporter):
     BINDER_URL = "https://mybinder.org"
 
     raw_template = rf"""
-    {{% extends 'rst.tpl'%}}
-    {{% block header %}}
-    {{% set filename = resources.metadata.name + '.ipynb' %}}
-.. image:: {BINDER_URL}/badge_logo.svg
-   :target: {BINDER_URL}/v2/gh/rubendibattista/josiepy/master/{{{{ filename | urlencode | replace("/", "%2F") }}}}
-    {{% endblock header %}}
-    """  # noqa: 501
+{{% extends 'markdown.tpl'%}}
+{{% block footer %}}
+{{% set filename = resources.metadata.name + '.ipynb' %}}
+[![binder]({BINDER_URL}/badge_logo.svg)]({BINDER_URL}/v2/gl/rubendibattista/josiepy/master/{{{{ filename | urlencode | replace("/", "%2F") }}}})
+{{% endblock footer %}}
+"""  # noqa: 501
 
-    file_extension = ".rst"
+    file_extension = ".md"
+
+    preprocessors = [SkipPreprocessor]
 
 
 @dataclass
