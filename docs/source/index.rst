@@ -8,6 +8,7 @@ Welcome to josiepy's documentation!
 
 .. toctree::
    :maxdepth: 2
+   :titlesonly:
    :glob:
    :caption: Contents:
     

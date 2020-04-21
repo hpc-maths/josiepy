@@ -5,7 +5,7 @@ import re
 from dataclasses import dataclass
 
 from nbconvert.exporters import TemplateExporter
-from nbconvert.preprocessors import Preprocessor
+from nbconvert.preprocessors import Preprocessor, TagRemovePreprocessor
 
 
 class SkipPreprocessor(Preprocessor):
@@ -35,6 +35,10 @@ class SkipPreprocessor(Preprocessor):
             return True
 
 
+class CleanOutputPreprocessor(TagRemovePreprocessor):
+    remove_all_outputs_tags = set(["remove_output"])
+
+
 class RSTBinderExporter(TemplateExporter):
     """ A :mod:`nbconvert` exporter that exports Notebooks as rst files with
     a Binder badge on top """
@@ -43,15 +47,15 @@ class RSTBinderExporter(TemplateExporter):
 
     raw_template = rf"""
 {{% extends 'markdown.tpl'%}}
-{{% block footer %}}
-{{% set filename = resources.metadata.name + '.ipynb' %}}
-[![binder]({BINDER_URL}/badge_logo.svg)]({BINDER_URL}/v2/gl/rubendibattista/josiepy/master/{{{{ filename | urlencode | replace("/", "%2F") }}}})
-{{% endblock footer %}}
+{{% block header %}}
+{{% set filepath = 'examples/' + resources.metadata.name + '.ipynb' %}}
+[![binder]({BINDER_URL}/badge_logo.svg)]({BINDER_URL}/v2/gl/rubendibattista%2Fjosiepy/master/?filepath={{{{ filepath | urlencode | replace("/", "%2F") }}}})
+{{% endblock header %}}
 """  # noqa: 501
 
     file_extension = ".md"
 
-    preprocessors = [SkipPreprocessor]
+    preprocessors = [SkipPreprocessor, CleanOutputPreprocessor]
 
 
 @dataclass
