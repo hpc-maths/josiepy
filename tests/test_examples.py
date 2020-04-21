@@ -1,37 +1,42 @@
-import glob
 import os
 import pytest
-import shlex
 import subprocess
+import warnings
 
-EXAMPLES_PATH = os.path.abspath("./examples")
-EXAMPLES_CONFIG_PATH = os.path.join(EXAMPLES_PATH, "config")
-CONF_FILE = os.path.join(EXAMPLES_CONFIG_PATH, "nbconvert_config.py")
-TEMPLATE_FILE = os.path.join(EXAMPLES_CONFIG_PATH, "python_nomagic.tpl")
-notebooks = glob.glob(os.path.join(EXAMPLES_PATH, "*.ipynb"))
+from pathlib import Path
+
+from josie.nbconvert import NoMagicPythonExporter
+
+EXAMPLES_PATH = Path(__file__).parents[1] / "examples"
+notebooks = EXAMPLES_PATH.glob("*.ipynb")
 
 
 @pytest.fixture(scope="module", params=notebooks)
 def example(request):
     notebook = request.param
-    # Convert all the examples from jupyter notebook to python files
-    cmd = [
-        "jupyter",
-        "nbconvert",
-        "--config",
-        f"{shlex.quote(CONF_FILE)}",
-        "--to",
-        "python",
-        "--template",
-        f"{shlex.quote(TEMPLATE_FILE)}",
-        f"{notebook}",
-    ]
 
-    # Convert
-    subprocess.run(cmd)
+    base_dir = notebook.parent
+
+    # Convert all the examples from jupyter notebook to python files
+    exporter = NoMagicPythonExporter()
+
+    # Ignore this warning coming from nbconvert
+    # TODO: In the future they will probably fix it upstream
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", DeprecationWarning)
+        output, resources = exporter.from_filename(notebook)
 
     # Get the converted notebooks
-    py_notebook = notebook.replace(".ipynb", ".py")
+    out_filename = (
+        resources["metadata"]["name"] + resources["output_extension"]
+    )
+
+    py_notebook = base_dir / out_filename
+
+    print(f"Converting from {notebook} to {py_notebook}")
+
+    with open(py_notebook, "w") as f:
+        f.write(output)
 
     yield py_notebook
 

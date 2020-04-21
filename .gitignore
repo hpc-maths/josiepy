@@ -8,6 +8,7 @@
 
 /examples/.ipynb_checkpoints
 /examples/*.py
+/examples/*.rst
 
 # Testing stuff
 prof/
