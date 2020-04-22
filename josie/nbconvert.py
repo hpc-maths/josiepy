@@ -47,6 +47,7 @@ class CleanOutputPreprocessor(TagRemovePreprocessor):
     """
 
     remove_all_outputs_tags = set(["remove_output"])
+    remove_cell_tags = set(["skip_conversion"])
 
 
 class BinderBadgePreprocessor(Preprocessor):
