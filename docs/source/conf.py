@@ -13,10 +13,8 @@
 # import os
 # import sys
 # sys.path.insert(0, os.path.abspath('.'))
-import sys
 
-print(sys.path)
-
+from recommonmark.transform import AutoStructify
 
 # -- Project information -----------------------------------------------------
 
@@ -58,6 +56,7 @@ imgmath_image_format = "svg"
 imgmath_font_size = 14
 imgmath_use_preview = True
 imgmath_latex_preamble = r"""
+\usepackage{amsmath}
 \usepackage{physics}
 \usepackage{lmodern}
 \usepackage[T1]{fontenc}
@@ -149,6 +148,7 @@ imgmath_latex_preamble = r"""
 
 """
 
+
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
@@ -168,3 +168,25 @@ html_theme = "sphinx_rtd_theme"
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ["_static"]
+
+
+def setup(app) -> None:
+    app.add_config_value(
+        "recommonmark_config",
+        {
+            "enable_math": True,
+            "enable_inline_math": True,
+            # Turn off recommonmark features we aren't using.
+            "enable_eval_rst": False,
+            "enable_auto_doc_ref": False,
+            "auto_toc_tree_section": None,
+            "enable_auto_toc_tree": False,
+            "url_resolver": lambda x: x,
+        },
+        True,
+    )
+
+    # Enable `eval_rst`, and any other features enabled in recommonmark_config.
+    # Docs: http://recommonmark.readthedocs.io/en/latest/auto_structify.html
+    # (But NB those docs are for master, not latest release.)
+    app.add_transform(AutoStructify)

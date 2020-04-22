@@ -4,7 +4,7 @@ import subprocess
 from invoke import task
 from pathlib import Path
 
-from josie.nbconvert import RSTBinderExporter
+from josie.nbconvert import MdBinderExporter
 
 EXAMPLES = Path("./examples").glob("*.ipynb")
 DOCS_BUILD_DIR = Path("./public")
@@ -30,7 +30,7 @@ def convert_examples(c):
     print(f"Converting notebooks...")
 
     for filename in EXAMPLES:
-        exporter = RSTBinderExporter()
+        exporter = MdBinderExporter()
         output, resources = exporter.from_filename(filename)
 
         out_filename = (
