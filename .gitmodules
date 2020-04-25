@@ -1,0 +1,3 @@
+[submodule "vendor/commonmark.py"]
+	path = vendor/commonmark.py
+	url = https://github.com/rubendibattista/commonmark.py
