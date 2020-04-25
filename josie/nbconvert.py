@@ -6,7 +6,11 @@ from dataclasses import dataclass
 from urllib.parse import quote
 
 from nbconvert.exporters import TemplateExporter
-from nbconvert.preprocessors import Preprocessor, TagRemovePreprocessor
+from nbconvert.preprocessors import (
+    ExecutePreprocessor,
+    Preprocessor,
+    TagRemovePreprocessor,
+)
 
 
 @dataclass
@@ -106,63 +110,12 @@ class MdBinderExporter(TemplateExporter):
     file_extension = ".md"
     template_file = "markdown.tpl"
 
+    ExecutePreprocessor.timeout = None
+
     preprocessors = [
+        ExecutePreprocessor,
         SkipPreprocessor,
         CleanOutputPreprocessor,
         MathFixPreprocessor,
         BinderBadgePreprocessor,
     ]
-
-
-def cleanup(input, **kwargs):
-    """ A Jinja filter that """
-
-    # This is a list of stuff we want to parse out
-    regexs = [
-        # Remove magic stuff
-        RegexReplace(r"(get_ipython\(\).*)", r"#\1"),
-        # If there's a comment to initalize matplotlib with headless backend
-        # that means even if matplotlib is not explicitly imported in the
-        # notebook it is probably called under the hoods. Let's uncomment it
-        RegexReplace(r"# *(import matplotlib; matplotlib.use\(.*\))", r"\1"),
-        # Inject matplotlib backend for headless run
-        RegexReplace(
-            r"(import matplotlib\.pyplot as plt)",
-            r"import matplotlib\nmatplotlib.use('SVG')\n\1",
-        ),
-        # Inject matplotlib backend for headless run when there's just the
-        # magic command
-        RegexReplace(
-            r"(.*get_ipython.*matplotlib.*)",
-            r"import matplotlib\nmatplotlib.use('SVG')\n#\1",
-        ),
-    ]
-
-    lines = input.splitlines(True)
-    output = ""
-    for line in lines:
-        new_line = None
-        for reg_repl in regexs:
-            if re.match(reg_repl.regex, line):
-                new_line = re.sub(reg_repl.regex, reg_repl.replace, line)
-
-        if new_line:
-            output += new_line
-        else:
-            output += line
-
-    return output
-
-
-class NoMagicPythonExporter(TemplateExporter):
-
-    raw_template = r"""
-    {% extends 'python.tpl'%}
-    {% block input %}
-      {{ super() | cleanup }}
-    {% endblock input %}
-    """
-
-    filters = {"cleanup": cleanup}
-
-    file_extension = ".py"
