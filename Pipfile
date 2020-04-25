@@ -20,6 +20,7 @@ pytest-mypy = "*"
 commonmark = {editable = true,path = "./vendor/commonmark.py"}
 recommonmark = "*"
 pygount = "*"
+ipdb = "*"
 
 [packages]
 aenum = "*"
