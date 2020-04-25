@@ -9,13 +9,15 @@ stages:
     - post
 
 before_script:
-    - pip install ".[all]"
+    - pip install pipenv
+    - pipenv install --system --dev --skip-lock
+      # - pip install ".[all]"
+
 
 
 test:
     stage: test
     script:
-        - pip install pygount
         - pygount --format cloc-xml -o loc.xml
         - pytest
     artifacts:
@@ -32,10 +34,10 @@ benchmark:
     script: 
         - git fetch origin master
         - git checkout origin/master
-        - pip install -e ".[all]"
+        - pipenv install --system --dev --skip-lock
         - pytest --bench 
         - git checkout $CI_COMMIT_REF_NAME
-        - pip install -e ".[all]"
+        - pipenv install --system --dev --skip-lock
         - pytest --bench --benchmark-compare=0001 --benchmark-compare-fail=min:10%
     only:
         - merge_requests

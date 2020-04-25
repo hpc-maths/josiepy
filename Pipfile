@@ -1,0 +1,38 @@
+[[source]]
+name = "pypi"
+url = "https://pypi.org/simple"
+verify_ssl = true
+
+[dev-packages]
+invoke = "*"
+pytest = "==5.3.5"
+pytest-benchmark = "*"
+pytest-cov = "*"
+pytest-flake8 = "*"
+pytest-mock = "*"
+pytest-xdist = "*"
+sphinx = "*"
+sphinx-rtd-theme = "*"
+sphinx-autodoc-typehints = "*"
+sphinx-markdown-tables = "*"
+sphinxcontrib-bibtex = "*"
+pytest-mypy = "*"
+commonmark = {editable = true,path = "./vendor/commonmark.py"}
+recommonmark = "*"
+pygount = "*"
+
+[packages]
+aenum = "*"
+matplotlib = "*"
+meshio = {extras = ["all"],version = "<3.2"}
+numpy = "*"
+scipy = "*"
+jupyter = "*"
+ipywidgets = "*"
+ipyevents = "*"
+nbdime = "*"
+rise = "*"
+commonmark = {editable = true,path = "."}
+
+[requires]
+python_version = "3.8"
