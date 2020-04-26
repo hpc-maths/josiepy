@@ -2,6 +2,7 @@ image: python:slim
 
 variables:
     DEBIAN_FRONTEND: noninteractive
+    GIT_SUBMODULE_STRATEGY: recursive
 
 stages:
     - test
