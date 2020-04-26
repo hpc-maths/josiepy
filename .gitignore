@@ -21,4 +21,5 @@ htmlcov/
 
 # Docs artifacts
 docs/build/
+docs/source/examples/
 public/
