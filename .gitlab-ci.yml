@@ -11,8 +11,6 @@ stages:
 before_script:
     - pip install pipenv
     - pipenv install --system --dev --skip-lock
-      # - pip install ".[all]"
-
 
 
 test:
@@ -49,8 +47,6 @@ pages:
             apt-get update && apt-get -y install texlive texlive-science \
             texlive-latex-extra
         - invoke docs
-        - ls -l docs/build
-        - mv docs/build/* public
     artifacts:
         paths:
             - public
