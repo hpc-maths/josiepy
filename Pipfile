@@ -18,22 +18,18 @@ sphinx-markdown-tables = "*"
 sphinxcontrib-bibtex = "*"
 pytest-mypy = "*"
 commonmark = {editable = true,path = "./vendor/commonmark.py"}
-recommonmark = "*"
 pygount = "*"
 ipdb = "*"
-
-[packages]
-aenum = "*"
-matplotlib = "*"
-meshio = {extras = ["all"],version = "<3.2"}
-numpy = "*"
-scipy = "*"
-jupyter = "*"
+recommonmark = {editable = true,path = "./vendor/recommonmark"}
+rise = "*"
 ipywidgets = "*"
 ipyevents = "*"
 nbdime = "*"
-rise = "*"
-commonmark = {editable = true,path = "."}
+nbconvert = {editable = true,path = "./vendor/nbconvert"}
+jupyter = "*"
+
+[packages]
+josiepy = {editable = true,path = "."}
 
 [requires]
 python_version = "3.8"

@@ -100,6 +100,14 @@ class MathFixPreprocessor(Preprocessor):
         return cell, resources
 
 
+class MplInlinePreprocessor(MathFixPreprocessor):
+    """ This preprocessors replaces the magic command for matplolib to
+    :code:`inline`.
+    """
+
+    regexs = [RegexReplace(regex=r"(%matplotlib) .*", replace=r"\1 inline")]
+
+
 class MdBinderExporter(TemplateExporter):
     """ A :mod:`nbconvert` exporter that exports Notebooks as markdown files
     with a Binder badge on top ready to be used in Sphinx documentation
@@ -108,11 +116,12 @@ class MdBinderExporter(TemplateExporter):
     BINDER_URL = "https://mybinder.org"
 
     file_extension = ".md"
-    template_file = "markdown.tpl"
+    template_file = "markdown/index.md.j2"
 
     ExecutePreprocessor.timeout = None
 
     preprocessors = [
+        MplInlinePreprocessor,
         ExecutePreprocessor,
         SkipPreprocessor,
         CleanOutputPreprocessor,
