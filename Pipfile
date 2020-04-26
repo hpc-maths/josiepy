@@ -25,11 +25,10 @@ rise = "*"
 ipywidgets = "*"
 ipyevents = "*"
 nbdime = "*"
-nbconvert = {editable = true,path = "./vendor/nbconvert"}
-jupyter = "*"
 
 [packages]
 josiepy = {editable = true,path = "."}
+nbconvert = {editable = true,path = "./vendor/nbconvert"}
 
 [requires]
 python_version = "3.8"
