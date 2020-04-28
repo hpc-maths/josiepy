@@ -7,11 +7,11 @@ from matplotlib.animation import ArtistAnimation
 from josie.bc import Dirichlet
 from josie.geom import Line
 from josie.mesh import Mesh, SimpleCell
-from josie.solver.euler.eos import PerfectGas
-from josie.solver.euler.schemes import Rusanov
-from josie.solver.scheme.time import ExplicitEuler
-from josie.solver.euler.solver import EulerSolver
-from josie.solver.euler.state import Q
+from josie.euler.eos import PerfectGas
+from josie.euler.schemes import Rusanov
+from josie.general.schemes.time import ExplicitEuler
+from josie.euler.solver import EulerSolver
+from josie.euler.state import Q
 
 
 class ToroScheme(Rusanov, ExplicitEuler):

@@ -27,8 +27,8 @@
 
 import numpy as np
 
+from josie.euler.schemes import Rusanov as EulerRusanov
 from josie.solver.scheme import Scheme
-from josie.solver.euler.schemes import Rusanov as EulerRusanov
 from josie.solver.scheme.nonconservative import NonConservativeScheme
 from josie.solver.scheme.convective import ConvectiveScheme
 

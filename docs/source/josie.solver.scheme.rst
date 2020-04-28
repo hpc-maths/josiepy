@@ -1,11 +1,6 @@
 josie.solver.scheme package
 ===========================
 
-.. automodule:: josie.solver.scheme
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 Submodules
 ----------
 
@@ -41,3 +36,11 @@ josie.solver.scheme.time module
    :undoc-members:
    :show-inheritance:
 
+
+Module contents
+---------------
+
+.. automodule:: josie.solver.scheme
+   :members:
+   :undoc-members:
+   :show-inheritance:

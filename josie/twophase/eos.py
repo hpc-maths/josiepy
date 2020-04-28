@@ -24,24 +24,31 @@
 # The views and conclusions contained in the software and documentation
 # are those of the authors and should not be interpreted as representing
 # official policies, either expressed or implied, of Ruben Di Battista.
-import abc
 
-from josie.solver.state import State
-from josie.mesh.mesh import Mesh
-
-from .scheme import Scheme
+from josie.euler.eos import EOS as SinglePhaseEOS
+from .state import PhasePair
 
 
-class TimeScheme(Scheme):
-    r""" A mixin that provides the scheme implementation for the time
-    derivative
+class TwoPhaseEOS(PhasePair):
+    """ An Abstract Base Class representing en EOS for a twophase system.  In
+    particular two :class:`~euler.eos.EOS`instances for each phase need to be
+    provided.
 
-    .. math::
+    You can access the EOS for a specified phase using the
+    :meth:`__getitem__`
 
-        \numTime
     """
 
-    @classmethod
-    @abc.abstractmethod
-    def update(cls, fluxes: State, mesh: Mesh, dt: float) -> State:
-        raise NotImplementedError
+    def __init__(self, phase1: SinglePhaseEOS, phase2: SinglePhaseEOS):
+        """
+        Parameters
+        ----------
+        phase1
+            An instance of :class:`~euler.eos.EOS` representing the EOS for the
+            single phase #1
+        phase2
+            An instance of :class:`~euler.eos.EOS` representing the EOS for the
+            single phase #2
+        """
+
+        super().__init__(phase1, phase2)

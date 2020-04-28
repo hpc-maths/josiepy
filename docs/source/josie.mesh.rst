@@ -1,11 +1,6 @@
 josie.mesh package
 ==================
 
-.. automodule:: josie.mesh
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 Submodules
 ----------
 
@@ -25,3 +20,11 @@ josie.mesh.mesh module
    :undoc-members:
    :show-inheritance:
 
+
+Module contents
+---------------
+
+.. automodule:: josie.mesh
+   :members:
+   :undoc-members:
+   :show-inheritance:

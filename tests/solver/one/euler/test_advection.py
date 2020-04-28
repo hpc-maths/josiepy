@@ -10,7 +10,7 @@ from .adv1d import main as main_1d
 from josie.solver.state import State
 from josie.solver.solver import Solver
 from josie.solver.problem import Problem
-from josie.solver.scheme.time import ExplicitEuler
+from josie.general.schemes.time import ExplicitEuler
 from josie.solver.scheme.convective import ConvectiveScheme
 
 # Advection velocity in x-direction
