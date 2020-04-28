@@ -10,12 +10,21 @@ notebooks = tuple(EXAMPLES_PATH.glob("*.ipynb"))
 ids = [path.name for path in notebooks]
 
 
-@pytest.mark.bench
-@pytest.mark.parametrize("notebook", notebooks, ids=ids)
-def test_example(notebook, benchmark):
-    with open(notebook, "r") as f:
+@pytest.fixture(params=notebooks, ids=ids)
+def notebook(request):
+    with open(request.param, "r") as f:
         nb = nbformat.read(f, as_version=4)
 
+    yield nb
+
+
+def test_examples(notebook):
+    ep = ExecutePreprocessor(timeout=None)
+    ep.preprocess(notebook, {"metadata": {"path": EXAMPLES_PATH}})
+
+
+@pytest.mark.bench
+def bench_examples(notebook, benchmark):
     ep = ExecutePreprocessor(timeout=None)
 
-    benchmark(ep.preprocess, nb, {"metadata": {"path": EXAMPLES_PATH}})
+    benchmark(ep.preprocess, notebook, {"metadata": {"path": EXAMPLES_PATH}})
