@@ -27,9 +27,12 @@
 import abc
 import os
 
+from typing import List
+
 from meshio.xdmf import TimeSeriesWriter
 
 from josie.solver.solver import Solver
+from josie.data import StateElement
 
 from .strategy import NoopStrategy, Strategy
 
@@ -143,6 +146,45 @@ class FileWriter(Writer):
         super().__init__(strategy, solver, final_time, CFL)
 
         self.filename = filename
+
+
+class MemoryWriter(Writer):
+    """ This class provides serialization of simulation data into a
+    list of :class:`~.StateElement`
+
+    Attributes
+    ----------
+    data
+        The simulation data. A list of :class:`~.StateElement`
+    strategy
+        An instance of :class:`~.Strategy` that implements a serializing
+        strategy
+    solver
+        An instance of the solver to manage the execution of
+    final_time
+        The final time in seconds at which the simulation must end
+    CFL
+        The value of the CFL number to limit the time stepping of a specific
+        scheme
+    """
+
+    def __init__(
+        self, strategy: Strategy, solver: Solver, final_time: float, CFL: float
+    ):
+        super().__init__(strategy, solver, final_time, CFL)
+
+        self.data: List[StateElement] = []
+
+    def write(self):
+        data = {}
+
+        # TODO: If mesh becomes "dynamic", this probably needs to be deepcopied
+        data["mesh"] = self.solver.mesh
+
+        for field in self.solver.Q.fields:
+            data[field.name] = self.solver.values[..., field].ravel()
+
+        self.data.append(StateElement(time=self._t, data=data))
 
 
 class XDMFWriter(FileWriter):

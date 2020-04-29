@@ -30,13 +30,15 @@ import copy
 import matplotlib.pyplot as plt
 import numpy as np
 
-from typing import Dict, List, Optional, NamedTuple, Union, TYPE_CHECKING
+from typing import List, Optional, NamedTuple, Union, TYPE_CHECKING
 
 from matplotlib.animation import FuncAnimation
 from matplotlib.axes import Axes
 from matplotlib.collections import PatchCollection
 from matplotlib.figure import Figure
 from matplotlib.patches import Polygon
+
+from josie.data import StateData, StateElement
 
 from .backend import PlotBackend
 
@@ -47,17 +49,6 @@ if TYPE_CHECKING:
 # Default colorbar
 # TODO: Make it configurable
 cmap = plt.get_cmap("viridis")
-
-StateData = Dict[str, np.ndarray]
-
-
-class StateElement:
-    """ An handy class to store the state of the plot at a given time
-    """
-
-    def __init__(self, time: float, data: StateData):
-        self.time = time
-        self.data = data
 
 
 class PlotState:
