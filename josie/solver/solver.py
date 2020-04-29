@@ -31,7 +31,6 @@ import numpy as np
 import os
 
 from dataclasses import dataclass
-from meshio import XdmfTimeSeriesWriter
 from typing import (
     Callable,
     List,
@@ -359,17 +358,7 @@ class Solver(metaclass=abc.ABCMeta):
             The name of the file holding the time series. It's an XDMF file
         """
 
-        if not (hasattr(self, "_writer")):
-            io_mesh = self.mesh.export()
-            self._writer = XdmfTimeSeriesWriter(filename)
-            self._writer.write_points_cells(io_mesh.points, io_mesh.cells)
-
-        cell_data = {}
-        for i, field in [(field.value, field.name) for field in self.Q.fields]:
-            cell_data[field] = self.values[:, :, i].ravel()
-
-        cell_type_str = self.mesh.cell_type._meshio_cell_type
-        self._writer.write_data(t, cell_data={cell_type_str: cell_data})
+        raise NotImplementedError
 
     def plot(self):
         """ Plot the current state of the simulation in a GUI.

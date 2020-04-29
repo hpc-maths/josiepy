@@ -25,7 +25,7 @@ VERSION = "2.0.1-beta"
 REQUIRED = [
     "aenum",
     "matplotlib",
-    "meshio[all]<3.2",
+    "meshio[all]",
     "numba",
     "numpy",
     "scipy",
