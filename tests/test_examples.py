@@ -19,8 +19,10 @@ def notebook(request):
 
 
 def test_examples(notebook):
-    ep = ExecutePreprocessor(timeout=None)
-    ep.preprocess(notebook, {"metadata": {"path": EXAMPLES_PATH}})
+    ep = ExecutePreprocessor()
+    ep.preprocess(
+        notebook, resources={"metadata": {"path": EXAMPLES_PATH}}, timeout=0
+    )
 
 
 @pytest.mark.bench
