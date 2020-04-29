@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from josie.io.write.formats import MemoryWriter, NoopWriter, XDMFWriter
+from josie.io.write.writer import MemoryWriter, NoopWriter, XDMFWriter
 from josie.solver.state import StateTemplate
 
 
@@ -38,7 +38,7 @@ def test_memory(solver, strategy):
 
     writer.solve()
 
-    assert len(writer.data) == 11
+    assert len(writer.store) == 11
 
 
 def test_xdmf(solver, strategy, mesh, tmp_path, mocker):

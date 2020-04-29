@@ -90,14 +90,23 @@ class TimeStrategy(Strategy):
         super().__init__(animate, serialize)
 
         self.dt_save = dt_save
-        self.t_save = 0
+
+        # First slot for saving is 0 + dt_save
+        self.t_save = dt_save
 
     def check_write(self, t: float, dt: float, solver: Solver) -> float:
-        if t + dt >= self.t_save:
+        self.should_write = False
+
+        if t == 0:
+            # Always write initial instant
+            self.should_write = True
+            return dt
+
+        if t + dt > self.t_save:
             self.should_write = True
 
             # We constrain the dt to respect the t_save
-            dt = self.t_save + self.dt_save - t
+            dt = self.t_save - t
 
             # Next time we serialize
             self.t_save = self.t_save + self.dt_save

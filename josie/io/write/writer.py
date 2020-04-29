@@ -25,6 +25,7 @@
 # are those of the authors and should not be interpreted as representing
 # official policies, either expressed or implied, of Ruben Di Battista.
 import abc
+import copy
 import os
 
 from typing import List
@@ -85,11 +86,7 @@ class Writer(abc.ABC):
 
         solver = self.solver
 
-        while self._t <= self.final_time:
-            if self.strategy.should_write:
-                self.write()
-                if self.strategy.animate:
-                    solver.animate(self._t)
+        while self._t < self.final_time:
 
             dt = solver.scheme.CFL(
                 solver.values,
@@ -99,6 +96,11 @@ class Writer(abc.ABC):
             )
 
             dt = self.strategy.check_write(self._t, dt, solver)
+
+            if self.strategy.should_write:
+                self.write()
+                if self.strategy.animate:
+                    solver.animate(self._t)
 
             solver.step(dt)
 
@@ -173,7 +175,7 @@ class MemoryWriter(Writer):
     ):
         super().__init__(strategy, solver, final_time, CFL)
 
-        self.data: List[StateElement] = []
+        self.store: List[StateElement] = []
 
     def write(self):
         data = {}
@@ -182,9 +184,11 @@ class MemoryWriter(Writer):
         data["mesh"] = self.solver.mesh
 
         for field in self.solver.Q.fields:
-            data[field.name] = self.solver.values[..., field].ravel()
+            data[field.name] = copy.deepcopy(
+                self.solver.values[..., field].ravel()
+            )
 
-        self.data.append(StateElement(time=self._t, data=data))
+        self.store.append(StateElement(time=self._t, data=data))
 
 
 class XDMFWriter(FileWriter):
@@ -213,11 +217,14 @@ class XDMFWriter(FileWriter):
 
         cell_data = {}
 
-        for field in self.solver.Q.fields:
-            cell_data[field.name] = self.solver.values[..., field].ravel()
-
         cell_type_str = self.solver.mesh.cell_type._meshio_cell_type
-        self._writer.write_data(self._t, cell_data={cell_type_str: cell_data})
+
+        for field in self.solver.Q.fields:
+            cell_data[field.name] = {
+                cell_type_str: self.solver.values[..., field].ravel()
+            }
+
+        self._writer.write_data(self._t, cell_data=cell_data)
 
     def solve(self):
         with TimeSeriesWriter(self.filename) as self._writer:

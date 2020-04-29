@@ -1,1 +1,1 @@
-from .formats import NoopWriter
+from .writer import NoopWriter
