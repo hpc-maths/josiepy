@@ -2,13 +2,13 @@ import numpy as np
 import pytest
 
 from josie.bc import Dirichlet, Neumann, Direction, make_periodic
+from josie.euler.eos import PerfectGas
+from josie.euler.schemes import Rusanov
+from josie.euler.solver import EulerSolver
+from josie.euler.state import Q
+from josie.general.schemes.time import ExplicitEuler
 from josie.geom import Line
 from josie.mesh import Mesh, SimpleCell
-from josie.solver.euler.eos import PerfectGas
-from josie.solver.euler.schemes import Rusanov
-from josie.solver.scheme.time import ExplicitEuler
-from josie.solver.euler.solver import EulerSolver
-from josie.solver.euler.state import Q
 
 
 class ToroScheme(Rusanov, ExplicitEuler):

@@ -7,20 +7,20 @@ from dataclasses import dataclass
 from matplotlib.animation import FuncAnimation
 from matplotlib.gridspec import GridSpec
 
-from josie.solver.euler.eos import (
+from josie.euler.eos import (
     PerfectGas,
     StiffenedGas,
 )
-from josie.geom import Line
 from josie.bc import Dirichlet
+from josie.general.schemes.time import ExplicitEuler
+from josie.geom import Line
 from josie.mesh import Mesh, SimpleCell
 from josie.solver.scheme.scheme import Scheme
-from josie.solver.scheme.time import ExplicitEuler
-from josie.solver.twophase.eos import TwoPhaseEOS
-from josie.solver.twophase.closure import Classical
-from josie.solver.twophase.schemes import Rusanov, Upwind
-from josie.solver.twophase.state import PhasePair, Q
-from josie.solver.twophase.solver import TwoPhaseSolver
+from josie.twophase.closure import Classical
+from josie.twophase.eos import TwoPhaseEOS
+from josie.twophase.schemes import Rusanov, Upwind
+from josie.twophase.solver import TwoPhaseSolver
+from josie.twophase.state import PhasePair, Q
 
 
 class AdvectionOnly(Upwind, ExplicitEuler):

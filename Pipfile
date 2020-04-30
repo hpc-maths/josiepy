@@ -29,6 +29,7 @@ nbdime = "*"
 [packages]
 josiepy = {editable = true,path = "."}
 nbconvert = {editable = true,path = "./vendor/nbconvert"}
+meshio = "*"
 
 [requires]
 python_version = "3.8"

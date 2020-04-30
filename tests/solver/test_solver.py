@@ -16,15 +16,6 @@ def test_init(solver):
     assert np.all(left_values == 0.0)
 
 
-def test_save(tmp_path, solver):
-    # TODO: Think about a better test. E.g. Write down, then reload, and
-    # compare
-
-    file = tmp_path / "test_write.xdmf"
-
-    solver.save(0, file.as_posix())
-
-
 def test_plot(solver):
     solver.plot()
     solver.show("u")

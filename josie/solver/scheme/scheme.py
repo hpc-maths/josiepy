@@ -33,7 +33,7 @@ from josie.solver.problem import Problem
 from josie.mesh.mesh import Mesh
 
 
-class Scheme(metaclass=abc.ABCMeta):
+class Scheme(abc.ABC):
     r""" An abstract class representing a scheme to be used during a simulation.
 
     A general problem can be written in a compact way:

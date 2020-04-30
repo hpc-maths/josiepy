@@ -1,19 +1,13 @@
 josie.solver package
 ====================
 
-.. automodule:: josie.solver
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 Subpackages
 -----------
 
 .. toctree::
+   :maxdepth: 4
 
-   josie.solver.euler
    josie.solver.scheme
-   josie.solver.twophase
 
 Submodules
 ----------
@@ -42,3 +36,11 @@ josie.solver.state module
    :undoc-members:
    :show-inheritance:
 
+
+Module contents
+---------------
+
+.. automodule:: josie.solver
+   :members:
+   :undoc-members:
+   :show-inheritance:

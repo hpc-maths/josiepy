@@ -1,19 +1,18 @@
 josie package
 =============
 
-.. automodule:: josie
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 Subpackages
 -----------
 
 .. toctree::
+   :maxdepth: 4
 
+   josie.euler
+   josie.general
    josie.mesh
    josie.plot
    josie.solver
+   josie.twophase
 
 Submodules
 ----------
@@ -23,8 +22,8 @@ josie.bc module
 
 .. automodule:: josie.bc
    :members:
-   :undoc-members:
    :special-members: __call__
+   :undoc-members:
    :show-inheritance:
 
 josie.exceptions module
@@ -40,8 +39,8 @@ josie.geom module
 
 .. automodule:: josie.geom
    :members:
-   :undoc-members:
    :special-members: __call__
+   :undoc-members:
    :show-inheritance:
 
 josie.math module
@@ -52,3 +51,19 @@ josie.math module
    :undoc-members:
    :show-inheritance:
 
+josie.nbconvert module
+----------------------
+
+.. automodule:: josie.nbconvert
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+
+Module contents
+---------------
+
+.. automodule:: josie
+   :members:
+   :undoc-members:
+   :show-inheritance:

@@ -1,11 +1,6 @@
 josie.plot package
 ==================
 
-.. automodule:: josie.plot
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 Submodules
 ----------
 
@@ -25,3 +20,11 @@ josie.plot.matplotlib module
    :undoc-members:
    :show-inheritance:
 
+
+Module contents
+---------------
+
+.. automodule:: josie.plot
+   :members:
+   :undoc-members:
+   :show-inheritance:

@@ -24,31 +24,22 @@
 # The views and conclusions contained in the software and documentation
 # are those of the authors and should not be interpreted as representing
 # official policies, either expressed or implied, of Ruben Di Battista.
+import numpy as np
 
-from josie.solver.euler.eos import EOS as SinglePhaseEOS
-from .state import PhasePair
+from josie.solver.scheme.time import TimeScheme
+from josie.solver.state import State
+from josie.mesh.mesh import Mesh
 
 
-class TwoPhaseEOS(PhasePair):
-    """ An Abstract Base Class representing en EOS for a twophase system.  In
-    particular two :class:`~euler.eos.EOS`instances for each phase need to be
-    provided.
+class ExplicitEuler(TimeScheme):
+    r""" Implements the explicit euler scheme
 
-    You can access the EOS for a specified phase using the
-    :meth:`__getitem__`
+    .. math::
 
+        \pdeState^{k+1} = \pdeState^k +
+            \Delta t \; \vb{f}\qty(\pdeState^k,\pdeGradient^k)
     """
 
-    def __init__(self, phase1: SinglePhaseEOS, phase2: SinglePhaseEOS):
-        """
-        Parameters
-        ----------
-        phase1
-            An instance of :class:`~euler.eos.EOS` representing the EOS for the
-            single phase #1
-        phase2
-            An instance of :class:`~euler.eos.EOS` representing the EOS for the
-            single phase #2
-        """
-
-        super().__init__(phase1, phase2)
+    @classmethod
+    def update(cls, fluxes: State, mesh: Mesh, dt: float) -> State:
+        return fluxes * dt / mesh.volumes[..., np.newaxis]
