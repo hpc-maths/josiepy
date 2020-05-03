@@ -8,10 +8,10 @@ def test_interpolate(mesh, plot):
     # Test all the points on the boundary are equal to the points calculated
     # directly using the BoundaryCurves
     xis = np.linspace(0, 1, mesh._num_xi)
-    xl, yl = mesh.left(xis)
-    xr, yr = mesh.right(xis)
-    xt, yt = mesh.top(xis)
-    xb, yb = mesh.bottom(xis)
+    xl, yl = mesh.left.curve(xis)
+    xr, yr = mesh.right.curve(xis)
+    xt, yt = mesh.top.curve(xis)
+    xb, yb = mesh.btm.curve(xis)
 
     assert np.allclose(x[0, :], xl) and np.allclose(y[0, :], yl)
     assert np.allclose(x[-1, :], xr) and np.allclose(y[0, :], yr)
@@ -20,10 +20,10 @@ def test_interpolate(mesh, plot):
 
     plt.figure()
     plt.plot(x, y, "k.")
-    mesh.left.plot()
-    mesh.bottom.plot()
-    mesh.right.plot()
-    mesh.top.plot()
+    mesh.left.curve.plot()
+    mesh.btm.curve.plot()
+    mesh.right.curve.plot()
+    mesh.top.curve.plot()
     plt.axis("equal")
     plt.show(block=False)
 

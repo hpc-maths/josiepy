@@ -17,9 +17,8 @@ def test_invalid_mesh_x(boundaries, solver, init_fun):
 def test_1D(solver):
     """ In 1D, the top and bottom ghost cells are not present """
 
-    with pytest.raises(AttributeError):
-        solver.top_ghost
-        solver.btm_ghost
+    assert solver.mesh.dimensionality == 1
+    assert len(solver.ghosts) == 2
 
 
 def test_periodic(solver):
@@ -28,8 +27,8 @@ def test_periodic(solver):
     'bottom' boundary actually do not have neighbours
     """
 
-    assert np.array_equal(solver.left_ghost, solver.values[-1, :])
-    assert np.array_equal(solver.right_ghost, solver.values[0, :])
+    assert np.array_equal(solver._values[0, 1:-1], solver.values[-1, :])
+    assert np.array_equal(solver._values[-1, 1:-1], solver.values[0, :])
 
 
 def test_periodic_state(solver):
@@ -38,4 +37,4 @@ def test_periodic_state(solver):
     solver.values[0, 0] = 42.19
     solver._update_ghosts()
 
-    assert solver.right_ghost[0, 0] == 42.19
+    assert solver._values[-1, 1] == 42.19

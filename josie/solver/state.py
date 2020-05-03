@@ -33,14 +33,16 @@ from typing import Collection, Type
 
 from josie.mesh import Mesh
 
+Fields = Type[IntEnum]
+Field = IntEnum
+
 
 class State(np.ndarray):
     """ :class:`State` is a subclass of :class:`numpy.ndarray`. It behaves like
     a normal :class:`numpy.ndarray` except it has additional init methods to
     ease the usage
 
-    A :class:`State` can be initialized using a :class:`StateTemplate`, or
-    directly providing key-value arguments:
+    A :class:`State` can be initialized using a :class:`StateTemplate`,
 
     >>> Q = StateTemplate("rho", "rhoU", "rhoV")
     >>> state = np.array([0, 1, 2]).view(Q)
@@ -48,7 +50,18 @@ class State(np.ndarray):
     >>> assert state[state.fields.rhoU] == 1
     >>> assert state[state.fields.rhoV] == 2
 
-    A state can be manipulated as a normal :class:`numpy.ndarray`:
+    or directly providing key-value arguments
+
+    >>> state = State(rho=0, rhoU=1, rhoV=2)
+    >>> assert state[state.fields.rho] == 0
+    >>> assert state[state.fields.rhoU] == 1
+    >>> assert state[state.fields.rhoV] == 2
+
+    A :class:`State` can also store non-numeric elements. Check
+    :class:`~.bc.BoundaryCondition` for an actual situation in which callables
+    are stored instead of numeric elements.
+
+    A :class:`State can be manipulated as a normal :class:`numpy.ndarray`:
 
     >>> e1 = State([1, 0, 0])
     >>> e2 = State([0, 1, 0])
@@ -64,11 +77,26 @@ class State(np.ndarray):
     >>> assert np.array_equal(state[..., state.fields.rhoU],state[..., 1])
     """
 
-    fields: Type[IntEnum]
+    fields: Fields
     _FIELDS_ENUM_NAME = "FieldsEnum"
 
-    def __new__(cls, *args):
-        arr: State = np.asarray(list(args), dtype=float).view(cls)
+    def __new__(cls, *args, **kwargs):
+        if args and kwargs:
+            raise TypeError(
+                "A State can be defined using positional arguments OR "
+                "keyword arguments, not both"
+            )
+
+        if kwargs:
+            cls.fields = cls.list_to_enum(kwargs.keys())
+            args = list(kwargs.values())
+
+        if isinstance(args[0], (int, float)):
+            dtype = float
+        else:
+            dtype = np.object
+
+        arr: State = np.asarray(list(args), dtype=dtype).view(cls)
 
         return arr
 
@@ -101,8 +129,6 @@ class State(np.ndarray):
         ny = mesh.num_cells_y
         state_size = len(cls.fields)
 
-        # TODO: Fix for 3D. Probably adding a dimensionality attribute to
-        # `Mesh`
         return np.empty((nx + 2, ny + 2, state_size)).view(cls)
 
 

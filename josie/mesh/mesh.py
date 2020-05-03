@@ -31,8 +31,9 @@ import meshio
 import numpy as np
 import os
 
+from dataclasses import dataclass
 from meshio import Mesh as MeshIO
-from typing import Tuple, Type
+from typing import Iterable, Tuple, Type, TYPE_CHECKING, Union
 
 from josie.exceptions import InvalidMesh
 from josie.geom import BoundaryCurve
@@ -40,6 +41,42 @@ from josie.plot import DefaultBackend
 from josie.plot.backend import PlotBackend
 
 from .cell import Cell
+
+if TYPE_CHECKING:
+    # This is a trick to enable mypy to evaluate the Enum as a standard
+    # library Enum for type checking but we use `aenum` in the running code
+    from enum import IntEnum  # pragma: no cover
+
+    NoAlias = object()  # pragma: no cover
+else:
+    from aenum import IntEnum, NoAlias
+
+MeshIndex = Union[int, slice]
+
+
+@dataclass
+class Boundary:
+    """ A simple :class:`dataclass` coupling a :class:`~.BoundaryCurve` with
+    the indices of the cells that are part of that boundary
+
+    Attributes
+    ----------
+    boundary_curve
+        The :class:`~.BoundaryCurve`
+
+    idx
+        The cell indices
+    """
+
+    curve: BoundaryCurve
+    cells_idx: Tuple[MeshIndex, ...]
+
+
+class _BoundarySide(IntEnum, settings=NoAlias):
+    LEFT = 0
+    RIGHT = -1
+    TOP = -1
+    BOTTOM = 0
 
 
 class Mesh:
@@ -66,16 +103,20 @@ class Mesh:
     Attributes
     ----------
     left
-        The left :class:`BoundaryCurve`
+        The left :class:`Boundary`
 
-    bottom
-        The bottom :class:`BoundaryCurve`
+    btm
+        The bottom :class:`Boundary`
 
     right
-        The right :class:`BoundaryCurve`
+        The right :class:`Boundary`
 
     top
-        The right :class:`BoundaryCurve`
+        The right :class:`Boundary`
+
+    boundaries
+        An iterable over the boundaries available based on the
+        :attr:`dimensionality`
 
     oneD: bool
         A flag to indicate if the mesh is 1D or not
@@ -116,6 +157,16 @@ class Mesh:
         An instance of :class:`PlotBackend` used to plot mesh and its values
     """
 
+    centroids: np.ndarray
+    volumes: np.ndarray
+    points: np.ndarray
+    surfaces: np.ndarray
+    normals: np.ndarray
+    boundaries: Iterable[Boundary]
+
+    # TODO: This will need to be removed when we go 3D
+    MAX_DIMENSIONALITY = 2
+
     def __init__(
         self,
         left: BoundaryCurve,
@@ -125,33 +176,25 @@ class Mesh:
         cell_type: Type[Cell],
         Backend: Type[PlotBackend] = DefaultBackend,
     ):
-        self.left = left
-        self.bottom = bottom
-        self.right = right
-        self.top = top
+
+        self.left = Boundary(left, (_BoundarySide.LEFT, slice(None)))
+        self.btm = Boundary(bottom, (slice(None), _BoundarySide.BOTTOM))
+        self.right = Boundary(right, (_BoundarySide.RIGHT, slice(None)))
+
+        self.top = Boundary(top, (slice(None), _BoundarySide.TOP))
+
         self.cell_type = cell_type
         self.backend = Backend()
 
-        self.centroids: np.ndarray = np.empty(0)
-        self.volumes: np.ndarray = np.empty(0)
-        self.points: np.ndarray = np.empty(0)
-        self.surfaces: np.ndarray = np.empty(0)
-        self.normals: np.ndarray = np.empty(0)
+        self.boundaries = [
+            boundary
+            for boundary in (self.left, self.btm, self.right, self.top)
+            if boundary.curve.bc is not None
+        ]
 
-        self.oneD = False
+        self.bcs_count = len(self.boundaries)
 
-        # If the top.bc and bottom.bc are None, that means we are in 1D.
-        # Both of them must be None
-        none_count = [self.top.bc, self.bottom.bc].count(None)
-        if none_count >= 1:
-            if not (none_count) == 2:
-                raise InvalidMesh(
-                    "You have the top or the bottom BC that is "
-                    "`None`, but not the other one. In order to "
-                    "perform a 1D simulation, both of them must "
-                    "be set to `None`"
-                )
-            self.oneD = True
+        self.dimensionality = self.bcs_count / 2
 
     def interpolate(
         self, num_cells_x: int, num_cells_y: int
@@ -179,14 +222,14 @@ class Mesh:
         x = np.empty((self._num_xi, self._num_eta))
         y = np.empty((self._num_xi, self._num_eta))
 
-        XL, YL = self.left(ETAS)
-        XR, YR = self.right(ETAS)
-        XB, YB = self.bottom(XIS)
-        XT, YT = self.top(XIS)
-        XB0, YB0 = self.bottom(0)
-        XB1, YB1 = self.bottom(1)
-        XT0, YT0 = self.top(0)
-        XT1, YT1 = self.top(1)
+        XL, YL = self.left.curve(ETAS)
+        XR, YR = self.right.curve(ETAS)
+        XB, YB = self.btm.curve(XIS)
+        XT, YT = self.top.curve(XIS)
+        XB0, YB0 = self.btm.curve(0)
+        XB1, YB1 = self.btm.curve(1)
+        XT0, YT0 = self.top.curve(0)
+        XT1, YT1 = self.top.curve(1)
 
         x = (
             (1 - XIS) * XL
@@ -215,7 +258,7 @@ class Mesh:
 
         # If we're doing a 1D simulation, we need to check that in the y
         # direction we have only one cell
-        if self.oneD:
+        if self.dimensionality == 1:
             if self.num_cells_y > 1:
                 raise InvalidMesh(
                     "The bottom and top BC are `None`. That means that you're "
@@ -246,12 +289,9 @@ class Mesh:
         return self._x, self._y
 
     def generate(self):
-        """ Buuild the geometrical information and the connectivity
-        associated to the mesh using the specific cell type connectivity build
-        method
-
-        Parameters
-        ---------
+        """ Build the geometrical information and the connectivity associated
+        to the mesh using the specific cell type
+        :meth:`~.Cell.create_connectivity`
         """
 
         self.cell_type.create_connectivity(self)
