@@ -6,6 +6,8 @@
 
 ## A 2D PDE solver written in Python with a particular focus on usability
 
+### [Documentation](https://josiepy.rdb.is)
+
 ### Install 
 Since for the moment there are some [vendored](vendor) libraries, the library
 must be installed using `pipenv`. 
