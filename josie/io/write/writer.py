@@ -86,7 +86,7 @@ class Writer(abc.ABC):
 
         solver = self.solver
 
-        while self._t < self.final_time:
+        while self.solver.t < self.final_time:
 
             dt = solver.scheme.CFL(
                 solver.values,
@@ -95,16 +95,16 @@ class Writer(abc.ABC):
                 self.CFL,
             )
 
-            dt = self.strategy.check_write(self._t, dt, solver)
+            dt = self.strategy.check_write(self.solver.t, dt, solver)
 
             if self.strategy.should_write:
                 self.write()
                 if self.strategy.animate:
-                    solver.animate(self._t)
+                    solver.animate(self.solver.t)
 
             solver.step(dt)
 
-            self._t += dt
+            self.solver.t += dt
 
 
 class NoopWriter(Writer):

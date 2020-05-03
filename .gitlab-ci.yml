@@ -24,7 +24,7 @@ test:
             - "*.xml"
         expire_in: 1 week
 
-benchmark:
+.benchmark:
     stage: bench
     dependencies: 
         - test

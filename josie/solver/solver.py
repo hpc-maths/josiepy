@@ -26,13 +26,12 @@
 # official policies, either expressed or implied, of Ruben Di Battista.
 from __future__ import annotations
 
-import abc
 import numpy as np
-import os
 
 from dataclasses import dataclass
 from typing import (
     Callable,
+    Iterable,
     List,
     NoReturn,
     Union,
@@ -41,18 +40,18 @@ from typing import (
     TYPE_CHECKING,
 )
 
-from .state import State
+from .state import Field, State
 from .scheme import Scheme
 
 from josie.mesh import NormalDirection
 
 if TYPE_CHECKING:
-    from josie.mesh import Mesh
+    from josie.mesh.mesh import Boundary, Mesh, MeshIndex
 
 
 @dataclass
 class Neighbour:
-    """ A :class:`namedtuple` representing the set of neighbours to some values.
+    """ A class representing the set of neighbours to some values.
     It ships the values of the fields in the neighbour cells, together with the
     face normals and the face surfaces"""
 
@@ -61,106 +60,81 @@ class Neighbour:
     surfaces: np.ndarray
 
 
-class Solver(metaclass=abc.ABCMeta):
+@dataclass
+class Ghost:
+    """ A class representing the set of ghosts associated to a
+    :class:`~.Mesh` boundary
+
+    Attributes
+    ----------
+    idx
+        The indices of the values within the :attr:`Solver._values` data
+        structure
+
+    boundary
+        The :class:`~.BoundaryCurve` which the ghost cells are associated
+    """
+
+    solver: Solver
+    ghost_cells_idx: Tuple[MeshIndex, ...]
+    boundary: Boundary
+
+    def get_values(self, field: Field):
+        return self.solver._values[self.ghost_cells_idx, field]
+
+    def set_values(self, field: Field, values):
+        cells_idx = self.ghost_cells_idx
+        self.solver._values[cells_idx[0], cells_idx[1], field] = values
+
+    def get_boundary_values(self, field: Field):
+        cells_idx = self.boundary.cells_idx
+        return self.solver.values[cells_idx[0], cells_idx[1], field]
+
+    def get_boundary_centroids(self):
+        cells_idx = self.boundary.cells_idx
+        return self.solver.mesh.centroids[cells_idx[0], cells_idx[1]]
+
+
+class Solver:
+    r""" This class is used to solve a problem governed by PDEs.
+
+    The internal state of the mesh is stored in :attr:`values`, while the
+    values of the ghost cells (used to apply the
+    :class:`BoundaryCondition`) are stored respectively in
+    :attr:`left_ghost`, :attr:`btm_ghost`, :attr:`right_ghost`,
+    :attr:`top_ghost`. They're all numpy arrays or views to numpy arrays.
+
+    Parameters
+    ----------
+    mesh
+        An instance of the mesh to compute the solution on
+    Q
+        A :class:`State` representing the variables of the problem
+        to be solved
+
+    scheme
+        A :class:`Scheme` instance providing the numerical scheme to be
+        used for the simulation
+
+    Attributes
+    ----------
+    values
+        An array of dimensions :math:`Nx \times Ny \times \N_\text{fields}`
+        storing the value of the :class:`State` for each cell of the
+        :class:`Mesh`
+    """
 
     # Type Checking
     _values: State
-    _neighs: Tuple[Neighbour, ...]
+    _neighs: Iterable[Neighbour]
+    _ghosts: Iterable[Ghost]
+
+    # TODO: Fix _values to adapt on mesh.dimensionality
 
     def __init__(self, mesh: Mesh, Q: Type[State], scheme: Scheme):
-        """ This class is used to solve a problem governed by PDEs.
-
-        The internal state of the mesh is stored in :attr:`values`, while the
-        values of the ghost cells (used to apply the
-        :class:`BoundaryCondition`) are stored respectively in
-        :attr:`left_ghost`, :attr:`btm_ghost`, :attr:`right_ghost`,
-        :attr:`top_ghost`. They're all numpy arrays or views to numpy arrays.
-
-        Parameters
-        ----------
-        mesh
-            An instance of the mesh to compute the solution on
-        Q
-            A :class:`State` representing the variables of the problem
-            to be solved
-
-        scheme
-            A :class:`Scheme` instance providing the numerical scheme to be
-            used for the simulation
-
-        Attributes
-        ----------
-        values
-            An array of dimensions (num_cells_x, num_cells_y, state_size)
-            storing the value of the :class:`State` for each cell of the
-            :class:`Mesh`
-        left_ghost
-            An array of dimensions (num_cells_y, state_size) storing the values
-            of the :class:`State` on the ghost cells that are used to apply
-            the :class:`BoundaryCondition` for the left boundary
-        btm_ghost
-            An array of dimensions (num_cells_y, state_size) storing the values
-            of the :class:`State` on the ghost cells that are used to apply
-            the :class:`BoundaryCondition` for the bottom boundary
-        right_ghost
-            An array of dimensions (num_cells_y, state_size) storing the values
-            of the :class:`State` on the ghost cells that are used to apply
-            the :class:`BoundaryCondition` for the right boundary
-        top_ghost
-            An array of dimensions (num_cells_y, state_size) storing the values
-            of the :class:`State` on the ghost cells that are used to apply
-            the :class:`BoundaryCondition` for the top boundary
-        """
-
         self.mesh = mesh
         self.Q = Q
         self.scheme = scheme
-
-    # In order to apply BC, we create a view of the self._values array  per
-    # each side of the domain storing the State values of the ghost cells.
-    @property
-    def left_ghost(self) -> np.ndarray:
-        return self._values[0, 1:-1]
-
-    @left_ghost.setter
-    def left_ghost(self, value: np.ndarray):
-        self._values[0, 1:-1, :] = value
-
-    @property
-    def right_ghost(self) -> np.ndarray:
-        return self._values[-1, 1:-1]
-
-    @right_ghost.setter
-    def right_ghost(self, value: np.ndarray):
-        self._values[-1, 1:-1, :] = value
-
-    @property
-    def top_ghost(self) -> np.ndarray:
-        if self.mesh.oneD:
-            raise AttributeError("Mesh is 1D")
-
-        return self._values[1:-1, -1]
-
-    @top_ghost.setter
-    def top_ghost(self, value: np.ndarray):
-        if self.mesh.oneD:
-            raise AttributeError("Mesh is 1D")
-
-        self._values[1:-1, -1, :] = value
-
-    @property
-    def btm_ghost(self) -> np.ndarray:
-        if self.mesh.oneD:
-            raise AttributeError("Mesh is 1D")
-
-        return self._values[1:-1, 0]
-
-    @btm_ghost.setter
-    def btm_ghost(self, value: np.ndarray):
-        if self.mesh.oneD:
-            raise AttributeError("Mesh is 1D")
-
-        self._values[1:-1, 0] = value
 
     @property
     def values(self) -> np.ndarray:
@@ -171,7 +145,52 @@ class Solver(metaclass=abc.ABCMeta):
         self._values[1:-1, 1:-1, :] = value
 
     @property
-    def neighbours(self) -> Tuple[Neighbour, ...]:
+    def ghosts(self) -> Iterable[Ghost]:
+        """ A property returning an iterable of :class:`Ghost`, associated to
+        each :class:`~.BoundaryCurve` of the :class:`~.Mesh`
+
+        Returns
+        -------
+        ghosts
+            A tuple of :class:`Ghost` elements, each one associated to one
+            :class:`~.Boundary`, encapsulating the indices of the elements in
+            :attr:`_values` that contain the ghost values
+        """
+
+        try:
+            return self._ghosts
+        except AttributeError:
+            ghosts: List[Ghost] = []
+
+            for boundary in self.mesh.boundaries:
+
+                # Retrieve the position of the index that is not a slice
+                index, side = next(
+                    (i, v)
+                    for i, v in enumerate(boundary.cells_idx)
+                    if not (isinstance(v, slice))
+                )
+
+                # Assign the same value for the Ghost idx, at the same position
+                # The other positions are `ghost_slice`
+                ghost_cells_idx: List[Union[slice, int]] = [
+                    side if item == index else slice(1, -1, None)
+                    for item in range(self.mesh.MAX_DIMENSIONALITY)
+                ]
+
+                ghosts.append(
+                    Ghost(
+                        solver=self,
+                        ghost_cells_idx=tuple(ghost_cells_idx),
+                        boundary=boundary,
+                    )
+                )
+
+            self._ghosts = tuple(ghosts)
+            return self._ghosts
+
+    @property
+    def neighbours(self) -> Iterable[Neighbour]:
         """ A property returning an iterable of neighbours of the
         :attr:`values`
 
@@ -200,7 +219,7 @@ class Solver(metaclass=abc.ABCMeta):
 
             neighs.extend((left, right))
 
-            if not (self.mesh.oneD):
+            if not (self.mesh.dimensionality == 1):
                 top: Neighbour = Neighbour(
                     values=self._values[1:-1, 2:],
                     normals=self.mesh.normals[..., NormalDirection.TOP, :],
@@ -237,6 +256,9 @@ class Solver(metaclass=abc.ABCMeta):
 
         """
 
+        # Init time
+        self.t = 0
+
         # Init data structure
         self._values = self.Q.from_mesh(self.mesh)
 
@@ -258,35 +280,8 @@ class Solver(metaclass=abc.ABCMeta):
         """ This method updates the ghost cells of the mesh with the current
         values depending on the specified boundary condition """
 
-        # TODO: Make this a loop over self.mesh.boundaries as we did for
-        # neighbours
-
-        # Left BC: Create the left layer of ghost cells
-        self.left_ghost = self.mesh.left.bc(
-            self, self.mesh.centroids[0, :], self.values[0, :]  # type: ignore
-        )  # type: ignore
-
-        # Right BC
-        self.right_ghost = self.mesh.right.bc(
-            self,
-            self.mesh.centroids[-1, :],  # type: ignore
-            self.values[-1, :],
-        )  # type: ignore
-
-        if not (self.mesh.oneD):
-            # Bottom BC
-            self.btm_ghost = self.mesh.bottom.bc(
-                self,
-                self.mesh.centroids[:, 0],  # type: ignore
-                self.values[:, 0],
-            )  # type: ignore
-
-            # Top BC
-            self.top_ghost = self.mesh.top.bc(
-                self,
-                self.mesh.centroids[:, -1],  # type: ignore
-                self.values[:, -1],
-            )  # type: ignore
+        for ghost in self.ghosts:
+            ghost.boundary.curve.bc(ghost, self.t)
 
     def step(self, dt: float):
         """ This method advances one step in time (for the moment using an
@@ -345,20 +340,6 @@ class Solver(metaclass=abc.ABCMeta):
 
         # Keep ghost cells updated
         self._update_ghosts()
-
-    def save(self, t, filename: os.PathLike):
-        """ This method saves the simulation instant in a `xdmf` file
-        supporting time series.
-
-        Parameters
-        ---------
-        t
-            The time instant to save
-        filename
-            The name of the file holding the time series. It's an XDMF file
-        """
-
-        raise NotImplementedError
 
     def plot(self):
         """ Plot the current state of the simulation in a GUI.

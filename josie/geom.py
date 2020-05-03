@@ -28,7 +28,7 @@
 """ This module implements the different curve parametrization to describe the
 boundaries of a domain
 """
-
+from __future__ import annotations
 
 import abc
 
@@ -56,7 +56,7 @@ class BoundaryCurve(metaclass=abc.ABCMeta):
         return self._bc
 
     @bc.setter
-    def bc(self, bc: "BoundaryCondition"):
+    def bc(self, bc: BoundaryCondition):
         self._bc = bc
 
     @abc.abstractmethod

@@ -18,7 +18,7 @@ def init_fun(Q):
     """ Init a step in the state """
 
     def init_fun(solver: Solver):
-        xc = solver.mesh.centroids[:, :, 0]
+        xc = solver.mesh.centroids[..., 0]
 
         xc_r = np.where(xc >= 0.45)
         xc_l = np.where(xc < 0.45)

@@ -148,9 +148,9 @@ def test_against_real_1D(solver, plot, tol):
     ims = []
 
     for i, t in enumerate(time):
-        x = solver.mesh.centroids[:, :, 0]
+        x = solver.mesh.centroids[..., 0]
         x = x.reshape(x.size)
-        u = solver.values[:, :, 0]
+        u = solver.values[..., 0]
         u = u.reshape(u.size)
 
         err = u - solution[i, :]

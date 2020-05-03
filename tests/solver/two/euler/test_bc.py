@@ -6,10 +6,10 @@ def test_periodic(solver):
     cells on the other domain and, for 1D, that the cells on the 'top' and
     'bottom' boundary actually do not have neighbours
     """
-    assert np.array_equal(solver.left_ghost, solver.values[-1, :])
-    assert np.array_equal(solver.right_ghost, solver.values[0, :])
-    assert np.array_equal(solver.top_ghost, solver.values[:, 0])
-    assert np.array_equal(solver.btm_ghost, solver.values[:, -1])
+    assert np.array_equal(solver._values[0, 1:-1], solver.values[-1, :])
+    assert np.array_equal(solver._values[-1, 1:-1], solver.values[0, :])
+    assert np.array_equal(solver._values[1:-1, -1], solver.values[:, 0])
+    assert np.array_equal(solver._values[1:-1, 0], solver.values[:, -1])
 
 
 def test_periodic_state(solver):
@@ -24,16 +24,16 @@ def test_periodic_state(solver):
 
     solver.values[0, :] = a
     solver._update_ghosts()
-    assert np.all(solver.right_ghost == a)
+    assert np.all(solver._values[-1, 1:-1] == a)
 
     solver.values[-1, :] = b
     solver._update_ghosts()
-    assert np.all(solver.left_ghost == b)
+    assert np.all(solver._values[0, 1:-1] == b)
 
     solver.values[:, 0] = c
     solver._update_ghosts()
-    assert np.all(solver.top_ghost == c)
+    assert np.all(solver._values[1:-1, -1] == c)
 
     solver.values[:, -1] = d
     solver._update_ghosts()
-    assert np.all(solver.btm_ghost == d)
+    assert np.all(solver._values[1:-1, 0] == d)
