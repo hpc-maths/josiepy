@@ -3,9 +3,23 @@
 [![coverage report](https://gitlab.com/rubendibattista/josiepy/-/jobs/artifacts/master/raw/coverage.svg?job=badges)](https://gitlab.com/rubendibattista/josiepy/pipelines)
 [![loc](https://gitlab.com/rubendibattista/josiepy/-/jobs/artifacts/master/raw/loc.svg?job=badges)](https://gitlab.com/rubendibattista/josiepy/master)
 [![version](https://gitlab.com/rubendibattista/josiepy/-/jobs/artifacts/master/raw/version.svg?job=badges)](https://gitlab.com/rubendibattista/josiepy/-/releases)
+
 ## A 2D PDE solver written in Python with a particular focus on usability
 
+### Install 
+Since for the moment there are some [vendored](vendor) libraries, the library
+must be installed using `pipenv`. 
+
+```
+pipenv install
+```
+
 ## Developer Notes
+### Install
+
+```
+pipenv install --dev
+```
 ### Submodules
 This repository contains `submodules`. Clone it using `--recursive`  or don't
 forget to `git submodule update --init --recursive`
@@ -22,6 +36,4 @@ you need to include the `.gitconfig` in the `.git/config`.
 
 **`nbdime`** 
 You need to enable the [git integration](https://nbdime.readthedocs.io/en/latest/#git-integration-quickstart)
-
-
 
