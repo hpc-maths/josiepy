@@ -9,6 +9,7 @@ Subpackages
 
    josie.euler
    josie.general
+   josie.io
    josie.mesh
    josie.plot
    josie.solver
@@ -23,6 +24,14 @@ josie.bc module
 .. automodule:: josie.bc
    :members:
    :special-members: __call__
+   :undoc-members:
+   :show-inheritance:
+
+josie.data module
+-----------------
+
+.. automodule:: josie.data
+   :members:
    :undoc-members:
    :show-inheritance:
 

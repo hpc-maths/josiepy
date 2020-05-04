@@ -97,7 +97,7 @@ class BoundaryCondition:
 
 class ScalarBC(abc.ABC):
     """ A :class:`ScalarBC` is implemented as a callable that
-    returns an equivalent cell value (i.e :class:`~.State`) for each cell given
+    returns an equivalent cell value for the specific field for each cell given
     to it.
 
     This returned values can be an actual value that ensure the value of the
