@@ -57,6 +57,10 @@ class Scheme(abc.ABC):
 
     * .. math::
 
+        \numDiffusiveFull
+
+    * .. math::
+
         \numSourceFull
 
     Together with the time update scheme to solve:
@@ -108,6 +112,23 @@ class Scheme(abc.ABC):
         .. math::
 
             \numNonConservativeFaces
+        """
+
+        return np.zeros_like(values)
+
+    def accumulate_diffusive(
+        self,
+        values: State,
+        neigh_values: State,
+        normals: np.ndarray,
+        surfaces: np.ndarray,
+    ) -> State:
+        r""" This method implements the accumulation for the diffusive
+        fluxes between each cell and its neighbour.
+
+        .. math::
+
+            \numDiffusiveFaces
         """
 
         return np.zeros_like(values)
@@ -202,14 +223,15 @@ class Scheme(abc.ABC):
 
         Returns
         -------
-        The Optimal `dt` fulfilling the CFL condition for the given
-        CFL number
+        dt
+            The Optimal `dt` fulfilling the CFL condition for the given
+            CFL number
         """
 
         raise NotImplementedError
 
     def post_init(self, values: State):
-        """ :class:`Scheme` can implement a :meth:`post_init` in order to
+        """:class:`Scheme` can implement a :meth:`post_init` in order to
         perform operations after the :meth:`Solver.init` initialize the
         solver state
 
@@ -225,7 +247,7 @@ class Scheme(abc.ABC):
         pass
 
     def post_step(self, values: State) -> State:
-        """ :class:`Scheme` can implement a post-step hook that is executed by the
+        """:class:`Scheme` can implement a post-step hook that is executed by the
         solver after the update step.
         It can be needed, for example, to apply an Equation of State
         """

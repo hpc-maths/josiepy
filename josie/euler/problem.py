@@ -33,7 +33,7 @@ from .eos import EOS
 
 
 class EulerProblem(Problem):
-    """ A class representing an Euler system problem
+    """A class representing an Euler system problem
 
     Attributes
     ---------
@@ -59,9 +59,9 @@ class EulerProblem(Problem):
         Parameters
         ----------
         state_array
-            A :class:`~.Q` that has dimension :math:`Nx \times Ny \times 9`
-            containing the values for all the state variables in all the mesh
-            points
+            A :class:`~euler.state.Q` that has dimension :math:`Nx \times Ny
+            \times 9` containing the values for all the state variables in all
+            the mesh points
 
         Returns
         ---------

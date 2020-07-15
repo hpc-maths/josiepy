@@ -186,13 +186,10 @@ class Rusanov(EulerScheme):
         r"""Returns the value of the :math:`\sigma`(i.e. the wave velocity) for
         the the Rusanov scheme.
 
-        .. math:
+        .. math::
 
-            \qty|\pdeConvective|_{i+\frac{1}{2}} =
-                \frac{1}{2} \qty[%
-                \qty|\pdeConvective|_{i+1} + \qty|\pdeConvective|_{i}
-                - \sigma \qty(\pdeState_{i+1} - \pdeState{i})
-                ]
+            \sigma = \max{\qty(\norm{\vb{u}} + c, \norm{\vb{u}} - c)}
+
 
         Parameters
         ----------
@@ -225,8 +222,17 @@ class Rusanov(EulerScheme):
         normals: np.ndarray,
         surfaces: np.ndarray,
     ):
-        """This method implements the Rusanov scheme. See :cite: `rusanov` for
+
+        r"""This method implements the Rusanov scheme. See :cite: `rusanov` for
         a detailed view on compressible schemes, given a suitable
+
+        .. math::
+
+            \qty|\pdeConvective|_{i+\frac{1}{2}} =
+                \frac{1}{2} \qty[%
+                \qty|\pdeConvective|_{i+1} + \qty|\pdeConvective|_{i}
+                - \sigma \qty(\pdeState_{i+1} - \pdeState{i})
+                ]
         """
 
         FS = np.zeros_like(values).view(Q)

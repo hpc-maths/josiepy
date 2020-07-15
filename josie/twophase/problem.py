@@ -36,8 +36,8 @@ from .state import Q, FluxQ
 
 
 class TwoPhaseProblem(Problem):
-    """ A class representing a two-phase system problem governed by the
-    equations first described in :cite:`baer_two-phase_1986` """
+    """A class representing a two-phase system problem governed by the
+    equations first described in :cite:`baer_two-phase_1986`"""
 
     def __init__(self, eos: TwoPhaseEOS, closure: Closure):
         self.eos = eos
@@ -95,7 +95,8 @@ class TwoPhaseProblem(Problem):
         Parameters
         ----------
         Q
-            The :class:`~.Q` array containing the values of all the fields
+            The :class:`~twophase.state.Q` array containing the values of all
+            the fields
 
         eos
             An implementation of the equation of state. In particular it needs

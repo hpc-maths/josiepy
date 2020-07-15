@@ -1,4 +1,3 @@
-# josiepy
 # Copyright © 2019 Ruben Di Battista
 # All rights reserved.
 #
@@ -35,8 +34,7 @@ from josie.solver.state import State
 
 
 class PhasePair:
-    """ A tuple of objects that are indexable by :class:`Phases`.
-    """
+    """A tuple of objects that are indexable by :class:`Phases`."""
 
     def __init__(self, phase1: Any, phase2: Any):
         self._data: Dict[Phases, int] = {
@@ -69,7 +67,7 @@ class PhasePair:
 
 
 class Phases(IntEnum):
-    """ A phase indicator :class:`IntEnum`. It gives the index within the
+    """A phase indicator :class:`IntEnum`. It gives the index within the
     :class:`Q` array where that phase state variables begin
 
     """
@@ -166,8 +164,8 @@ class Q(State):
     that are instead needed, for example, to compute the speed of sound.
 
     The state of system described in :cite:`baer_two-phase_1986` is actually
-    two Euler states togeter with the state associated to the volume fraction
-    :math:`\alpha` """
+    two Euler states together with the state associated to the volume fraction
+    :math:`\alpha`"""
 
     fields = Fields
 
@@ -196,7 +194,7 @@ class Q(State):
         return self[..., phase : phase + 9].view(PhaseQ)
 
     def set_phase(self, phase: Phases, values: PhaseQ):
-        """ Sets the part of the system associated to the specified ``phase``
+        """Sets the part of the system associated to the specified ``phase``
         with the provided `values`
 
         Parameters

@@ -124,7 +124,8 @@ imgmath_latex_preamble = r"""
 }
 
 \newcommand{\numPreMultipliedNonConservativeFaces}{%
-    \qty<\pdeNonConservativeMultiplier>_i \cdot \numNonConservativeFaces
+    \langle \pdeNonConservativeMultiplier\rangle_i \cdot
+    \numNonConservativeFaces
 }
 
 \newcommand{\numNonConservativeFull}{%
@@ -132,6 +133,11 @@ imgmath_latex_preamble = r"""
     \oint_{\partial V_i} \pdeNonConservativeMultiplier \cdot \pdeState
     \dd{S} \approx \numPreMultipliedNonConservativeFaces
 }
+
+\newcommand{\numDiffusiveFaces}{}
+
+\newcommand{\numDiffusiveFull}{}
+
 
 \newcommand{\numSpaceTerms}{%
     \numConvectiveFaces, \numPreMultipliedNonConservativeFaces, \numSource
@@ -144,6 +150,12 @@ imgmath_latex_preamble = r"""
 \newcommand{\numTimeFull}{%
     \pdeState^{k+1} = \pdeState^k + \numTime
 }
+
+% :: Euler ::
+
+\newcommand{\eulerState}{\qty(%
+    \rho, \rho U, \rho V, \rho E, \rho e, U, V, p, c
+)}
 
 
 """

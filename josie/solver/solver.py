@@ -51,7 +51,7 @@ if TYPE_CHECKING:
 
 @dataclass
 class Neighbour:
-    """ A class representing the set of neighbours to some values.
+    """A class representing the set of neighbours to some values.
     It ships the values of the fields in the neighbour cells, together with the
     face normals and the face surfaces"""
 
@@ -62,7 +62,7 @@ class Neighbour:
 
 @dataclass
 class Ghost:
-    """ A class representing the set of ghosts associated to a
+    """A class representing the set of ghosts associated to a
     :class:`~.Mesh` boundary
 
     Attributes
@@ -119,7 +119,7 @@ class Solver:
     Attributes
     ----------
     values
-        An array of dimensions :math:`Nx \times Ny \times \N_\text{fields}`
+        An array of dimensions :math:`Nx \times Ny \times N_\text{fields}`
         storing the value of the :class:`State` for each cell of the
         :class:`Mesh`
     """
@@ -146,7 +146,7 @@ class Solver:
 
     @property
     def ghosts(self) -> Iterable[Ghost]:
-        """ A property returning an iterable of :class:`Ghost`, associated to
+        """A property returning an iterable of :class:`Ghost`, associated to
         each :class:`~.BoundaryCurve` of the :class:`~.Mesh`
 
         Returns
@@ -191,7 +191,7 @@ class Solver:
 
     @property
     def neighbours(self) -> Iterable[Neighbour]:
-        """ A property returning an iterable of neighbours of the
+        """A property returning an iterable of neighbours of the
         :attr:`values`
 
         Returns
@@ -277,14 +277,14 @@ class Solver:
         self._update_ghosts()
 
     def _update_ghosts(self):
-        """ This method updates the ghost cells of the mesh with the current
-        values depending on the specified boundary condition """
+        """This method updates the ghost cells of the mesh with the current
+        values depending on the specified boundary condition"""
 
         for ghost in self.ghosts:
             ghost.boundary.curve.bc(ghost, self.t)
 
     def step(self, dt: float):
-        """ This method advances one step in time (for the moment using an
+        """This method advances one step in time (for the moment using an
         explicit Euler scheme for time integration, but in future we will
         provide a way to give arbitrary time schemes)
 
@@ -342,13 +342,12 @@ class Solver:
         self._update_ghosts()
 
     def plot(self):
-        """ Plot the current state of the simulation in a GUI.
-        """
+        """Plot the current state of the simulation in a GUI."""
         plt = self.mesh.backend
         plt.update(self)
 
     def animate(self, t):
-        """ Animate the simulation. Call :meth:`animate` for each time instant
+        """Animate the simulation. Call :meth:`animate` for each time instant
         you want to provide in the animation.
 
         Parameters
@@ -360,7 +359,7 @@ class Solver:
         plt.append(self, t)
 
     def show(self, fields: Union[List[str], str]):
-        """ Display on screen the given fields
+        """Display on screen the given fields
 
         Parameters
         ---------
