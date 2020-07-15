@@ -45,7 +45,7 @@ class TwoPhaseScheme(Scheme):
         self.problem: TwoPhaseProblem = TwoPhaseProblem(eos, closure)
 
     def post_step(self, values: Q):
-        """ During the step we update the conservative values. After the
+        """During the step we update the conservative values. After the
         step we update the non-conservative variables. This method updates
         the values of the non-conservative (auxiliary) variables using the
         :class:`~.EOS`
@@ -124,13 +124,8 @@ class Upwind(NonConservativeScheme, TwoPhaseScheme):
         alpha = values[..., Q.fields.alpha]
         alpha_neigh = neigh_values[..., Q.fields.alpha]
 
-        idx = np.where(U_face >= 0)
-        if np.any(idx):
-            alpha_face[idx] = alpha[idx]
-
-        idx = np.where(U_face < 0)
-        if np.any(idx):
-            alpha_face[idx] = alpha_neigh[idx]
+        np.copyto(alpha_face, alpha, where=U_face >= 0)
+        np.copyto(alpha_face, alpha_neigh, where=U_face < 0)
 
         alphan_face = np.einsum("...i,...ij->...ij", alpha_face, normals)
 
