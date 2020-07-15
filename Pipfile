@@ -4,33 +4,28 @@ url = "https://pypi.org/simple"
 verify_ssl = true
 
 [dev-packages]
+josiepy = {editable = true,path = "."}
+commonmark = {editable = true,path= "./vendor/commonmark.py"}
+recommonmark = {editable = true, path = "./vendor/recommonmark"}
+nbconvert = {editable = true, path = "./vendor/nbconvert"}
+jupyter = "*"
 invoke = "*"
-pytest = "==5.3.5"
-pytest-benchmark = "*"
-pytest-cov = "*"
-pytest-flake8 = "*"
-pytest-mock = "*"
-pytest-xdist = "*"
 sphinx = "*"
 sphinx-rtd-theme = "*"
 sphinx-autodoc-typehints = "*"
 sphinx-markdown-tables = "*"
 sphinxcontrib-bibtex = "*"
+pytest = "*"
+pytest-benchmark = "*"
+pytest-cov = "*"
+pytest-flake8 = "*"
+pytest-mock = "*"
 pytest-mypy = "*"
-commonmark = {editable = true,path = "./vendor/commonmark.py"}
+pytest-xdist = "*"
 pygount = "*"
-ipdb = "*"
-recommonmark = {editable = true,path = "./vendor/recommonmark"}
-rise = "*"
-ipywidgets = "*"
-ipyevents = "*"
-nbdime = "*"
 black = "*"
 
 [packages]
-josiepy = {editable = true,path = "."}
-nbconvert = {editable = true,path = "./vendor/nbconvert"}
-meshio = "*"
 
 [requires]
 python_version = "3.8"
