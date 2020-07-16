@@ -168,6 +168,7 @@ class Scheme(abc.ABC):
         for accumulate_fun in [
             self.accumulate_convective,
             self.accumulate_nonconservative,
+            self.accumulate_diffusive,
             self.accumulate_source,
         ]:
             fluxes += accumulate_fun(values, neigh_values, normals, surfaces)
