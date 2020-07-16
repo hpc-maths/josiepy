@@ -70,18 +70,11 @@ class BoundaryCondition:
         """
         Parameters
         ----------
-        boundary_idx
-            Indices of the cells of the boundary to which the
-            :class:`BoundaryCondition` is applied to
-        ghost_idx
-            Indices of the ghost cells associated to the cells indexed by
-            ``boundary_idx``
-        solver
-            The solver object that can be useful to use other cells of the mesh
-            (probably needed only for :class:`Periodic`) and to access the
-            :class:`Mesh` and the field values
+        ghost
+            The :class:`~Ghost` cells on which to apply the set of
+            :class:`ScalarBC`
         t
-            The time instant to which this :class:`ScalarBC`
+            The time instant to which this :class:`BoundaryCondition`
             must be evaluated (useful for time-dependent BCs)
 
         """

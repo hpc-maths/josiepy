@@ -72,7 +72,7 @@ class Ghost:
         structure
 
     boundary
-        The :class:`~.BoundaryCurve` which the ghost cells are associated
+        The :class:`~.Boundary` which the ghost cells are associated
     """
 
     solver: Solver
@@ -327,6 +327,7 @@ class Solver:
         fluxes = np.zeros_like(self.values)
 
         # Loop on all the cells neigbours
+        # TODO: Modify fluxes in-place to avoid copy
         for neighs in self.neighbours:
             fluxes += self.scheme.accumulate(
                 self.values, neighs.values, neighs.normals, neighs.surfaces
