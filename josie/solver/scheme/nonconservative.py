@@ -61,7 +61,7 @@ class NonConservativeScheme(Scheme):
         surfaces: np.ndarray,
     ) -> State:
 
-        fluxes = super().accumulate_nonconservative(
+        super().accumulate_nonconservative(
             values, neigh_values, normals, surfaces
         )
 
@@ -69,9 +69,7 @@ class NonConservativeScheme(Scheme):
         G = self.G(values, neigh_values, normals, surfaces)
         BG = np.einsum("...ijk,...k->...i", B, G)
 
-        fluxes += BG
-
-        return fluxes
+        self._fluxes += BG
 
     @abc.abstractmethod
     def G(

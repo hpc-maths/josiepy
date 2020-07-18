@@ -41,8 +41,7 @@ from .strategy import NoopStrategy, Strategy
 class Writer(abc.ABC):
     """ A context manager to apply a writing strategy for a simulation
 
-    Child classes implement writing every :math:`n_t` time-steps or every
-    :math:`n` iterations and so on....
+    Child classes implement writing on files or in memory.
 
     Attributes
     ----------
@@ -80,8 +79,9 @@ class Writer(abc.ABC):
         pass
 
     def solve(self):
-        """ This method updates the internal state of the Writer and saves
-        solver state to the file if needed
+        """ This method updates the time instant in the :class:`Solver`, the
+        internal state of the Writer and saves current solver state to the file
+        if needed
         """
 
         solver = self.solver
@@ -100,6 +100,8 @@ class Writer(abc.ABC):
             if self.strategy.should_write:
                 self.write()
                 if self.strategy.animate:
+                    # TODO: Factor out in separate object hierarchy the
+                    # `animate` method of :class:`Solver`
                     solver.animate(self.solver.t)
 
             solver.step(dt)

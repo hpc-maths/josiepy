@@ -76,7 +76,6 @@ class Scheme(abc.ABC):
     problem
         An instance of :class:`Problem` representing the physical problem that
         this scheme discretizes
-
     """
 
     def __init__(self, problem: Problem):
@@ -88,16 +87,17 @@ class Scheme(abc.ABC):
         neigh_values: State,
         normals: np.ndarray,
         surfaces: np.ndarray,
-    ) -> State:
+    ):
         r""" This method implements the accumulation for the convective
-        fluxes between each cell and its neighbour.
+        fluxes between each cell and its neighbour. It modifies in place
+        :attr:`fluxes`
 
         .. math::
 
             \numConvectiveFaces
         """
 
-        return np.zeros_like(values)
+        pass
 
     def accumulate_nonconservative(
         self,
@@ -105,16 +105,18 @@ class Scheme(abc.ABC):
         neigh_values: State,
         normals: np.ndarray,
         surfaces: np.ndarray,
-    ) -> State:
+    ):
         r""" This method implements the accumulation for the non-conservative
-        fluxes between each cell and its neighbour.
+        fluxes between each cell and its neighbour. It modifies in place
+        :attr:`fluxes`
+
 
         .. math::
 
             \numNonConservativeFaces
         """
 
-        return np.zeros_like(values)
+        pass
 
     def accumulate_diffusive(
         self,
@@ -122,16 +124,18 @@ class Scheme(abc.ABC):
         neigh_values: State,
         normals: np.ndarray,
         surfaces: np.ndarray,
-    ) -> State:
+    ):
         r""" This method implements the accumulation for the diffusive
-        fluxes between each cell and its neighbour.
+        fluxes between each cell and its neighbour. It modifies in place
+        :attr:`fluxes`
+
 
         .. math::
 
             \numDiffusiveFaces
         """
 
-        return np.zeros_like(values)
+        pass
 
     def accumulate_source(
         self,
@@ -139,16 +143,17 @@ class Scheme(abc.ABC):
         neigh_values: State,
         normals: np.ndarray,
         surfaces: np.ndarray,
-    ) -> State:
+    ):
         r""" This method implements the accumulation for the source
-        terms between each cell and its neighbour.
+        terms between each cell and its neighbour. It modifies in place
+        :attr:`fluxes`
 
         .. math::
 
             \numSource
         """
 
-        return np.zeros_like(values)
+        pass
 
     def accumulate(
         self,
@@ -156,14 +161,13 @@ class Scheme(abc.ABC):
         neigh_values: State,
         normals: np.ndarray,
         surfaces: np.ndarray,
-    ) -> State:
+    ):
         r""" This method implements the accumulation of all fluxes between
         each cell and its neigbhour
 
         Potentially if the :attr:`problem` is a full problem featuring all
         the terms, this method accumulates the terms :math:`\numSpaceTerms`
         """
-        fluxes = np.zeros_like(values)
 
         for accumulate_fun in [
             self.accumulate_convective,
@@ -171,17 +175,24 @@ class Scheme(abc.ABC):
             self.accumulate_diffusive,
             self.accumulate_source,
         ]:
-            fluxes += accumulate_fun(values, neigh_values, normals, surfaces)
-
-        return fluxes
+            accumulate_fun(values, neigh_values, normals, surfaces)
 
     @abc.abstractmethod
-    def update(self, fluxes: State, mesh: Mesh, dt: float) -> State:
+    def update(self, mesh: Mesh, dt: float):
         r""" This method implements the discretization of the time derivative
 
         .. math::
 
             \numTimeFull
+
+        Parameters
+        ---------
+        mesh
+            The :class:`Mesh` object used to retrieve the right
+            :math:`\text{d}x`
+
+        dt
+            Time step
 
         Returns
         -------
@@ -245,9 +256,18 @@ class Scheme(abc.ABC):
             The values of the fields in the mesh cells
         """
 
-        pass
+        # Initialize the datastructure containing the fluxes
+        self._fluxes: State = np.empty_like(values)
 
-    def post_step(self, values: State) -> State:
+    def pre_step(self, values: State):
+        """
+        Hook called just before the fluxes accumulation. It's used by default
+        to reset the fluxes array to zeros. It can be extend to do other things
+        """
+
+        self._fluxes.fill(0)
+
+    def post_step(self, values: State):
         """:class:`Scheme` can implement a post-step hook that is executed by the
         solver after the update step.
         It can be needed, for example, to apply an Equation of State

@@ -40,6 +40,5 @@ class ExplicitEuler(TimeScheme):
             \Delta t \; \vb{f}\qty(\pdeState^k,\pdeGradient^k)
     """
 
-    @classmethod
-    def update(cls, fluxes: State, mesh: Mesh, dt: float) -> State:
-        return fluxes * dt / mesh.volumes[..., np.newaxis]
+    def update(self, mesh: Mesh, dt: float) -> State:
+        return self._fluxes * dt / mesh.volumes[..., np.newaxis]

@@ -124,7 +124,7 @@ class PerfectGas(EOS):
         Returns
         -------
         c
-            A :class`np.ndarray  containing the values of the sound velocity
+            A :class`np.ndarray` containing the values of the sound velocity
             multiplied by the density
         """
 

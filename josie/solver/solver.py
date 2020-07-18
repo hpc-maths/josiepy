@@ -122,12 +122,15 @@ class Solver:
         An array of dimensions :math:`Nx \times Ny \times N_\text{fields}`
         storing the value of the :class:`State` for each cell of the
         :class:`Mesh`
+    t
+        The time instant of the simulation held by the :class:`Solver` object
     """
 
     # Type Checking
     _values: State
     _neighs: Iterable[Neighbour]
     _ghosts: Iterable[Ghost]
+    t: float
 
     # TODO: Fix _values to adapt on mesh.dimensionality
 
@@ -272,6 +275,7 @@ class Solver:
         self._values[-1, -1] = np.nan
         self._values[-1, 0] = np.nan
 
+        # Initialize the scheme datastructures (notably the fluxes)
         self.scheme.post_init(self.values)
 
         self._update_ghosts()
@@ -323,18 +327,17 @@ class Solver:
             Time increment of the step
         """
 
-        # We accumulate the delta fluxes for each set of neighbours
-        fluxes = np.zeros_like(self.values)
+        self.scheme.pre_step(self.values)
 
         # Loop on all the cells neigbours
         # TODO: Modify fluxes in-place to avoid copy
         for neighs in self.neighbours:
-            fluxes += self.scheme.accumulate(
+            self.scheme.accumulate(
                 self.values, neighs.values, neighs.normals, neighs.surfaces
             )
 
         # Update
-        self.values -= self.scheme.update(fluxes, self.mesh, dt)
+        self.values -= self.scheme.update(self.mesh, dt)
 
         # Let's put here an handy post step if needed after the values update
         self.scheme.post_step(self.values)

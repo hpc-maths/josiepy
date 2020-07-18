@@ -98,15 +98,11 @@ class ConvectiveScheme(Scheme):
         neigh_values: State,
         normals: np.ndarray,
         surfaces: np.ndarray,
-    ) -> State:
+    ):
 
         # Compute fluxes computed eventually by the other schemes (e.g.
         # nonconservative)
-        fluxes = super().accumulate_convective(
-            values, neigh_values, normals, surfaces
-        )
+        super().accumulate_convective(values, neigh_values, normals, surfaces)
 
         # Add conservative contribution
-        fluxes += self.F(values, neigh_values, normals, surfaces)
-
-        return fluxes
+        self._fluxes += self.F(values, neigh_values, normals, surfaces)
