@@ -82,12 +82,9 @@ class ConvectiveScheme(Scheme):
 
         Returns
         -------
-        The value of the numerical convective flux multiplied by the surface
-        value
-
-        .. math::
-
-            \numConvective
+        F
+            The value of the numerical convective flux multiplied by the
+            surface value :math:`\numConvective`
 
         """
         raise NotImplementedError

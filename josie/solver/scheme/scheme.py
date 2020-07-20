@@ -90,7 +90,7 @@ class Scheme(abc.ABC):
     ):
         r""" This method implements the accumulation for the convective
         fluxes between each cell and its neighbour. It modifies in place
-        :attr:`fluxes`
+        :attr:`_fluxes`
 
         .. math::
 
@@ -108,7 +108,7 @@ class Scheme(abc.ABC):
     ):
         r""" This method implements the accumulation for the non-conservative
         fluxes between each cell and its neighbour. It modifies in place
-        :attr:`fluxes`
+        :attr:`_fluxes`
 
 
         .. math::
@@ -127,7 +127,7 @@ class Scheme(abc.ABC):
     ):
         r""" This method implements the accumulation for the diffusive
         fluxes between each cell and its neighbour. It modifies in place
-        :attr:`fluxes`
+        :attr:`_fluxes`
 
 
         .. math::
@@ -166,7 +166,11 @@ class Scheme(abc.ABC):
         each cell and its neigbhour
 
         Potentially if the :attr:`problem` is a full problem featuring all
-        the terms, this method accumulates the terms :math:`\numSpaceTerms`
+        the terms, this method accumulates the terms
+
+        .. math::
+
+            \numSpaceTerms
         """
 
         for accumulate_fun in [
@@ -270,7 +274,7 @@ class Scheme(abc.ABC):
     def post_step(self, values: State):
         """:class:`Scheme` can implement a post-step hook that is executed by the
         solver after the update step.
-        It can be needed, for example, to apply an Equation of State
+        It can be needed, for example, to apply an :class:`~.euler.eos.EOS`
         """
 
         pass

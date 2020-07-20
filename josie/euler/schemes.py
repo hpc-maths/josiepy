@@ -223,16 +223,17 @@ class Rusanov(EulerScheme):
         surfaces: np.ndarray,
     ):
 
-        r"""This method implements the Rusanov scheme. See :cite: `rusanov` for
-        a detailed view on compressible schemes, given a suitable
+        r"""This method implements the Rusanov scheme. See
+        :cite:`toro_riemann_2009` for a detailed view on compressible schemes.
+        The Rusanov scheme is discretized by:
 
         .. math::
 
-            \qty|\pdeConvective|_{i+\frac{1}{2}} =
+            \numConvective  =
                 \frac{1}{2} \qty[%
                 \qty|\pdeConvective|_{i+1} + \qty|\pdeConvective|_{i}
-                - \sigma \qty(\pdeState_{i+1} - \pdeState{i})
-                ]
+                - \sigma \qty(\pdeState_{i+1} - \pdeState_{i})
+                ] S_f
         """
 
         FS = np.zeros_like(values).view(Q)

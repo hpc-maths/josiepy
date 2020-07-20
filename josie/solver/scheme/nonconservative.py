@@ -79,6 +79,7 @@ class NonConservativeScheme(Scheme):
         normals: np.ndarray,
         surfaces: np.ndarray,
     ) -> np.ndarray:
+
         r""" This is the nonconservative flux implementation of the scheme. See
         :cite:`toro_riemann_2009` for a great overview on numerical methods for
         hyperbolic problems.
@@ -116,9 +117,9 @@ class NonConservativeScheme(Scheme):
 
         Returns
         -------
-        The value of the numerical nonconservative flux multiplied by
-        the surface value :math:`\numNonConservative`
-
+        G
+            The value of the numerical nonconservative flux multiplied by
+            the surface value :math:`\numNonConservative`
         """
 
         pass
