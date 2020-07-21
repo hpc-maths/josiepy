@@ -49,7 +49,8 @@ class Closure(metaclass=abc.ABCMeta):
         -------
         pI
             A :math:`Nx \times Ny \times 1` array containing the value of the
-            :math:p_I """
+            :math:`p_I`
+        """
 
         raise NotImplementedError
 

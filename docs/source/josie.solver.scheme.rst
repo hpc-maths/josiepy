@@ -12,6 +12,14 @@ josie.solver.scheme.convective module
    :undoc-members:
    :show-inheritance:
 
+josie.solver.scheme.diffusive module
+-------------------------------------
+
+.. automodule:: josie.solver.scheme.diffusive
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 josie.solver.scheme.nonconservative module
 ------------------------------------------
 

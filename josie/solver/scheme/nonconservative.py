@@ -35,22 +35,6 @@ from .scheme import Scheme
 class NonConservativeScheme(Scheme):
     r""" A mixin that provides the scheme implementation for the non
     conservative term
-
-    A general problem can be written in a compact way:
-
-    .. math::
-
-        \pdeFull
-
-    A concrete instance of this class needs to implement the discretization
-    of the numerical flux on **one** face of a cell. It needs to implement
-    the term :math:`\vb{G}\qty(\pdeState) = \numNonConservative`
-
-    .. math::
-
-        \numNonConservativeFull
-
-
     """
 
     def accumulate_nonconservative(
@@ -80,7 +64,7 @@ class NonConservativeScheme(Scheme):
         surfaces: np.ndarray,
     ) -> np.ndarray:
 
-        r""" This is the nonconservative flux implementation of the scheme. See
+        r""" This is the non-conservative flux implementation of the scheme. See
         :cite:`toro_riemann_2009` for a great overview on numerical methods for
         hyperbolic problems.
 
@@ -90,14 +74,16 @@ class NonConservativeScheme(Scheme):
 
             \pdeFull
 
+        The non-conservative term is discretized as follows:
+
+        .. math::
+
+            \numNonConservativeFull
 
         A concrete instance of this class needs to implement the discretization
         of the numerical flux on **one** face of a cell. It needs to implement
         the term :math:`\numNonConservative`
 
-        .. math::
-
-            \numNonConservativeFull
 
         Parameters
         ----------

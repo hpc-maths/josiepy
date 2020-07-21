@@ -113,7 +113,7 @@ class Scheme(abc.ABC):
 
         .. math::
 
-            \numNonConservativeFaces
+            \numPreMultipliedNonConservativeFaces
         """
 
         pass
@@ -132,7 +132,7 @@ class Scheme(abc.ABC):
 
         .. math::
 
-            \numDiffusiveFaces
+            \numPreMultipliedDiffusiveFaces
         """
 
         pass

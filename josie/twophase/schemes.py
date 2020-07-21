@@ -145,27 +145,29 @@ class Rusanov(ConvectiveScheme, TwoPhaseScheme):
         surfaces: np.ndarray,
     ) -> Q:
         r""" This schemes implements the Rusanov scheme for a
-        :class:`~.TwoPhaseProblem`. It applies the :class:`~.euler.Rusanov`
+        :class:`TwoPhaseProblem`. It applies the :class:`~.euler.Rusanov`
         scheme indipendently for each phase (with the :math:`\sigma` correctly
         calculated among all the two phases state)
 
         Parameters
         ----------
         values
-            A :class:`np.ndarray` that has dimension [Nx * Ny * 19] containing
-            the values for all the states in all the mesh points
+            A :class:`np.ndarray` that has dimension :math:`N_\text{x} \times
+            N_\text{y} \times 19` containing the values for all the states in
+            all the mesh points
         neigh_values
-            A :class:`np.ndarray` that has the same dimension of `values`. It
+            A :class:`np.ndarray` that has the same dimension of ``values``. It
             contains the corresponding neighbour values of the state stored in
-            `values`, i.e. the neighbour of `values[i]` is `neigh_values[i]`
+            ``values``, i.e. the neighbour of ``values[i]`` is
+            ``neigh_values[i]``
         normals
-            A :class:`np.ndarray` that has the dimensions [Nx * Ny * 2]
-            containing the values of the normals to the face connecting the
-            cell to its neighbour
+            A :class:`np.ndarray` that has the dimensions :math:`N_\text{x}
+            \times N_\text{y} \times  2` containing the values of the normals
+            to the face connecting the cell to its neighbour
         surfaces
-            A :class:`np.ndarray` that has the dimensions [Nx * Ny] containing
-            the values of the face surfaces of the face connecting the cell to
-            is neighbour
+            A :class:`np.ndarray` that has the dimensions :math:`N_\text{x}
+            \times N_\text{y}` containing the values of the face surfaces of
+            the face connecting the cell to is neighbour
         """
         FS = np.zeros_like(values).view(Q)
 

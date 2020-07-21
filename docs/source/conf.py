@@ -66,35 +66,44 @@ imgmath_latex_preamble = r"""
 
 \newcommand{\pdeState}{\ensuremath{\vb{q}}}
 \newcommand{\ipdeState}{\ensuremath{q_p}}
+\newcommand{\ipdeFullState}{\ensuremath{q_q}}
 
 \newcommand{\pdeConvective}{\ensuremath{\vb{F}\qty(\pdeState)}}
-\newcommand{\ipdeConvective}{\ensuremath{F_{pr}\qty(\ipdeState)}}
+\newcommand{\ipdeConvective}{\ensuremath{F_{pr}\qty(\ipdeFullState)}}
 
 \newcommand{\pdeNonConservativeMultiplier}{\ensuremath{\vb{B}\qty(\pdeState)}}
 \newcommand{\ipdeNonConservativeMultiplier}{%
-    \ensuremath{B_{pqr}\qty(\ipdeState)}
+    \ensuremath{B_{pqr}\qty(\ipdeFullState)}
 }
 
 \newcommand{\pdeGradient}{\ensuremath{\gradient{\pdeState}}}
 \newcommand{\ipdeGradient}{\ensuremath{\pdv{\ensuremath{q_q}}{x_r}}}
 
+\newcommand{\pdeDiffusiveMultiplier}{\ensuremath{\vb{K}\qty(\pdeState)}}
+\newcommand{\ipdeDiffusiveMultiplier}{\ensuremath{K_{pqrs}\qty(\ipdeFullState)}}
+
 \newcommand{\pdeSource}{\ensuremath{\vb{s}\qty(\pdeState)}}
-\newcommand{\ipdeSource}{\ensuremath{s_p\qty(\ipdeState)}}
+\newcommand{\ipdeSource}{\ensuremath{s_p\qty(\ipdeFullState)}}
 
 \newcommand{\pdeTermList}{\ensuremath{%
-         \pdeConvective, \pdeNonConservativeMultiplier, \pdeSource
+         \pdeConvective, \pdeNonConservativeMultiplier,
+         \pdeDiffusiveMultiplier, \pdeSource
 }}
 
 \newcommand{\pdeFull}{\ensuremath{%
     \pdv{\pdeState}{t} + \divergence{\pdeConvective} +
-    \pdeNonConservativeMultiplier \cdot \pdeGradient = \pdeSource \\
+        \pdeNonConservativeMultiplier \cdot \pdeGradient =
+        \divergence(\pdeDiffusiveMultiplier \cdot \pdeGradient )
+        + \pdeSource \\
     \pdv{\ipdeState}{t} + \pdv{\ipdeConvective}{x_r} +
-    \ipdeNonConservativeMultiplier \ipdeGradient = \ipdeSource \\
-    \qquad p,q = 1 \dotso N_\text{state} \; r = 1 \dotso N_\text{dim}
+        \ipdeNonConservativeMultiplier \ipdeGradient =
+        \pdv{\ipdeDiffusiveMultiplier}{x_r} \ipdeGradient + \ipdeSource \\
+    \qquad p = 1 \dotso N_\text{fields}; q = 1 \dotso N_\text{state}; r,s = 1
+    \dotso N_\text{dim}
 }}
 
 \newcommand{\numConvective}{%
-    \qty|\vb{F} \cdot \hat{\vb{n}}|_f S_f
+    \qty|\vb{F} \cdot \pdeNormal|_f S_f
 }
 
 \newcommand{\numConvectiveFaces}{%
@@ -116,7 +125,7 @@ imgmath_latex_preamble = r"""
 }
 
 \newcommand{\numNonConservative}{%
-    \qty|\pdeState \hat{\vb{n}}|_f S_f
+    \qty|\pdeState \pdeNormal|_f S_f
 }
 
 \newcommand{\numNonConservativeFaces}{%
@@ -124,7 +133,7 @@ imgmath_latex_preamble = r"""
 }
 
 \newcommand{\numPreMultipliedNonConservativeFaces}{%
-    \langle \pdeNonConservativeMultiplier\rangle_i \cdot
+    \langle \pdeNonConservativeMultiplier\rangle_{V_i} \cdot
     \numNonConservativeFaces
 }
 
@@ -134,13 +143,31 @@ imgmath_latex_preamble = r"""
     \dd{S} \approx \numPreMultipliedNonConservativeFaces
 }
 
-\newcommand{\numDiffusiveFaces}{}
+\newcommand{\numDiffusive}{%
+    \qty|\gradient{\pdeState} \cdot \pdeNormal|_f S_f
+}
 
-\newcommand{\numDiffusiveFull}{}
+\newcommand{\numDiffusiveFaces}{
+    \sum_{f \in \text{faces}} \numDiffusive
+}
+
+\newcommand{\numPreMultipliedDiffusiveFaces}{%
+    \langle \pdeDiffusiveMultiplier \rangle_{V_i} \cdot
+    \numDiffusiveFaces
+}
+
+\newcommand{\numDiffusiveFull}{%
+    \int_{V_i} \divergence(\pdeDiffusiveMultiplier \cdot \pdeGradient) \dd{V}
+    \approx \oint_{\partial V_i} \pdeDiffusiveMultiplier \cdot \pdeGradient
+    \dd{S} \approx \numPreMultipliedDiffusiveFaces
+}
 
 
 \newcommand{\numSpaceTerms}{%
-    \numConvectiveFaces, \numPreMultipliedNonConservativeFaces, \numSource
+    \numConvectiveFaces \\
+    \numPreMultipliedNonConservativeFaces \\
+    \numPreMultipliedDiffusiveFaces \\
+    \numSource
 }
 
 \newcommand{\numTime}{%

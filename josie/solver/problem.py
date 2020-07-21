@@ -59,7 +59,7 @@ class Problem(metaclass=abc.ABCMeta):
         Returns
         -------
         F
-            An array of dimension :math:`Nx \times Ny \times N_\text{state}
+            An array of dimension :math:`Nx \times Ny \times N_\text{eqs}
             \times N_\text{dim}` containing the computed convective flux for
             the given problem
         """
@@ -86,11 +86,37 @@ class Problem(metaclass=abc.ABCMeta):
         Returns
         -------
         B
-            An array of dimension :math:`Nx \times Ny \times N_\text{state}
+            An array of dimension :math:`Nx \times Ny \times N_\text{eqs}
             \times N_\text{state} \times N_\text{dim}` containing the computed
             pre-multiplier tensor
         """
         pass
+
+    def D(self, state_array: State):
+        r""" This returns the tensor that pre-multiplies the gradient in the
+        diffusive term of the problem.
+
+        A general problem can be written in a compact way:
+
+        .. math::
+
+            \pdeFull
+
+
+        This method needs to return :math:`\pdeDiffusiveMultiplier`
+
+        Parameters
+        ----------
+        state_array
+            The :class:`State` array containing the values of all the fields
+
+        Returns
+        -------
+        D
+            An array of dimension :math:`Nx \times Ny \times N_\text{eqs}
+            \times N_\text{state} \times N_\text{dim} \times N_\text{dim}`
+            containing the computed pre-multiplier tensor
+        """
 
     def s(self, state_array: State):
         r""" This returns the values of the source terms
@@ -112,7 +138,7 @@ class Problem(metaclass=abc.ABCMeta):
         Returns
         -------
         s
-            An array of dimension :math:`Nx \times Ny \times N_\text{state}`
+            An array of dimension :math:`Nx \times Ny \times N_\text{eqs}`
             containing the computed source terms
         """
         pass

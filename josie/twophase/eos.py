@@ -31,7 +31,7 @@ from .state import PhasePair
 
 class TwoPhaseEOS(PhasePair):
     """ An Abstract Base Class representing en EOS for a twophase system.  In
-    particular two :class:`~euler.eos.EOS`instances for each phase need to be
+    particular two :class:`.euler.eos.EOS` instances for each phase need to be
     provided.
 
     You can access the EOS for a specified phase using the
@@ -44,10 +44,10 @@ class TwoPhaseEOS(PhasePair):
         Parameters
         ----------
         phase1
-            An instance of :class:`~euler.eos.EOS` representing the EOS for the
+            An instance of :class:`.euler.eos.EOS` representing the EOS for the
             single phase #1
         phase2
-            An instance of :class:`~euler.eos.EOS` representing the EOS for the
+            An instance of :class:`.euler.eos.EOS` representing the EOS for the
             single phase #2
         """
 

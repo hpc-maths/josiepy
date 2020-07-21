@@ -56,7 +56,7 @@ MeshIndex = Union[int, slice]
 
 @dataclass
 class Boundary:
-    """ A simple :class:`dataclass` coupling a :class:`~.BoundaryCurve` with
+    """A simple :class:`dataclass` coupling a :class:`~.BoundaryCurve` with
     the indices of the cells that are part of that boundary
 
     Attributes
@@ -64,9 +64,24 @@ class Boundary:
     boundary_curve
         The :class:`~.BoundaryCurve`
 
-    idx
-        The cell indices
+    cells_idx
+        The cell indices. It's a tuple containing :attr:`Mesh.dimensionality`
+        :class:`MeshIndex` elements. Each element indexes the structured
+        :class:`Mesh` on the 1 axis to provide the cells that are part of the
+        :class:`BoundaryCurve`.
+
+    Example
+    -------
+    For example the left boundary of a 2D structured mesh will be given by a
+    tuple (0, None). That means that if we consider the :class:`Solver`, we can
+    access the values of the fields associated to the boundary cells by:
+
+    .. code-block:: python
+
+        solver.values[0, :]
     """
+
+    # TODO: Generalize for 3D and unstructured
 
     curve: BoundaryCurve
     cells_idx: Tuple[MeshIndex, ...]
@@ -177,11 +192,19 @@ class Mesh:
         Backend: Type[PlotBackend] = DefaultBackend,
     ):
 
-        self.left = Boundary(left, (_BoundarySide.LEFT, slice(None)))
-        self.btm = Boundary(bottom, (slice(None), _BoundarySide.BOTTOM))
-        self.right = Boundary(right, (_BoundarySide.RIGHT, slice(None)))
+        self.left = Boundary(
+            curve=left, cells_idx=(_BoundarySide.LEFT, slice(None))
+        )
+        self.btm = Boundary(
+            curve=bottom, cells_idx=(slice(None), _BoundarySide.BOTTOM)
+        )
+        self.right = Boundary(
+            curve=right, cells_idx=(_BoundarySide.RIGHT, slice(None))
+        )
 
-        self.top = Boundary(top, (slice(None), _BoundarySide.TOP))
+        self.top = Boundary(
+            curve=top, cells_idx=(slice(None), _BoundarySide.TOP)
+        )
 
         self.cell_type = cell_type
         self.backend = Backend()
@@ -199,7 +222,7 @@ class Mesh:
     def interpolate(
         self, num_cells_x: int, num_cells_y: int
     ) -> Tuple[np.ndarray, np.ndarray]:
-        """ This methods generates the mesh within the four given
+        """This methods generates the mesh within the four given
         BoundaryCurve using Transfinite Interpolation
 
         Args:
@@ -289,7 +312,7 @@ class Mesh:
         return self._x, self._y
 
     def generate(self):
-        """ Build the geometrical information and the connectivity associated
+        """Build the geometrical information and the connectivity associated
         to the mesh using the specific cell type
         :meth:`~.Cell.create_connectivity`
         """
@@ -302,7 +325,7 @@ class Mesh:
         return self.cell_type.export_connectivity(self)
 
     def write(self, filepath: os.PathLike):
-        """ Save the cell into a file using :mod:`meshio`
+        """Save the cell into a file using :mod:`meshio`
 
         Parameters
         ---------

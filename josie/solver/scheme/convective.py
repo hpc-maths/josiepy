@@ -54,14 +54,15 @@ class ConvectiveScheme(Scheme):
 
             \pdeFull
 
-
-        A concrete instance of this class needs to implement the discretization
-        of the numerical flux on **one** face of a cell. It needs to implement
-        the term :math:`\numConvective`
+        The convective term is discretized as follows:
 
         .. math::
 
             \numConvectiveFull
+
+        A concrete implementation of this method needs to implement the
+        discretization of the numerical flux on **one** face of a cell. It
+        needs to implement the term :math:`\numConvective`
 
 
         Parameters

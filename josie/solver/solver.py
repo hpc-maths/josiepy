@@ -72,7 +72,7 @@ class Ghost:
         structure
 
     boundary
-        The :class:`~.Boundary` which the ghost cells are associated
+        The :class:`~.Boundary` which the ghost cells are associated to
     """
 
     solver: Solver
@@ -167,15 +167,43 @@ class Solver:
 
             for boundary in self.mesh.boundaries:
 
-                # Retrieve the position of the index that is not a slice
+                # Cells are indexed in a structured way, that means with a
+                # _BoundarySide IntEnum (i.e. an int), an int, or a slice per
+                # each axis of the mesh (e.g. solver.values[0, 1], or
+                # solver.values[4, :]).
+                #
+                # In the case of boundaries, currently, in 2D, we have one
+                # element of the indexing tuple that is an IntEnum and the
+                # other that is a slice (e.g.  left boundary is
+                # solver.values[_BoundarySide.LEFT, :], that is, the indexing
+                # tuple is (0, None).
+                #
+                # Here we retrieve the position of the IntEnum index, because
+                # for the boundaries we can have:
+                #
+                # * left: solver.values[_BoundarySide.LEFT, :] => the IntEnum
+                #   is at position 0
+                # * top: solver.values[:, _BoundarySide.TOP] => the IntEnum is
+                #   at position 1
+                # ecc...
+                #
+                # TODO: Generalize for 3D and unstructured
                 index, side = next(
                     (i, v)
                     for i, v in enumerate(boundary.cells_idx)
                     if not (isinstance(v, slice))
                 )
 
-                # Assign the same value for the Ghost idx, at the same position
-                # The other positions are `ghost_slice`
+                # Once we know at which position the IntEnum index is, we can
+                # index also the underlying solver._values array with the same
+                # index, at the same position in the indexing Tuple, since:
+                #
+                # * left: solver._values[_BoundarySide.LEFT, 1:-1]
+                # * top: solver._values[1:-1, _BoundarySide.TOP]
+                #
+                # The other positions are slice(1, -1, None)
+                #
+                # TODO: Generalize for 3D and unstructured
                 ghost_cells_idx: List[Union[slice, int]] = [
                     side if item == index else slice(1, -1, None)
                     for item in range(self.mesh.MAX_DIMENSIONALITY)
