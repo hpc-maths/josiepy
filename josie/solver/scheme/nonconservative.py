@@ -59,7 +59,7 @@ class NonConservativeScheme(Scheme):
         neigh_values: State,
         normals: np.ndarray,
         surfaces: np.ndarray,
-    ) -> State:
+    ):
 
         super().accumulate_nonconservative(
             values, neigh_values, normals, surfaces

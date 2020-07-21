@@ -182,7 +182,7 @@ class Scheme(abc.ABC):
             accumulate_fun(values, neigh_values, normals, surfaces)
 
     @abc.abstractmethod
-    def update(self, mesh: Mesh, dt: float):
+    def update(self, mesh: Mesh, dt: float) -> State:
         r""" This method implements the discretization of the time derivative
 
         .. math::

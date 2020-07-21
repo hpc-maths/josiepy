@@ -41,7 +41,6 @@ class TimeScheme(Scheme):
         \numTime
     """
 
-    @classmethod
     @abc.abstractmethod
-    def update(cls, fluxes: State, mesh: Mesh, dt: float) -> State:
+    def update(self, mesh: Mesh, dt: float) -> State:
         raise NotImplementedError
