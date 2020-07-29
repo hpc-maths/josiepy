@@ -81,80 +81,6 @@ class Scheme(abc.ABC):
     def __init__(self, problem: Problem):
         self.problem = problem
 
-    def accumulate_convective(
-        self,
-        values: State,
-        neigh_values: State,
-        normals: np.ndarray,
-        surfaces: np.ndarray,
-    ):
-        r""" This method implements the accumulation for the convective
-        fluxes between each cell and its neighbour. It modifies in place
-        :attr:`_fluxes`
-
-        .. math::
-
-            \numConvectiveFaces
-        """
-
-        pass
-
-    def accumulate_nonconservative(
-        self,
-        values: State,
-        neigh_values: State,
-        normals: np.ndarray,
-        surfaces: np.ndarray,
-    ):
-        r""" This method implements the accumulation for the non-conservative
-        fluxes between each cell and its neighbour. It modifies in place
-        :attr:`_fluxes`
-
-
-        .. math::
-
-            \numPreMultipliedNonConservativeFaces
-        """
-
-        pass
-
-    def accumulate_diffusive(
-        self,
-        values: State,
-        neigh_values: State,
-        normals: np.ndarray,
-        surfaces: np.ndarray,
-    ):
-        r""" This method implements the accumulation for the diffusive
-        fluxes between each cell and its neighbour. It modifies in place
-        :attr:`_fluxes`
-
-
-        .. math::
-
-            \numPreMultipliedDiffusiveFaces
-        """
-
-        pass
-
-    def accumulate_source(
-        self,
-        values: State,
-        neigh_values: State,
-        normals: np.ndarray,
-        surfaces: np.ndarray,
-    ):
-        r""" This method implements the accumulation for the source
-        terms between each cell and its neighbour. It modifies in place
-        :attr:`fluxes`
-
-        .. math::
-
-            \numSource
-        """
-
-        pass
-
     def accumulate(
         self,
         values: State,
@@ -163,7 +89,9 @@ class Scheme(abc.ABC):
         surfaces: np.ndarray,
     ):
         r""" This method implements the accumulation of all fluxes between
-        each cell and its neigbhour
+        each cell and its neigbhour. It modifies in place
+        :attr:`_fluxes`
+
 
         Potentially if the :attr:`problem` is a full problem featuring all
         the terms, this method accumulates the terms
@@ -171,15 +99,11 @@ class Scheme(abc.ABC):
         .. math::
 
             \numSpaceTerms
+
+
         """
 
-        for accumulate_fun in [
-            self.accumulate_convective,
-            self.accumulate_nonconservative,
-            self.accumulate_diffusive,
-            self.accumulate_source,
-        ]:
-            accumulate_fun(values, neigh_values, normals, surfaces)
+        pass
 
     @abc.abstractmethod
     def update(self, mesh: Mesh, dt: float) -> State:

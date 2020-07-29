@@ -37,7 +37,7 @@ class NonConservativeScheme(Scheme):
     conservative term
     """
 
-    def accumulate_nonconservative(
+    def accumulate(
         self,
         values: State,
         neigh_values: State,
@@ -45,9 +45,8 @@ class NonConservativeScheme(Scheme):
         surfaces: np.ndarray,
     ):
 
-        super().accumulate_nonconservative(
-            values, neigh_values, normals, surfaces
-        )
+        # Accumulate other terms
+        super().accumulate(values, neigh_values, normals, surfaces)
 
         B = self.problem.B(values)
         G = self.G(values, neigh_values, normals, surfaces)
