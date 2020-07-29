@@ -82,6 +82,15 @@ class TwoPhaseScheme(Scheme):
 
 
 class Upwind(NonConservativeScheme, TwoPhaseScheme):
+    r""" An optimized upwind scheme that reduces the size of the
+    :math:`\pdeNonConservativeMultiplier` knowing that for
+    :cite:`baer_two-phase_1986` the only state variable appearing in the non
+    conservative term is :math:`\alpha`. It concentratres the numerical
+    flux computation into :meth:`G`.
+
+    Check also :class:`~twophase.problem.TwoPhaseProblem.B`.
+    """
+
     def accumulate(
         self,
         values: Q,

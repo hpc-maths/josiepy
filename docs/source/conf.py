@@ -125,48 +125,49 @@ imgmath_latex_preamble = r"""
 }
 
 \newcommand{\numNonConservative}{%
-    \qty|\pdeState \pdeNormal|_f S_f
+    \qty|\pdeState \otimes \pdeNormal|_f S_f
 }
 
 \newcommand{\numNonConservativeFaces}{%
     \sum_{f \in \text{faces}} \numNonConservative
 }
 
+\newcommand{\numVolumeAveragedNonConservativeMultiplier}{%
+    \langle \pdeNonConservativeMultiplier \rangle_{V_i}
+}
+
 \newcommand{\numPreMultipliedNonConservativeFaces}{%
-    \langle \pdeNonConservativeMultiplier\rangle_{V_i} \cdot
-    \numNonConservativeFaces
+    \numVolumeAveragedNonConservativeMultiplier \cdot \numNonConservativeFaces
 }
 
 \newcommand{\numNonConservativeFull}{%
     \int_{V_i} \pdeNonConservativeMultiplier \cdot \pdeGradient \dd{V} \approx
-    \oint_{\partial V_i} \pdeNonConservativeMultiplier \cdot \pdeState
-    \dd{S} \approx \numPreMultipliedNonConservativeFaces
+    \numVolumeAveragedNonConservativeMultiplier \cdot
+        \oint_{\partial V_i} \qty(\pdeState \otimes \pdeNormal) \dd{S} \approx
+    \numPreMultipliedNonConservativeFaces
 }
 
 \newcommand{\numDiffusive}{%
-    \qty|\gradient{\pdeState} \cdot \pdeNormal|_f S_f
+    \qty|\qty(\pdeDiffusiveMultiplier \cdot \gradient{\pdeState})
+        \cdot \pdeNormal|_f S_f
 }
 
 \newcommand{\numDiffusiveFaces}{
     \sum_{f \in \text{faces}} \numDiffusive
 }
 
-\newcommand{\numPreMultipliedDiffusiveFaces}{%
-    \langle \pdeDiffusiveMultiplier \rangle_{V_i} \cdot
-    \numDiffusiveFaces
-}
-
 \newcommand{\numDiffusiveFull}{%
     \int_{V_i} \divergence(\pdeDiffusiveMultiplier \cdot \pdeGradient) \dd{V}
-    \approx \oint_{\partial V_i} \pdeDiffusiveMultiplier \cdot \pdeGradient
-    \dd{S} \approx \numPreMultipliedDiffusiveFaces
+    \approx \oint_{\partial V_i} \qty(\pdeDiffusiveMultiplier \cdot
+        \pdeGradient) \cdot \pdeNormal \dd{S} \approx
+    \numDiffusiveFaces
 }
 
 
 \newcommand{\numSpaceTerms}{%
     \numConvectiveFaces \\
     \numPreMultipliedNonConservativeFaces \\
-    \numPreMultipliedDiffusiveFaces \\
+    \numDiffusiveFaces \\
     \numSource
 }
 
