@@ -30,13 +30,16 @@ import abc
 import copy
 import numpy as np
 
-from typing import Callable, Tuple, TYPE_CHECKING, Union
+from typing import Callable, Optional, Tuple, TYPE_CHECKING, Union
 
-from josie.solver.solver import Ghost, State
-from .geom import BoundaryCurve
+from josie.solver.state import State
+
+from .geom import Boundary, BoundaryCurve
 from .math import Direction
 
 if TYPE_CHECKING:
+    from josie.mesh.cellset import CellSet
+    from josie.solver.solver import Solver
 
     # This is a trick to enable mypy to evaluate the Enum as a standard
     # library Enum for type checking but we use `aenum` in the running code
@@ -48,7 +51,7 @@ else:
 
 
 class BoundaryCondition:
-    """ A :class:`BoundaryCondition` is a collection of
+    """A :class:`BoundaryCondition` is a collection of
     :class:`ScalarBC`, one per each :attr:`~.State.fields` of
     the :class:`~.Problem`.
 
@@ -66,52 +69,54 @@ class BoundaryCondition:
     def __init__(self, bc: State):
         self.bc = bc
 
-    def __call__(self, ghost: Ghost, t: float = 0):
+    def __call__(self, solver: Solver, boundary: Boundary):
         """
         Parameters
         ----------
-        ghost
-            The :class:`~Ghost` cells on which to apply the set of
-            :class:`ScalarBC`
-        t
-            The time instant to which this :class:`BoundaryCondition`
-            must be evaluated (useful for time-dependent BCs)
-
+        solver
+            A :class:`Solver` object that contains informations on cells data
+            and time instant
+        boundary
+            A :class:`Boundary` object representing the mesh boundary on which
+            the :class:`BoundaryCondition` must be applied
         """
+
+        ghost_idx = boundary.ghost_cells_idx
+        boundary_idx = boundary.cells_idx
+
+        boundary_cells = solver.mesh.cells[boundary_idx]
+        ghost_centroids = solver.mesh.cells._centroids[ghost_idx]
+
         # Apply BC for each field
         for field in self.bc.fields:
-            centroids = ghost.get_boundary_centroids()
-            boundary_values = ghost.get_boundary_values(field)
 
-            ghost.set_values(
-                field, self.bc[field](centroids, boundary_values, t)
-            )
+            solver.mesh.cells._values[
+                ghost_idx[0], ghost_idx[1], field, np.newaxis
+            ] = self.bc[field](boundary_cells, ghost_centroids, solver.t)
 
 
 class ScalarBC(abc.ABC):
-    """ A :class:`ScalarBC` is implemented as a callable that
-    returns an equivalent cell value for the specific field for each cell given
-    to it.
-
-    This returned values can be an actual value that ensure the value of the
-    :class:`State` or of its gradient, or they can just be "pointers" to
-    internal cells as in the case of of Periodic, that returns the
-    corresponding cell on the opposite boundary.
+    """A :class:`ScalarBC` is implemented as a callable that sets the
+    equivalent cell value for the ghost cells for the specific field
     """
 
     @abc.abstractmethod
     def __call__(
-        self, centroids: np.ndarray, values: np.ndarray, t: float = 0,
+        self,
+        cells: CellSet,
+        ghost_centroids: Optional[np.ndarray],
+        t: float = 0,
     ) -> np.ndarray:
         """
         Parameters
         ----------
-        centroids
-            An array containing the cell centroids of the cells on the boundary
-            which this :class:`ScalarBC`is applied to
-        values
-            An array containing the field values of the cells
-            on the boundary which this ScalarBC is applied to
+        cells:
+            A :class:`MeshCellSet` containing the state of the mesh cells
+
+        ghosts_centroids
+            A :class:`np.ndarray` containing the centroids coordindates of
+            ghost cells associated to the :class:`Boundary` the
+            :class:`BoundaryCondition` is applied to
         t
             The time instant to which this :class:`ScalarBC`
             must be evaluated (useful for time-dependent BCs)
@@ -125,7 +130,7 @@ class ScalarBC(abc.ABC):
 
 
 class Dirichlet(ScalarBC):
-    r""" A :class:`ScalarBC` that fixes a value of a field on the boundary.
+    r"""A :class:`ScalarBC` that fixes a value of a field on the boundary.
 
     Assuming we want to impose the value :math:`Q = Q_D` on the (left, as an
     example) boundary, we can assume that the value on the boundary is
@@ -168,14 +173,17 @@ class Dirichlet(ScalarBC):
             return obj
 
     def __call__(
-        self, centroids: np.ndarray, values: np.ndarray, t: float = 0,
+        self,
+        cells: CellSet,
+        ghost_centroids: Optional[np.ndarray] = None,  # not used in this BC
+        t: float = 0,
     ) -> np.ndarray:
 
-        return 2 * self._value - values
+        return 2 * self._value - cells.values
 
 
 class Neumann(Dirichlet):
-    r""" A :class:`ScalarBC` that fixes a value of the gradient of a field on
+    r"""A :class:`ScalarBC` that fixes a value of the gradient of a field on
     the boundary.
 
     Assuming we want to impose the value of the gradient :math:`\frac{\partial
@@ -203,13 +211,16 @@ class Neumann(Dirichlet):
     """
 
     def __call__(
-        self, centroids: np.ndarray, values: np.ndarray, t: float = 0,
+        self,
+        cells: CellSet,
+        ghost_centroids: Optional[np.ndarray] = None,  # not used in this BC
+        t: float = 0,
     ) -> np.ndarray:
-        return values - self._value
+        return cells.values - self._value
 
 
 class NeumannDirichlet(ScalarBC):
-    """ A :class:`ScalarBC` that applies a :class:`Dirichlet` on a part of the
+    """A :class:`ScalarBC` that applies a :class:`Dirichlet` on a part of the
     domain and a :class:`Neumann` on the rest of it.
 
     Parameters
@@ -226,8 +237,8 @@ class NeumannDirichlet(ScalarBC):
         boundary condition has to be applied
     """
 
-    neumann_value: float
-    dirichlet_value: float
+    neumann: Neumann
+    dirichlet: Dirichlet
     partition_fun: Callable[[NeumannDirichlet, np.ndarray], np.ndarray]
 
     def __new__(
@@ -239,9 +250,9 @@ class NeumannDirichlet(ScalarBC):
         if isinstance(neumann_value, State) and isinstance(
             dirichlet_value, State
         ):
-            # An entire state was provided as value of the Dirichlet BC, so
-            # we return a BoundaryCondition with a Dirichlet BC for each
-            # field with the right value
+            # An entire state was provided as value of the NeumannDirichlet BC,
+            # so we return a BoundaryCondition with a NeumannDirichlet BC for
+            # each field with the right value
             bcs = []
 
             for field in neumann_value.fields:
@@ -257,40 +268,41 @@ class NeumannDirichlet(ScalarBC):
             return BoundaryCondition(np.array(bcs).view(type(neumann_value)))
         else:
             obj = super().__new__(cls)
-            obj.neumann_value = neumann_value
-            obj.dirichlet_value = dirichlet_value
+            obj.neumann = Neumann(neumann_value)
+            obj.dirichlet = Dirichlet(dirichlet_value)
             obj.partition_fun = partition_fun
             return obj
 
     def __call__(
-        self, centroids: np.ndarray, values: np.ndarray, t: float = 0,
+        self,
+        cells: CellSet,
+        ghost_centroids: Optional[np.ndarray] = None,  # not used in this BC
+        t: float = 0,
     ) -> np.ndarray:
         # First apply Neumann to everything
-        ghost_values = values - self.neumann_value
+        ghost_values = self.neumann(cells, t=t)
 
         # Then extract the cells where to apply the Dirichlet BC
-        # FIXME: This type check ignore should probably be fixed by mypy
-        dirichlet_cells = self.partition_fun(centroids)
+        dirichlet_cells = self.partition_fun(cells.centroids)
 
-        ghost_values[dirichlet_cells] = (
-            2 * self.dirichlet_value - values[dirichlet_cells]
-        )
+        # Apply the Dirichlet BC to the subset of cells
+        ghost_values[dirichlet_cells] = Dirichlet(cells[dirichlet_cells], t=t)
 
         return ghost_values
 
 
 class Side(Enum, settings=NoAlias):
-    """ A Enum encapsulating the 4 possibilities of a :class:`Periodic`
-    :class:`ScalarBC` """
+    """A Enum encapsulating the 4 indexing possibilities of a :class:`Periodic`
+    :class:`ScalarBC`"""
 
-    LEFT = -1
-    BOTTOM = -1
-    RIGHT = 0
-    TOP = 0
+    LEFT = (-1, slice(None))
+    BOTTOM = (slice(None), -1)
+    RIGHT = (0, slice(None))
+    TOP = (slice(None), 0)
 
 
 class Periodic(BoundaryCondition):
-    r""" A :class:`BoundaryCondition` that connects one side of the domain to
+    r"""A :class:`BoundaryCondition` that connects one side of the domain to
     the other. In general is more straighforward to use the
     :func`make_periodic` function on a couple of :class:`~.BoundaryCurve` that
     needs to be linked periodically
@@ -316,24 +328,17 @@ class Periodic(BoundaryCondition):
     def __init__(self, side: Side):
         self._side = side
 
-    def __call__(self, ghost: Ghost, t: float = 0):
+    def __call__(self, solver: Solver, boundary: Boundary):
 
-        if self._side in [Side.LEFT, Side.RIGHT]:
-            periodic_idx = (self._side.value, slice(None))
-        elif self._side in [Side.BOTTOM, Side.TOP]:
-            periodic_idx = (slice(None), self._side.value)
-        else:
-            raise ValueError(f"Unknown side. Expecting a {Side} object")
-
-        ghost.solver._values[ghost.ghost_cells_idx] = copy.deepcopy(
-            ghost.solver.values[periodic_idx]
+        solver.mesh.cells._values[boundary.ghost_cells_idx] = copy.deepcopy(
+            solver.mesh.cells.values[self._side.value]
         )
 
 
 def make_periodic(
     first: BoundaryCurve, second: BoundaryCurve, direction: Direction
 ) -> Tuple[BoundaryCurve, BoundaryCurve]:
-    """ This handy function takes as arguments two opposed BoundaryCurve and
+    """This handy function takes as arguments two opposed BoundaryCurve and
     configures them correctly to provide periodic behaviour.
 
     Parameters

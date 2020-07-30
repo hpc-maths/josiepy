@@ -8,7 +8,9 @@ from josie.euler.solver import EulerSolver
 from josie.euler.state import Q
 from josie.general.schemes.time import ExplicitEuler
 from josie.geom import Line
-from josie.mesh import Mesh, SimpleCell
+from josie.mesh import Mesh
+from josie.mesh.cell import SimpleCell
+from josie.mesh.cellset import MeshCellSet
 
 
 class ToroScheme(Rusanov, ExplicitEuler):
@@ -75,7 +77,7 @@ riemann_states = [
 
 
 def init_test(direction, riemann_problem, bc_fun):
-    """ A handy function to init the test state on the base of the direction,
+    """A handy function to init the test state on the base of the direction,
     to avoid code duplication"""
 
     if direction is Direction.X:
@@ -120,14 +122,14 @@ def init_test(direction, riemann_problem, bc_fun):
         right.bc = Dirichlet(Q_right)
         bottom, top = bc_fun(bottom, top, Direction.Y)
 
-        def init_fun(solver: EulerSolver):
-            xc = solver.mesh.centroids[:, :, 0]
+        def init_fun(cells: MeshCellSet):
+            xc = cells.centroids[..., 0]
 
             idx_left = np.where(xc >= 0.5)
             idx_right = np.where(xc < 0.5)
 
-            solver.values[idx_left[0], idx_left[1], :] = Q_right
-            solver.values[idx_right[0], idx_right[1], :] = Q_left
+            cells.values[idx_left[0], idx_left[1], :] = Q_right
+            cells.values[idx_right[0], idx_right[1], :] = Q_left
 
         plot_var = "U"
 
@@ -136,14 +138,14 @@ def init_test(direction, riemann_problem, bc_fun):
         top.bc = Dirichlet(Q_right)
         left, right = bc_fun(left, right, Direction.X)
 
-        def init_fun(solver: EulerSolver):
-            yc = solver.mesh.centroids[:, :, 1]
+        def init_fun(cells: MeshCellSet):
+            yc = cells.centroids[..., 1]
 
             idx_top = np.where(yc >= 0.5)
             idx_btm = np.where(yc < 0.5)
 
-            solver.values[idx_btm[0], idx_btm[1], :] = Q_left
-            solver.values[idx_top[0], idx_top[1], :] = Q_right
+            cells.values[idx_btm[0], idx_btm[1], ...] = Q_left
+            cells.values[idx_top[0], idx_top[1], ...] = Q_right
 
         plot_var = "V"
 
@@ -190,7 +192,8 @@ def test_toro(direction, riemann_problem, bc_fun, plot):
             # solver.save(t, "toro.xmf")
 
         dt = scheme.CFL(
-            solver.values, solver.mesh.volumes, solver.mesh.surfaces, CFL,
+            solver.mesh.cells,
+            CFL,
         )
         assert ~np.isnan(dt)
         solver.step(dt)

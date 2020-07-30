@@ -28,6 +28,27 @@ def test_interpolate(mesh, plot):
     plt.show(block=False)
 
 
+def test_ghost_centroids(mesh):
+    # Test that the ghosts centroids have distance one from the corresponding
+    # boundary cells
+
+    for boundary in mesh.boundaries:
+        boundary_idx = boundary.cells_idx
+        ghost_idx = boundary.ghost_cells_idx
+
+        boundary_centroids = mesh.cells.centroids[
+            boundary_idx[0], boundary_idx[1]
+        ]
+
+        # Compute the ghost cells centroids
+        ghost_centroids = mesh.cells._centroids[ghost_idx[0], ghost_idx[1]]
+
+        # The distance (lenght of the relative vector between boundary cells
+        # and related ghost cell) must be one
+        distances = ghost_centroids - boundary_centroids
+        assert np.mean(np.linalg.norm(distances, axis=-1)) == 1.0
+
+
 def test_write(tmp_path, mesh):
     mesh.generate()
     file = tmp_path / "test.xdmf"

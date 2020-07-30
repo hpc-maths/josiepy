@@ -27,9 +27,7 @@
 
 import abc
 
-from josie._dim import Dimensionality
-
-from .state import State
+from josie.mesh.cellset import MeshCellSet
 
 
 class Problem(metaclass=abc.ABCMeta):
@@ -49,17 +47,13 @@ class Problem(metaclass=abc.ABCMeta):
         \pdeTermList
     """
 
-    """ The dimensionality supported by the :class:`Problem` """
-    MAX_DIMENSIONALITY = Dimensionality.TWO
-
-    def F(self, state_array: State):
+    def F(self, cells: MeshCellSet):
         r""" The convective flux operator :math:`\pdeConvective`
 
         Parameters
         ----------
-        state_array
-            A :class:`State` array that contains the value of the state on
-            each cell of the :class:`~.Mesh`
+        cells
+            A :class:`MeshCellSet` that contains the cell data
 
         Returns
         -------
@@ -70,7 +64,7 @@ class Problem(metaclass=abc.ABCMeta):
         """
         pass
 
-    def B(self, state_array: State):
+    def B(self, cells: MeshCellSet):
         r""" This returns the tensor that pre-multiplies the non-conservative
         term of the problem.
 
@@ -97,7 +91,7 @@ class Problem(metaclass=abc.ABCMeta):
         """
         pass
 
-    def D(self, state_array: State):
+    def D(self, cells: MeshCellSet):
         r""" This returns the tensor that pre-multiplies the gradient in the
         diffusive term of the problem.
 
@@ -112,8 +106,8 @@ class Problem(metaclass=abc.ABCMeta):
 
         Parameters
         ----------
-        state_array
-            The :class:`State` array containing the values of all the fields
+        cells
+            A :class:`MeshCellSet` that contains the cell data
 
         Returns
         -------
@@ -123,7 +117,7 @@ class Problem(metaclass=abc.ABCMeta):
             containing the computed pre-multiplier tensor
         """
 
-    def s(self, state_array: State):
+    def s(self, cells: MeshCellSet):
         r""" This returns the values of the source terms
 
         A general problem can be written in a compact way:
@@ -137,8 +131,8 @@ class Problem(metaclass=abc.ABCMeta):
 
         Parameters
         ----------
-        Q
-            The :class:`State` array containing the values of all the fields
+        cells
+            A :class:`MeshCellSet` that contains the cell data
 
         Returns
         -------

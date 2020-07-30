@@ -3,22 +3,25 @@ import pytest
 from josie.bc import make_periodic, Direction
 from josie.geom import CircleArc, Line
 from josie.mesh import Mesh
-from josie.mesh import SimpleCell
+from josie.mesh.cell import SimpleCell
 
 
 def pytest_addoption(parser):
     parser.addoption(
         "--plot",
         action="store_true",
-        help="Some tests can plot the mesh. "
-        "Set to true if you want to see them",
+        help=(
+            "Some tests can plot the mesh. Set to true if you want to see them"
+        ),
     )
 
     parser.addoption(
         "--write",
         action="store_true",
-        help="Some tests can output to disk data. Set to true if you "
-        "want to write the data on disk",
+        help=(
+            "Some tests can output to disk data. Set to true if you "
+            "want to write the data on disk"
+        ),
     )
 
     parser.addoption(

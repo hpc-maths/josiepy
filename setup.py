@@ -26,7 +26,6 @@ REQUIRED = [
     "aenum",
     "matplotlib",
     "meshio[all]",
-    "numba",
     "numpy",
     "scipy",
 ]

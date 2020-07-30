@@ -24,26 +24,25 @@
 # The views and conclusions contained in the software and documentation
 # are those of the authors and should not be interpreted as representing
 # official policies, either expressed or implied, of Ruben Di Battista.
-import abc
-import numpy as np
+from __future__ import annotations
 
-from josie.solver.state import State
+import abc
+
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from josie.mesh.cellset import CellSet, MeshCellSet
+    from josie.solver.state import State
 
 from .scheme import Scheme
 
 
 class ConvectiveScheme(Scheme):
-    """ A mixin that provides the scheme implementation for the convective
+    """A mixin that provides the scheme implementation for the convective
     term"""
 
     @abc.abstractmethod
-    def F(
-        self,
-        values: State,
-        neigh_values: State,
-        normals: np.ndarray,
-        surfaces: np.ndarray,
-    ) -> State:
+    def F(self, cells: MeshCellSet, neighs: CellSet) -> State:
         r""" This is the convective flux implementation of the scheme. See
         :cite:`toro_riemann_2009` for a great overview on numerical methods for
         hyperbolic problems.
@@ -67,19 +66,12 @@ class ConvectiveScheme(Scheme):
 
         Parameters
         ----------
-        values
-            The values of the state fields in each cell
+        cells:
+            A :class:`MeshCellSet` containing the state of the mesh cells
 
-        neigh_values
-            The values of the state fields in the each neighbour of a cell
-
-        normals
-            The normal unit vectors associated to the face between each cell
-            and its neigbour
-
-        surfaces
-            The surface values associated at the face between each cell and its
-            neighbour
+        neighs
+            A :class:`CellSet` containing data of neighbour cells corresponding
+            to the :attr:`values`
 
         Returns
         -------
@@ -90,17 +82,11 @@ class ConvectiveScheme(Scheme):
         """
         raise NotImplementedError
 
-    def accumulate(
-        self,
-        values: State,
-        neigh_values: State,
-        normals: np.ndarray,
-        surfaces: np.ndarray,
-    ):
+    def accumulate(self, cells: MeshCellSet, neighs: CellSet):
 
         # Compute fluxes computed eventually by the other terms (diffusive,
         # nonconservative, source)
-        super().accumulate(values, neigh_values, normals, surfaces)
+        super().accumulate(cells, neighs)
 
         # Add conservative contribution
-        self._fluxes += self.F(values, neigh_values, normals, surfaces)
+        self._fluxes += self.F(cells, neighs)

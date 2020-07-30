@@ -31,17 +31,89 @@ boundaries of a domain
 from __future__ import annotations
 
 import abc
-
 import matplotlib.pyplot as plt
 import numpy as np
 
-from typing import TYPE_CHECKING, Sequence, Union
+from dataclasses import dataclass
+from typing import TYPE_CHECKING, Sequence, Tuple, Union
+
 from josie.math import map01to
 
-PointType = Union[np.ndarray, Sequence[float]]
 
 if TYPE_CHECKING:
     from josie.bc import BoundaryCondition  # pragma: no cover
+    from josie.solver import Solver
+
+    # This is a trick to enable mypy to evaluate the Enum as a standard
+    # library Enum for type checking but we use `aenum` in the running code
+    from enum import IntEnum  # pragma: no cover
+
+    NoAlias = object()  # pragma: no cover
+else:
+    from aenum import IntEnum, NoAlias
+
+PointType = Union[np.ndarray, Sequence[float]]
+MeshIndex = Union[int, slice]
+
+
+class BoundarySide(IntEnum, settings=NoAlias):
+    LEFT = 0
+    RIGHT = -1
+    TOP = -1
+    BOTTOM = 0
+
+
+@dataclass
+class Boundary:
+    """A simple :class:`dataclass` coupling a :class:`~.BoundaryCurve` with the
+    indices of the cells within the :attr:`Mesh.centroids` data structure that
+    are part of that boundary :attr:`cells_idx`, the side of the boundary
+    (class:`BoundarySide`), and the corresponding indices of the ghost cells
+    within the :attr:`Mesh._centroids`
+
+
+    Attributes
+    ----------
+    side
+        The :class:`BoundarySide` which the :class:`Boundary` is member of
+
+    boundary_curve
+        The :class:`~.BoundaryCurve`
+
+    cells_idx
+        The cell indices. It's a tuple containing
+        :data:`~josie._dim.MAX_DIMENSIONALITY` :class:`MeshIndex` elements.
+        Each element indexes the structured :class:`Mesh` on one axis to
+        provide the cells that are part of the :class:`BoundaryCurve`.
+
+    ghost_cells_idx
+        The ghost cell indices. It's a tuple containing
+        :data:`~josie._dim.MAX_DIMENSIONALITY` :class:`MeshIndex` elements.
+        Each element indexes the structured :class:`Mesh` on one axis to
+        provide the cells that are part of the :class:`BoundaryCurve`.
+
+    Example
+    -------
+    For example the left boundary of a 2D structured mesh will be given by a
+    tuple (0, None). That means that if we consider the :class:`Solver`, we can
+    access the values of the fields associated to the boundary cells by:
+
+    .. code-block:: python
+
+        solver.values[0, :]
+    """
+
+    # TODO: Generalize for 3D and unstructured
+
+    side: BoundarySide
+    curve: BoundaryCurve
+    cells_idx: Tuple[MeshIndex, ...]
+    ghost_cells_idx: Tuple[MeshIndex, ...]
+
+    def bc(self, solver: Solver):
+        """ Proxy method to :meth:`BoundaryCurve.bc` """
+
+        self.curve.bc(solver, self)
 
 
 class BoundaryCurve(metaclass=abc.ABCMeta):
@@ -76,7 +148,7 @@ class BoundaryCurve(metaclass=abc.ABCMeta):
         raise NotImplementedError  # pragma: no cover
 
     def plot(self, resolution=50):
-        """ This method actually plots the BoundaryCurve
+        """This method actually plots the BoundaryCurve
 
         This method currently plots stuff using matplotlib. It generates the
         list of points to plot with a default `resolution`.
@@ -94,7 +166,7 @@ class BoundaryCurve(metaclass=abc.ABCMeta):
 
 
 class Line(BoundaryCurve):
-    """ A line between two points
+    """A line between two points
 
     Parameters
     ---------

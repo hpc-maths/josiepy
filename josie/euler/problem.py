@@ -26,10 +26,13 @@
 # official policies, either expressed or implied, of Ruben Di Battista.
 import numpy as np
 
-from josie.solver.problem import Problem
+from typing import Union
 
-from .state import Q
+from josie.solver.problem import Problem
+from josie.mesh.cellset import CellSet, MeshCellSet
+
 from .eos import EOS
+from .state import Q
 
 
 class EulerProblem(Problem):
@@ -44,7 +47,7 @@ class EulerProblem(Problem):
     def __init__(self, eos: EOS):
         self.eos = eos
 
-    def F(self, state_array: Q) -> np.ndarray:
+    def F(self, cells: Union[MeshCellSet, CellSet]) -> np.ndarray:
         r""" This returns the tensor representing the flux for an Euler model
 
         A general problem can be written in a compact way:
@@ -58,10 +61,8 @@ class EulerProblem(Problem):
 
         Parameters
         ----------
-        state_array
-            A :class:`~euler.state.Q` that has dimension :math:`Nx \times Ny
-            \times 9` containing the values for all the state variables in all
-            the mesh points
+        cells
+            A :class:`MeshCellSet` that contains the cell data
 
         Returns
         ---------
@@ -83,17 +84,17 @@ class EulerProblem(Problem):
                 \end{bmatrix}
         """
 
-        num_cells_x, num_cells_y, _ = state_array.shape
+        num_cells_x, num_cells_y, _ = cells.values.shape
 
         # Flux tensor
         F = np.empty((num_cells_x, num_cells_y, 4, 2))
 
-        rhoU = state_array[..., Q.fields.rhoU]
-        rhoV = state_array[..., Q.fields.rhoV]
-        rhoE = state_array[..., Q.fields.rhoE]
-        U = state_array[..., Q.fields.U]
-        V = state_array[..., Q.fields.V]
-        p = state_array[..., Q.fields.p]
+        rhoU = cells.values[..., Q.fields.rhoU]
+        rhoV = cells.values[..., Q.fields.rhoV]
+        rhoE = cells.values[..., Q.fields.rhoE]
+        U = cells.values[..., Q.fields.U]
+        V = cells.values[..., Q.fields.V]
+        p = cells.values[..., Q.fields.p]
 
         rhoUU = np.multiply(rhoU, U)
         rhoUV = np.multiply(rhoU, V)

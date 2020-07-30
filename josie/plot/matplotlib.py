@@ -52,7 +52,7 @@ cmap = plt.get_cmap("viridis")
 
 
 class PlotState:
-    """ A class managing the global state of the plot backend
+    """A class managing the global state of the plot backend
 
     Attributes
     ----------
@@ -68,7 +68,7 @@ class PlotState:
         self.state_elements: List[StateElement] = []
 
     def append(self, state_elem: StateElement):
-        """ A proxy appending a state element to :attr:`state_elements`
+        """A proxy appending a state element to :attr:`state_elements`
 
         Parameters
         ---------
@@ -89,15 +89,15 @@ class PlotState:
 
 
 class AnimateState(NamedTuple):
-    """ A named tuple to store state when calling the
-    :meth:`MatplotlibBackend.show` method """
+    """A named tuple to store state when calling the
+    :meth:`MatplotlibBackend.show` method"""
 
     fig: Figure
     animation: FuncAnimation
 
 
 class MatplotlibBackend(PlotBackend):
-    """ A :mod:`matplotlib`-based backend to plot 2D meshes.
+    """A :mod:`matplotlib`-based backend to plot 2D meshes.
 
     Attributes
     ----------
@@ -114,7 +114,7 @@ class MatplotlibBackend(PlotBackend):
 
     @staticmethod
     def _create_patch_collection(mesh: Mesh) -> PatchCollection:
-        """ Create the patch collection exporting the patches data from
+        """Create the patch collection exporting the patches data from
         the :class:`Mesh` object
 
         Parameters
@@ -137,7 +137,7 @@ class MatplotlibBackend(PlotBackend):
         return PatchCollection(cells, facecolors="white", edgecolors="k")
 
     def _init_solver_state(self, solver: Solver) -> StateData:
-        """ Common work to do when plotting a solver state. It returns an
+        """Common work to do when plotting a solver state. It returns an
         updated :class:`StateData`
         """
         if self.plot_state.collection is None:
@@ -155,7 +155,7 @@ class MatplotlibBackend(PlotBackend):
         for i, field in [
             (field.value, field.name) for field in solver.Q.fields
         ]:
-            values = copy.deepcopy(solver.values[:, :, i].ravel())
+            values = copy.deepcopy(solver.mesh.cells.values[:, :, i].ravel())
             state_data[field] = values
 
         return state_data
@@ -183,7 +183,7 @@ class MatplotlibBackend(PlotBackend):
         self.plot_state.append(state_element)
 
     def _animate(self, fields: List[str], interval):
-        """ Create an animation when more than one instant of time needs to be
+        """Create an animation when more than one instant of time needs to be
         shown up
 
         Parameters
@@ -244,7 +244,7 @@ class MatplotlibBackend(PlotBackend):
         self._ani_states = ani_states
 
     def show(self, fields: Union[List[str], str], fps=25):
-        """ Show the plots on screen
+        """Show the plots on screen
 
         The logic to plot here is that if :attr:`plot_state` is an iterable
         with only 1 class:`StateElement`:, then single images are shown.

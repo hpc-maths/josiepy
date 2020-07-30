@@ -2,7 +2,8 @@ import pytest
 
 from josie.bc import make_periodic, Direction
 from josie.geom import Line
-from josie.mesh import Mesh, SimpleCell
+from josie.mesh import Mesh
+from josie.mesh.cell import SimpleCell
 
 
 @pytest.fixture

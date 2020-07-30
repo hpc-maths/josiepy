@@ -2,7 +2,8 @@ import pytest
 
 from josie.bc import make_periodic, Direction
 from josie.geom import Line
-from josie.mesh import Mesh, SimpleCell
+from josie.mesh import Mesh
+from josie.mesh.cell import SimpleCell
 from josie.solver import Solver
 
 
@@ -35,7 +36,6 @@ def solver(mocker, mesh, Q, init_fun):
     """ A dummy solver instance with initiated state """
 
     scheme = mocker.Mock()
-    scheme.problem.MAX_DIMENSIONALITY = 2
 
     solver = Solver(mesh, Q, scheme)
     solver.init(init_fun)

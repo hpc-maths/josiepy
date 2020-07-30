@@ -29,16 +29,17 @@ from __future__ import annotations
 import numpy as np
 
 from enum import IntEnum
-from typing import Collection, Type
+from typing import Collection, Type, TYPE_CHECKING
 
-from josie.mesh import Mesh
+if TYPE_CHECKING:
+    from josie.mesh import Mesh
 
 Fields = Type[IntEnum]
 Field = IntEnum
 
 
 class State(np.ndarray):
-    """ :class:`State` is a subclass of :class:`numpy.ndarray`. It behaves like
+    """:class:`State` is a subclass of :class:`numpy.ndarray`. It behaves like
     a normal :class:`numpy.ndarray` except it has additional init methods to
     ease the usage
 
@@ -113,8 +114,8 @@ class State(np.ndarray):
 
     @classmethod
     def list_to_enum(cls, fields: Collection[str]) -> IntEnum:
-        """ Convert a list of textual fields to the class:`IntEnum` that needs
-        to be stored in this class :attr:`fields` """
+        """Convert a list of textual fields to the class:`IntEnum` that needs
+        to be stored in this class :attr:`fields`"""
 
         return IntEnum(  # type: ignore
             cls._FIELDS_ENUM_NAME, dict(zip(fields, range(len(fields))))
@@ -122,8 +123,8 @@ class State(np.ndarray):
 
     @classmethod
     def from_mesh(cls, mesh: Mesh) -> State:
-        """ Initialize an empty class:`State` object of the right dimensiosn
-        for the given class:`Mesh` """
+        """Initialize an empty class:`State` object of the right dimensiosn
+        for the given class:`Mesh`"""
 
         nx = mesh.num_cells_x
         ny = mesh.num_cells_y

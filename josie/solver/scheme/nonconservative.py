@@ -27,7 +27,7 @@
 import abc
 import numpy as np
 
-from josie.solver.state import State
+from josie.mesh.cellset import CellSet, MeshCellSet
 
 from .scheme import Scheme
 
@@ -37,31 +37,19 @@ class NonConservativeScheme(Scheme):
     conservative term
     """
 
-    def accumulate(
-        self,
-        values: State,
-        neigh_values: State,
-        normals: np.ndarray,
-        surfaces: np.ndarray,
-    ):
+    def accumulate(self, cells: MeshCellSet, neighs: CellSet):
 
         # Accumulate other terms
-        super().accumulate(values, neigh_values, normals, surfaces)
+        super().accumulate(cells, neighs)
 
-        B = self.problem.B(values)
-        G = self.G(values, neigh_values, normals, surfaces)
+        B = self.problem.B(cells)
+        G = self.G(cells, neighs)
         BG = np.einsum("...ijk,...k->...i", B, G)
 
         self._fluxes += BG
 
     @abc.abstractmethod
-    def G(
-        self,
-        values: State,
-        neigh_values: State,
-        normals: np.ndarray,
-        surfaces: np.ndarray,
-    ) -> np.ndarray:
+    def G(self, cells: MeshCellSet, neighs: CellSet) -> np.ndarray:
 
         r""" This is the non-conservative flux implementation of the scheme. See
         :cite:`toro_riemann_2009` for a great overview on numerical methods for
@@ -89,16 +77,9 @@ class NonConservativeScheme(Scheme):
         values
             The values of the state fields in each cell
 
-        neigh_values
-            The values of the state fields in the each neighbour of a cell
-
-        normals
-            The normal unit vectors associated to the face between each cell
-            and its neigbour
-
-        surfaces
-            The surface values associated at the face between each cell and its
-            neighbour
+        neighs
+            A :class:`CellSet` containing data of neighbour cells corresponding
+            to the :attr:`values`
 
         Returns
         -------

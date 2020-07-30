@@ -1,4 +1,3 @@
-import numpy as np
 import pytest
 
 from josie.io.write.writer import MemoryWriter, NoopWriter, XDMFWriter
@@ -9,8 +8,8 @@ from josie.solver.state import StateTemplate
 def solver(mesh, mocker):
     solver = mocker.Mock()
     solver.t = 0
-    solver.values = np.zeros(mesh.num_cells_x * mesh.num_cells_y)
     solver.mesh = mesh
+    solver.mesh.cells._values = mocker.MagicMock()
     solver.scheme.CFL = mocker.Mock(return_value=0.1)
     solver.Q = StateTemplate("u")
 

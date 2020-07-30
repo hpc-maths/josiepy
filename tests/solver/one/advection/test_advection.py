@@ -3,14 +3,14 @@ import numpy as np
 import pytest
 
 from matplotlib.animation import ArtistAnimation
-from numba import njit
 
 from .adv1d import main as main_1d
 
+from josie.general.schemes.time import ExplicitEuler
+from josie.mesh.cellset import MeshCellSet, CellSet
 from josie.solver.state import State
 from josie.solver.solver import Solver
 from josie.solver.problem import Problem
-from josie.general.schemes.time import ExplicitEuler
 from josie.solver.scheme.convective import ConvectiveScheme
 
 # Advection velocity in x-direction
@@ -33,12 +33,9 @@ class AdvectionProblem(Problem):
         return flux(state_array)
 
 
-def upwind(
-    values: np.ndarray,
-    neigh_values: np.ndarray,
-    normals: np.ndarray,
-    surfaces: np.ndarray,
-):
+def upwind(cells: MeshCellSet, neighs: CellSet):
+
+    values = cells.values
 
     nx, ny, _ = values.shape
 
@@ -47,7 +44,7 @@ def upwind(
 
     # I do a dot product of each normal in `norm` by the advection velocity
     # Equivalent to: un = np.sum(Advection.V*(normals), axis=-1)
-    Vn = np.einsum("...k,k->...", normals, V)
+    Vn = np.einsum("...k,k->...", neighs.normals, V)
 
     # Check where un > 0
     idx = np.where(Vn > 0)
@@ -57,68 +54,27 @@ def upwind(
 
     idx = np.where(Vn < 0)
     if np.any(np.nonzero(idx)):
-        F[idx] = flux(neigh_values)[idx]
+        F[idx] = flux(neighs.values)[idx]
 
-    FS = np.einsum("...j,...j->...", F, normals) * surfaces
+    FS = np.einsum("...j,...j->...", F, neighs.normals) * neighs.surfaces
 
     return FS[..., np.newaxis]
 
 
-@njit
-def upwind_jit(
-    values: np.ndarray,
-    neigh_values: np.ndarray,
-    normals: np.ndarray,
-    surfaces: np.ndarray,
-):
-    def flux(state):
-        return V * state
-
-    F = np.zeros_like(values)
-
-    # Loop over cell in x and y
-    num_cells_x, num_cells_y, state_size = values.shape
-    for i in np.arange(num_cells_x):
-        for j in np.arange(num_cells_y):
-            norm = normals[i, j]
-            un = V.dot(norm)
-
-            if un > 0:
-                F[i, j] = (
-                    F[i, j] + flux(values[i, j]).dot(norm) * surfaces[i, j]
-                )
-            else:
-                F[i, j] = (
-                    F[i, j]
-                    + flux(neigh_values[i, j]).dot(norm) * surfaces[i, j]
-                )
-
-    return F
-
-
-@pytest.fixture(params=[upwind, upwind_jit])
+@pytest.fixture(params=[upwind])
 def scheme(request):
     class Upwind(ConvectiveScheme, ExplicitEuler):
-        def F(
-            self,
-            values: np.ndarray,
-            neigh_values: np.ndarray,
-            normals: np.ndarray,
-            surfaces: np.ndarray,
-        ):
-            return request.param(values, neigh_values, normals, surfaces)
+        def F(self, cells: MeshCellSet, neighs: CellSet):
+            return request.param(cells, neighs)
 
         def CFL(
             self,
-            values: np.ndarray,
-            volumes: np.ndarray,
-            normals: np.ndarray,
-            surfaces: np.ndarray,
+            cells: MeshCellSet,
             CFL_value: float,
         ) -> float:
 
             U_abs = np.linalg.norm(V)
-            dx = np.min(surfaces)
+            dx = np.min(cells.surfaces)
 
             return CFL_value * dx / U_abs
 
@@ -148,9 +104,9 @@ def test_against_real_1D(solver, plot, tol):
     ims = []
 
     for i, t in enumerate(time):
-        x = solver.mesh.centroids[..., 0]
+        x = solver.mesh.cells.centroids[..., 0]
         x = x.reshape(x.size)
-        u = solver.values[..., 0]
+        u = solver.mesh.cells.values[..., 0]
         u = u.reshape(u.size)
 
         err = u - solution[i, :]
