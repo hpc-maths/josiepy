@@ -34,6 +34,7 @@ def solver(mocker, mesh, Q, init_fun):
     """ A dummy solver instance with initiated state """
 
     scheme = mocker.Mock()
+    scheme.problem.MAX_DIMENSIONALITY = 2
 
     solver = Solver(mesh, Q, scheme)
     solver.init(init_fun)

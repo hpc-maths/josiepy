@@ -196,7 +196,7 @@ class Solver:
                 # TODO: Generalize for 3D and unstructured
                 ghost_cells_idx: List[Union[slice, int]] = [
                     side if item == index else slice(1, -1, None)
-                    for item in range(self.mesh.MAX_DIMENSIONALITY)
+                    for item in range(self.scheme.problem.MAX_DIMENSIONALITY)
                 ]
 
                 ghosts.append(

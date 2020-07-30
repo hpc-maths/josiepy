@@ -179,9 +179,6 @@ class Mesh:
     normals: np.ndarray
     boundaries: Iterable[Boundary]
 
-    # TODO: This will need to be removed when we go 3D
-    MAX_DIMENSIONALITY = 2
-
     def __init__(
         self,
         left: BoundaryCurve,

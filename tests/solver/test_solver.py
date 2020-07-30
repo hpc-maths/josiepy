@@ -31,6 +31,7 @@ def test_animate(solver):
 
 def test_linear_index(mocker, mesh, Q):
     scheme = mocker.Mock()
+    scheme.problem.MAX_DIMENSIONALITY = 2
     solver = Solver(mesh, Q, scheme)
     _values = np.array(
         [

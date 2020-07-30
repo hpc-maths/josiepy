@@ -27,6 +27,8 @@
 
 import abc
 
+from josie._dim import Dimensionality
+
 from .state import State
 
 
@@ -46,6 +48,9 @@ class Problem(metaclass=abc.ABCMeta):
 
         \pdeTermList
     """
+
+    """ The dimensionality supported by the :class:`Problem` """
+    MAX_DIMENSIONALITY = Dimensionality.TWO
 
     def F(self, state_array: State):
         r""" The convective flux operator :math:`\pdeConvective`

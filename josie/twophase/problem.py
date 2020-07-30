@@ -103,13 +103,11 @@ class TwoPhaseProblem(Problem):
             to implement the :class:`~.Closure` trait in order to be able to
             return `pI` and `uI` (in addition to the :class:`~.euler.EOS`)
         """
-        # TODO: Needs to be generalized for 3D
-        DIMENSIONALITY = 2
 
         num_cells_x, num_cells_y, num_fields = state_array.shape
 
         B = np.zeros(
-            (num_cells_x, num_cells_y, num_fields, DIMENSIONALITY)
+            (num_cells_x, num_cells_y, num_fields, self.MAX_DIMENSIONALITY)
         ).view(Q)
 
         # Compute pI
