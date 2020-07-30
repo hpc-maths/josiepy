@@ -26,8 +26,10 @@
 # official policies, either expressed or implied, of Ruben Di Battista.
 import numpy as np
 
+from typing import Iterable
 
 from josie.solver.scheme import ConvectiveScheme
+from josie.solver.neighbour import Neighbour
 
 
 from .eos import EOS
@@ -41,7 +43,7 @@ class EulerScheme(ConvectiveScheme):
     def __init__(self, eos: EOS):
         self.problem: EulerProblem = EulerProblem(eos)
 
-    def post_step(self, values: Q):
+    def post_step(self, values: Q, neighbours: Iterable[Neighbour]):
         """During the step we update the conservative values. After the
         step we update the non-conservative variables. This method updates
         the values of the non-conservative (auxiliary) variables using the

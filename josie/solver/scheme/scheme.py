@@ -28,9 +28,12 @@ import abc
 
 import numpy as np
 
-from josie.solver.state import State
-from josie.solver.problem import Problem
+from typing import Iterable
+
 from josie.mesh.mesh import Mesh
+from josie.solver.neighbour import Neighbour
+from josie.solver.problem import Problem
+from josie.solver.state import State
 
 
 class Scheme(abc.ABC):
@@ -187,15 +190,16 @@ class Scheme(abc.ABC):
         # Initialize the datastructure containing the fluxes
         self._fluxes: State = np.empty_like(values)
 
-    def pre_step(self, values: State):
+    def pre_step(self, values: State, neighbours: Iterable[Neighbour]):
         """
         Hook called just before the fluxes accumulation. It's used by default
         to reset the fluxes array to zeros. It can be extend to do other things
+        like for :class:`DiffusiveScheme`.
         """
 
         self._fluxes.fill(0)
 
-    def post_step(self, values: State):
+    def post_step(self, values: State, neighbours: Iterable[Neighbour]):
         """:class:`Scheme` can implement a post-step hook that is executed by the
         solver after the update step.
         It can be needed, for example, to apply an :class:`~.euler.eos.EOS`

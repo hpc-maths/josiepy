@@ -24,7 +24,7 @@ from josie.twophase.state import PhasePair, Q
 
 
 class AdvectionOnly(Upwind, ExplicitEuler):
-    def post_step(self, values):
+    def post_step(self, values, neighbours):
         pass
 
     def CFL(

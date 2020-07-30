@@ -40,6 +40,7 @@ from typing import (
     TYPE_CHECKING,
 )
 
+from .neighbour import Neighbour
 from .state import Field, State
 from .scheme import Scheme
 
@@ -47,17 +48,6 @@ from josie.mesh import NormalDirection
 
 if TYPE_CHECKING:
     from josie.mesh.mesh import Boundary, Mesh, MeshIndex
-
-
-@dataclass
-class Neighbour:
-    """A class representing the set of neighbours to some values.
-    It ships the values of the fields in the neighbour cells, together with the
-    face normals and the face surfaces"""
-
-    values: State
-    normals: np.ndarray
-    surfaces: np.ndarray
 
 
 @dataclass
@@ -355,7 +345,7 @@ class Solver:
             Time increment of the step
         """
 
-        self.scheme.pre_step(self.values)
+        self.scheme.pre_step(self.values, self.neighbours)
 
         # Loop on all the cells neigbours
         # TODO: Modify fluxes in-place to avoid copy
@@ -368,7 +358,7 @@ class Solver:
         self.values -= self.scheme.update(self.mesh, dt)
 
         # Let's put here an handy post step if needed after the values update
-        self.scheme.post_step(self.values)
+        self.scheme.post_step(self.values, self.neighbours)
 
         # Keep ghost cells updated
         self._update_ghosts()

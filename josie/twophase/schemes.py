@@ -27,10 +27,13 @@
 
 import numpy as np
 
+from typing import Iterable
+
 from josie.euler.schemes import Rusanov as EulerRusanov
 from josie.solver.scheme import Scheme
 from josie.solver.scheme.nonconservative import NonConservativeScheme
 from josie.solver.scheme.convective import ConvectiveScheme
+from josie.solver.neighbour import Neighbour
 
 from .closure import Closure
 from .eos import TwoPhaseEOS
@@ -44,7 +47,7 @@ class TwoPhaseScheme(Scheme):
     def __init__(self, eos: TwoPhaseEOS, closure: Closure):
         self.problem: TwoPhaseProblem = TwoPhaseProblem(eos, closure)
 
-    def post_step(self, values: Q):
+    def post_step(self, values: Q, neighbours: Iterable[Neighbour]):
         """During the step we update the conservative values. After the
         step we update the non-conservative variables. This method updates
         the values of the non-conservative (auxiliary) variables using the
