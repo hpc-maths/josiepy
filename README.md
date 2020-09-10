@@ -13,7 +13,7 @@ Since for the moment there are some [vendored](vendor) libraries, the library
 must be installed using `pipenv`. 
 
 ```
-pipenv install
+pipenv --dev install
 ```
 
 ## Developer Notes
