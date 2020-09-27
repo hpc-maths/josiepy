@@ -36,7 +36,7 @@ def test_ghost_centroids(mesh):
         boundary_idx = boundary.cells_idx
         ghost_idx = boundary.ghost_cells_idx
 
-        boundary_centroids = mesh.cells.centroids[
+        boundary_centroids = mesh.cells._centroids[
             boundary_idx[0], boundary_idx[1]
         ]
 

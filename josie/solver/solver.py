@@ -30,7 +30,7 @@ import numpy as np
 
 from typing import (
     Callable,
-    Iterable,
+    Sequence,
     List,
     NoReturn,
     Union,
@@ -77,7 +77,7 @@ class Solver:
 
     # Type Checking
     _values: State
-    _neighs: Iterable[CellSet]
+    _neighs: Sequence[CellSet]
     t: float
 
     # TODO: Fix _values to adapt on mesh.dimensionality
@@ -88,7 +88,7 @@ class Solver:
         self.scheme = scheme
 
     @property
-    def neighbours(self) -> Iterable[CellSet]:
+    def neighbours(self) -> Sequence[CellSet]:
         """A property returning an iterable of neighbours of the
         :attr:`values`
 
@@ -118,7 +118,7 @@ class Solver:
                     )
                 )
 
-        self._neighs = tuple(neighs)
+            self._neighs = tuple(neighs)
         return self._neighs
 
     def init(self, init_fun: Callable[[MeshCellSet], NoReturn]):

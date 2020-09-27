@@ -179,6 +179,10 @@ def test_toro(riemann, plot):
             ims.append([im1, im2, im3])
 
         dt = scheme.CFL(cells, CFL)
+
+        # TODO: Basic check. The best would be to check against analytical
+        # solution
+        assert ~np.isnan(dt)
         solver.step(dt)
 
         t += dt

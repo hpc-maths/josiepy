@@ -30,7 +30,7 @@ import abc
 
 import numpy as np
 
-from typing import Iterable, TYPE_CHECKING
+from typing import Sequence, TYPE_CHECKING
 
 from josie.solver.problem import Problem
 from josie.solver.state import State
@@ -165,7 +165,7 @@ class Scheme(abc.ABC):
 
         raise NotImplementedError
 
-    def post_init(self, cells: MeshCellSet, neighbours: Iterable[CellSet]):
+    def post_init(self, cells: MeshCellSet, neighbours: Sequence[CellSet]):
         r""":class:`Scheme` can implement a :meth:`post_init` in order to
         perform operations after the :meth:`Solver.init` initialize the
         solver state
@@ -182,7 +182,7 @@ class Scheme(abc.ABC):
         # Initialize the datastructure containing the fluxes
         self._fluxes: State = np.empty_like(cells.values)
 
-    def pre_step(self, cells: MeshCellSet, neighbours: Iterable[CellSet]):
+    def pre_step(self, cells: MeshCellSet, neighbours: Sequence[CellSet]):
         """
         Hook called just before the fluxes accumulation. It's used by default
         to reset the fluxes array to zeros. It can be extended to do other
@@ -201,7 +201,7 @@ class Scheme(abc.ABC):
 
         self._fluxes.fill(0)
 
-    def post_step(self, cells: MeshCellSet, neighbours: Iterable[CellSet]):
+    def post_step(self, cells: MeshCellSet, neighbours: Sequence[CellSet]):
         r""":class:`Scheme` can implement a post-step hook that is executed by the
         solver after the update step.
         It can be needed, for example, to apply an :class:`~.euler.eos.EOS`

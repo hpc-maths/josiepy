@@ -1,6 +1,6 @@
 import numpy as np
 
-from typing import Iterable
+from typing import Sequence
 
 from josie.mesh.cellset import MeshCellSet, CellSet
 from josie.solver.scheme.diffusive import DiffusiveScheme
@@ -29,7 +29,7 @@ class LeastSquareGradient(DiffusiveScheme):
     to obtain the value of the gradient in the cell :math:`\nabla \phi_C`
     """
 
-    def post_init(self, cells: MeshCellSet, neighbours: Iterable[CellSet]):
+    def post_init(self, cells: MeshCellSet, neighbours: Sequence[CellSet]):
         r""" Initialize the datastructure holding the matrix used to solve
         the Least Square problem and also the RHS of the linear system
 
@@ -81,7 +81,7 @@ class LeastSquareGradient(DiffusiveScheme):
             # ... and weight (keeping shape)
             self._w[..., i, np.newaxis] = w
 
-    def pre_step(self, cells: MeshCellSet, neighbours: Iterable[CellSet]):
+    def pre_step(self, cells: MeshCellSet, neighbours: Sequence[CellSet]):
 
         for i, neigh in enumerate(neighbours):
             r = self._r[..., i, :]

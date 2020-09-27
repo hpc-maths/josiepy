@@ -135,26 +135,26 @@ class Mesh:
         self.left = Boundary(
             side=BoundarySide.LEFT,
             curve=left,
-            cells_idx=(BoundarySide.LEFT, slice(None)),
+            cells_idx=(BoundarySide.LEFT + 1, slice(1, -1)),
             ghost_cells_idx=(BoundarySide.LEFT, slice(1, -1)),
         )
         self.btm = Boundary(
             side=BoundarySide.BOTTOM,
             curve=bottom,
-            cells_idx=(slice(None), BoundarySide.BOTTOM),
+            cells_idx=(slice(1, -1), BoundarySide.BOTTOM + 1),
             ghost_cells_idx=(slice(1, -1), BoundarySide.BOTTOM),
         )
         self.right = Boundary(
             side=BoundarySide.RIGHT,
             curve=right,
-            cells_idx=(BoundarySide.RIGHT, slice(None)),
+            cells_idx=(BoundarySide.RIGHT - 1, slice(1, -1)),
             ghost_cells_idx=(BoundarySide.RIGHT, slice(1, -1)),
         )
 
         self.top = Boundary(
             side=BoundarySide.TOP,
             curve=top,
-            cells_idx=(slice(None), BoundarySide.TOP),
+            cells_idx=(slice(1, -1), BoundarySide.TOP - 1),
             ghost_cells_idx=(slice(1, -1), BoundarySide.TOP),
         )
 

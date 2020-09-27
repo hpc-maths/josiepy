@@ -15,8 +15,8 @@ def gradient_one_boundaries(boundaries, Q):
     """ Change the BCs to enforce the gradient == 1 also on ghost cells """
 
     class GradientOneBC(ScalarBC):
-        def __call__(self, cells, ghost_centroids, t):
-            return np.sum(ghost_centroids, axis=-1).view(Q)
+        def __call__(self, cells, ghost_cells, field, t):
+            return np.sum(ghost_cells.centroids, axis=-1).reshape(3).view(Q)
 
     left, bottom, right, top = boundaries
 

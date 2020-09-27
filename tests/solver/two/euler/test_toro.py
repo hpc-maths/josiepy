@@ -195,6 +195,9 @@ def test_toro(direction, riemann_problem, bc_fun, plot):
             solver.mesh.cells,
             CFL,
         )
+
+        # TODO: Basic check. The best would be to check against analytical
+        # solution
         assert ~np.isnan(dt)
         solver.step(dt)
 

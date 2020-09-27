@@ -32,7 +32,7 @@ import numpy as np
 
 from typing import Callable, Optional, Tuple, TYPE_CHECKING, Union
 
-from josie.solver.state import State
+from josie.solver.state import Field, State
 
 from .geom import Boundary, BoundaryCurve
 from .math import Direction
@@ -85,14 +85,14 @@ class BoundaryCondition:
         boundary_idx = boundary.cells_idx
 
         boundary_cells = solver.mesh.cells[boundary_idx]
-        ghost_centroids = solver.mesh.cells._centroids[ghost_idx]
+        ghost_cells = solver.mesh.cells[ghost_idx]
 
         # Apply BC for each field
         for field in self.bc.fields:
 
             solver.mesh.cells._values[
-                ghost_idx[0], ghost_idx[1], field, np.newaxis
-            ] = self.bc[field](boundary_cells, ghost_centroids, solver.t)
+                ghost_idx[0], ghost_idx[1], field
+            ] = self.bc[field](boundary_cells, ghost_cells, field, solver.t)
 
 
 class ScalarBC(abc.ABC):
@@ -104,8 +104,9 @@ class ScalarBC(abc.ABC):
     def __call__(
         self,
         cells: CellSet,
-        ghost_centroids: Optional[np.ndarray],
-        t: float = 0,
+        ghost_cells: Optional[np.ndarray],
+        field: Field,
+        t: float,
     ) -> np.ndarray:
         """
         Parameters
@@ -113,10 +114,12 @@ class ScalarBC(abc.ABC):
         cells:
             A :class:`MeshCellSet` containing the state of the mesh cells
 
-        ghosts_centroids
-            A :class:`np.ndarray` containing the centroids coordindates of
-            ghost cells associated to the :class:`Boundary` the
-            :class:`BoundaryCondition` is applied to
+        ghosts_cells
+            A :class:`MeshCellSet` containing the ghost cells associated to the
+            :class:`Boundary` the :class:`BoundaryCondition` is applied to
+
+        field
+            The field to which the :class:`ScalarBC` is applied to
         t
             The time instant to which this :class:`ScalarBC`
             must be evaluated (useful for time-dependent BCs)
@@ -175,11 +178,12 @@ class Dirichlet(ScalarBC):
     def __call__(
         self,
         cells: CellSet,
-        ghost_centroids: Optional[np.ndarray] = None,  # not used in this BC
-        t: float = 0,
+        ghost_cells: Optional[np.ndarray],  # Not used in BC
+        field: Field,
+        t: float,
     ) -> np.ndarray:
 
-        return 2 * self._value - cells.values
+        return 2 * self._value - cells.values[..., field]
 
 
 class Neumann(Dirichlet):
@@ -213,10 +217,11 @@ class Neumann(Dirichlet):
     def __call__(
         self,
         cells: CellSet,
-        ghost_centroids: Optional[np.ndarray] = None,  # not used in this BC
-        t: float = 0,
+        ghost_cells: Optional[np.ndarray],  # Not used in BC
+        field: Field,
+        t: float,
     ) -> np.ndarray:
-        return cells.values - self._value
+        return cells.values[..., field] - self._value
 
 
 class NeumannDirichlet(ScalarBC):
@@ -276,17 +281,21 @@ class NeumannDirichlet(ScalarBC):
     def __call__(
         self,
         cells: CellSet,
-        ghost_centroids: Optional[np.ndarray] = None,  # not used in this BC
-        t: float = 0,
+        ghost_cells: Optional[np.ndarray],  # Not used in BC
+        field: Field,
+        t: float,
     ) -> np.ndarray:
+
         # First apply Neumann to everything
-        ghost_values = self.neumann(cells, t=t)
+        ghost_values = self.neumann(cells, None, field, t)
 
         # Then extract the cells where to apply the Dirichlet BC
         dirichlet_cells = self.partition_fun(cells.centroids)
 
         # Apply the Dirichlet BC to the subset of cells
-        ghost_values[dirichlet_cells] = Dirichlet(cells[dirichlet_cells], t=t)
+        ghost_values[dirichlet_cells] = self.dirichlet(
+            cells[dirichlet_cells], None, field, t
+        )
 
         return ghost_values
 

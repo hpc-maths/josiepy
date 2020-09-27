@@ -296,32 +296,32 @@ class SimpleCell(Cell):
         x = mesh._x
         y = mesh._y
 
-        # Special handling for the _centroids array since We initialize the
-        # centroids data structure including the additional elements for ghost
-        # cells
-        _centroids = np.empty(
+        # Init internal data structures
+        points = np.empty((nx, ny, cls.num_points, MAX_DIMENSIONALITY))
+
+        # Create basic :class:`MeshCellSet` data structure that contains data
+        # also for the ghost cells. Init with NaN since some of the entries are
+        # not used for ghost cells (i.e. corner values for centroids and
+        # values, entire array for volumes and surfaces)
+
+        centroids = np.full(
             (
                 nx + 2,
                 ny + 2,
                 cls.num_dofs,
                 MAX_DIMENSIONALITY,
-            )
+            ),
+            np.nan,
         )
 
-        # Corner values are unused, set to NaN
-        _centroids[0, 0] = np.nan
-        _centroids[0, -1] = np.nan
-        _centroids[-1, -1] = np.nan
-        _centroids[-1, 0] = np.nan
-
-        # Rest of data structures
-        points = np.empty((nx, ny, cls.num_points, MAX_DIMENSIONALITY))
-        volumes = np.empty((nx, ny))
-        normals = np.empty_like(points)
-        surfaces = np.empty((nx, ny, cls.num_points))
+        volumes = np.full((nx + 2, ny + 2), np.nan)
+        normals = np.full(
+            (nx + 2, ny + 2, cls.num_points, MAX_DIMENSIONALITY), np.nan
+        )
+        surfaces = np.full((nx + 2, ny + 2, cls.num_points), np.nan)
 
         cells = MeshCellSet(
-            _centroids=_centroids,
+            centroids=centroids,
             volumes=volumes,
             surfaces=surfaces,
             normals=normals,
@@ -397,7 +397,7 @@ class SimpleCell(Cell):
             boundary_idx = boundary.cells_idx
             ghost_idx = boundary.ghost_cells_idx
 
-            boundary_centroids = mesh.cells.centroids[
+            boundary_centroids = mesh.cells._centroids[
                 boundary_idx[0], boundary_idx[1]
             ]
 
