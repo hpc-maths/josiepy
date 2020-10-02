@@ -24,6 +24,8 @@
 # The views and conclusions contained in the software and documentation
 # are those of the authors and should not be interpreted as representing
 # official policies, either expressed or implied, of Ruben Di Battista.
+from __future__ import annotations
+
 import numpy as np
 
 from typing import Iterable
@@ -127,38 +129,39 @@ class EulerScheme(ConvectiveScheme):
 
 
 class HLL(EulerScheme):
-    def F(
-        self,
-        values: Q,
-        neigh_values: Q,
-        normals: np.ndarray,
-        surfaces: np.ndarray,
-    ):
+    def F(self, cells: MeshCellSet, neighs: CellSet):
         """This method implements the HLL scheme."""
+
+        values: Q = cells.values
+
+        Q_L, Q_R = cells, neighs
 
         FS = np.zeros_like(values).view(Q)
         F = np.zeros_like(values.get_conservative())
-        Q_L, Q_R = values, neigh_values
         fields = values.fields
 
         # Get normal velocities
-        U_L = self.compute_U_norm(Q_L, normals)
-        U_R = self.compute_U_norm(Q_R, normals)
+        U_L = self.compute_U_norm(Q_L.values, neighs.normals)
+        U_R = self.compute_U_norm(Q_R.values, neighs.normals)
 
         # Get sound speed
-        a_L = Q_L[..., np.newaxis, fields.c]
-        a_R = Q_R[..., np.newaxis, fields.c]
+        a_L = Q_L.values[..., np.newaxis, fields.c]
+        a_R = Q_R.values[..., np.newaxis, fields.c]
 
         # Compute the values of the wave velocities on every cell
         (sigma_L, sigma_R) = (U_L - a_L, U_R + a_R)
 
-        F_L = np.einsum("...kl,...l->...k", self.problem.F(Q_L), normals)
-        F_R = np.einsum("...kl,...l->...k", self.problem.F(Q_R), normals)
+        F_L = np.einsum(
+            "...kl,...l->...k", self.problem.F(Q_L), neighs.normals
+        )
+        F_R = np.einsum(
+            "...kl,...l->...k", self.problem.F(Q_R), neighs.normals
+        )
 
         # First four variables of the total state are the conservative
         # variables (rho, rhoU, rhoV, rhoE)
         Qc_L = values.get_conservative()
-        Qc_R = neigh_values.get_conservative()
+        Qc_R = neighs.values.get_conservative()
 
         np.copyto(F, F_L, where=(sigma_L > 0))
         np.copyto(F, F_R, where=(sigma_R < 0))
@@ -173,7 +176,7 @@ class HLL(EulerScheme):
             where=(sigma_L <= 0) * (sigma_R >= 0),
         )
 
-        FS.set_conservative(surfaces[..., np.newaxis] * F)
+        FS.set_conservative(neighs.surfaces[..., np.newaxis] * F)
 
         return FS
 

@@ -3,10 +3,12 @@ import numpy as np
 
 from dataclasses import dataclass
 from enum import Enum, IntEnum
-from typing import Tuple
+from typing import TYPE_CHECKING, Tuple
 
 from josie.geom import MeshIndex
-from josie.solver.state import State
+
+if TYPE_CHECKING:
+    from josie.solver.state import State
 
 
 class NormalDirection(IntEnum):

@@ -11,14 +11,20 @@ from josie.mesh import Mesh
 from josie.mesh.cell import SimpleCell
 from josie.mesh.cellset import MeshCellSet
 from josie.euler.eos import PerfectGas
-from josie.euler.schemes import Rusanov
+from josie.euler.schemes import EulerScheme
 from josie.general.schemes.time import ExplicitEuler
 from josie.euler.solver import EulerSolver
 from josie.euler.state import Q
 
 
-class ToroScheme(Rusanov, ExplicitEuler):
-    pass
+@pytest.fixture(params=EulerScheme.__subclasses__())
+def Scheme(request):
+    """ Create all the different schemes """
+
+    class ToroScheme(request.param, ExplicitEuler):
+        pass
+
+    return ToroScheme
 
 
 riemann_states = [
@@ -86,7 +92,7 @@ riemann_states = [
 
 
 @pytest.mark.parametrize("riemann", riemann_states)
-def test_toro(riemann, plot):
+def test_toro(riemann, Scheme, plot):
     left = Line([0, 0], [0, 1])
     bottom = Line([0, 0], [1, 0])
     right = Line([1, 0], [1, 1])
@@ -129,7 +135,7 @@ def test_toro(riemann, plot):
         cells.values[np.where(xc > 0.5), ...] = Q_right
         cells.values[np.where(xc <= 0.5), ...] = Q_left
 
-    scheme = ToroScheme(eos)
+    scheme = Scheme(eos)
     solver = EulerSolver(mesh, scheme)
     solver.init(init_fun)
 
