@@ -42,7 +42,7 @@ class EulerScheme(ConvectiveScheme):
         self.problem: EulerProblem = EulerProblem(eos)
 
     def post_step(self, values: Q):
-        """ During the step we update the conservative values. After the
+        """During the step we update the conservative values. After the
         step we update the non-conservative variables. This method updates
         the values of the non-conservative (auxiliary) variables using the
         :class:`~.EOS`
@@ -70,11 +70,120 @@ class EulerScheme(ConvectiveScheme):
         values[..., fields.p] = p
         values[..., fields.c] = c
 
+    @staticmethod
+    def compute_U_norm(values: Q, normals: np.ndarray):
+        """Returns the value of the normal velocity component to the given
+        ``normals``.
+
+        Parameters
+        ----------
+        values
+            A :class:`np.ndarray` that has dimension :math:`Nx \times Ny \times
+            N_\text{fields}` containing the values for all the states in all
+            the mesh points
+
+        normals
+            A :class:`np.ndarray` that has the dimensions :math:`Nx \times Ny
+            \times N_\text{centroids} \times 2` containing the values of the
+            normals to the faces of the cell
+
+        Returns
+        -------
+        The value of the normal velocity
+        """
+        fields = values.fields
+
+        # Get the velocity components
+        UV_slice = slice(fields.U, fields.V + 1)
+        UV = values[..., np.newaxis, UV_slice]
+
+        # Find the normal velocity
+        U = np.einsum("...kl,...l->...k", UV, normals)
+
+        return U
+
+    def CFL(
+        self,
+        values: Q,
+        volumes: np.ndarray,
+        surfaces: np.ndarray,
+        CFL_value,
+    ) -> float:
+
+        fields = values.fields
+
+        # Get the velocity components
+        UV_slice = slice(fields.U, fields.V + 1)
+        UV = values[..., UV_slice]
+
+        U = np.linalg.norm(UV, axis=-1)
+        c = values[..., fields.c]
+
+        sigma = np.max(Rusanov.compute_sigma(U, c))
+
+        # Min face surface
+        # TODO: This probably needs to be generalized for 3D
+        dx = np.min(volumes[..., np.newaxis] / surfaces)
+
+        return CFL_value * dx / sigma
+
+
+class HLL(EulerScheme):
+    def F(
+        self,
+        values: Q,
+        neigh_values: Q,
+        normals: np.ndarray,
+        surfaces: np.ndarray,
+    ):
+        """This method implements the HLL scheme."""
+
+        FS = np.zeros_like(values).view(Q)
+        F = np.zeros_like(values.get_conservative())
+        Q_L, Q_R = values, neigh_values
+        fields = values.fields
+
+        # Get normal velocities
+        U_L = self.compute_U_norm(Q_L, normals)
+        U_R = self.compute_U_norm(Q_R, normals)
+
+        # Get sound speed
+        a_L = Q_L[..., np.newaxis, fields.c]
+        a_R = Q_R[..., np.newaxis, fields.c]
+
+        # Compute the values of the wave velocities on every cell
+        (sigma_L, sigma_R) = (U_L - a_L, U_R + a_R)
+
+        F_L = np.einsum("...kl,...l->...k", self.problem.F(Q_L), normals)
+        F_R = np.einsum("...kl,...l->...k", self.problem.F(Q_R), normals)
+
+        # First four variables of the total state are the conservative
+        # variables (rho, rhoU, rhoV, rhoE)
+        Qc_L = values.get_conservative()
+        Qc_R = neigh_values.get_conservative()
+
+        np.copyto(F, F_L, where=(sigma_L > 0))
+        np.copyto(F, F_R, where=(sigma_R < 0))
+        np.copyto(
+            F,
+            np.divide(
+                sigma_R * F_L
+                - sigma_L * F_R
+                + sigma_L * sigma_R * (Qc_R - Qc_L),
+                sigma_R - sigma_L,
+            ),
+            where=(sigma_L <= 0) * (sigma_R >= 0),
+        )
+
+        FS.set_conservative(surfaces[..., np.newaxis] * F)
+
+        return FS
+
 
 class Rusanov(EulerScheme):
     @staticmethod
     def compute_sigma(U_norm: np.ndarray, c: np.ndarray) -> np.ndarray:
-        r""" Returns the value of the :math:`\sigma`(i.e. the wave velocity) for
+        r"""Returns the value of the :math:`\sigma`(i.e. the wave velocity) for
         the the Rusanov scheme.
 
         .. math:
@@ -109,39 +218,6 @@ class Rusanov(EulerScheme):
 
         return sigma
 
-    @staticmethod
-    def compute_U_norm(values: Q, normals: np.ndarray):
-        """ Returns the value of the normal velocity component to the given
-        ``normals``.
-
-        Parameters
-        ----------
-        values
-            A :class:`np.ndarray` that has dimension :math:`Nx \times Ny \times
-            N_\text{fields}` containing the values for all the states in all
-            the mesh points
-
-        normals
-            A :class:`np.ndarray` that has the dimensions :math:`Nx \times Ny
-            \times N_\text{centroids} \times 2` containing the values of the
-            normals to the faces of the cell
-
-        Returns
-        -------
-        The value of the normal velocity
-        """
-        fields = values.fields
-
-        # Get the velocity components
-        UV_slice = slice(fields.U, fields.V + 1)
-        UV = values[..., UV_slice]
-
-        # Find the normal velocity
-        # 2D: U = np.einsum("ijk,ijk->ij", UV, normals)
-        U = np.einsum("...k,...k->...", UV, normals)
-
-        return U
-
     def F(
         self,
         values: Q,
@@ -149,8 +225,7 @@ class Rusanov(EulerScheme):
         normals: np.ndarray,
         surfaces: np.ndarray,
     ):
-
-        """ This method implements the Rusanov scheme. See :cite: `rusanov` for
+        """This method implements the Rusanov scheme. See :cite: `rusanov` for
         a detailed view on compressible schemes, given a suitable
         """
 
@@ -197,24 +272,3 @@ class Rusanov(EulerScheme):
         FS.set_conservative(surfaces[..., np.newaxis] * (DeltaF - DeltaQ))
 
         return FS
-
-    def CFL(
-        self, values: Q, volumes: np.ndarray, surfaces: np.ndarray, CFL_value,
-    ) -> float:
-
-        fields = values.fields
-
-        # Get the velocity components
-        UV_slice = slice(fields.U, fields.V + 1)
-        UV = values[..., UV_slice]
-
-        U = np.linalg.norm(UV, axis=-1)
-        c = values[..., fields.c]
-
-        sigma = np.max(Rusanov.compute_sigma(U, c))
-
-        # Min face surface
-        # TODO: This probably needs to be generalized for 3D
-        dx = np.min(volumes[..., np.newaxis] / surfaces)
-
-        return CFL_value * dx / sigma

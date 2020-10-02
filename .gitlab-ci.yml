@@ -10,6 +10,7 @@ stages:
     - post
 
 before_script:
+    - apt-get update && apt-get install -y build-essential
     - pip install pipenv
     - pipenv install --system --dev --skip-lock
 
