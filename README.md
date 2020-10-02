@@ -4,7 +4,7 @@
 [![loc](https://gitlab.com/rubendibattista/josiepy/-/jobs/artifacts/master/raw/loc.svg?job=badges)](https://gitlab.com/rubendibattista/josiepy/master)
 [![version](https://gitlab.com/rubendibattista/josiepy/-/jobs/artifacts/master/raw/version.svg?job=badges)](https://gitlab.com/rubendibattista/josiepy/-/releases)
 
-## A 2D PDE solver written in Python with a particular focus on usability
+## A 2D PDE solver written in Python without compromising (too much) performance
 
 ### [Documentation](https://josiepy.rdb.is)
 
