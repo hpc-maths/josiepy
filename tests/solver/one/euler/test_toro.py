@@ -28,6 +28,7 @@ riemann_states = [
         "uR": 0,
         "vR": 0,
         "pR": 0.1,
+        "t": 0.25,
         "CFL": 0.5,
     },
     {
@@ -39,6 +40,7 @@ riemann_states = [
         "uR": 2.0,
         "vR": 0,
         "pR": 0.4,
+        "t": 0.15,
         "CFL": 0.5,
     },
     {
@@ -50,6 +52,7 @@ riemann_states = [
         "uR": 0,
         "vR": 0,
         "pR": 0.01,
+        "t": 0.012,
         "CFL": 0.45,
     },
     {
@@ -61,6 +64,7 @@ riemann_states = [
         "uR": -6.19633,
         "vR": 0,
         "pR": 46.0950,
+        "t": 0.035,
         "CFL": 0.5,
     },
     {
@@ -72,6 +76,7 @@ riemann_states = [
         "uR": -19.59745,
         "vR": 0,
         "pR": 0.01,
+        "t": 0.035,
         "CFL": 0.5,
     },
 ]
@@ -125,7 +130,7 @@ def test_toro(riemann, plot):
     solver = EulerSolver(mesh, scheme)
     solver.init(init_fun)
 
-    final_time = 0.25
+    final_time = riemann["t"]
     t = 0
     CFL = riemann["CFL"]
 
