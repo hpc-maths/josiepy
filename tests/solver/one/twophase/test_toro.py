@@ -14,7 +14,9 @@ from josie.euler.eos import (
 from josie.bc import Dirichlet
 from josie.general.schemes.time import ExplicitEuler
 from josie.geom import Line
-from josie.mesh import Mesh, SimpleCell
+from josie.mesh import Mesh
+from josie.mesh.cell import SimpleCell
+from josie.mesh.cellset import MeshCellSet
 from josie.solver.scheme.scheme import Scheme
 from josie.twophase.closure import Classical
 from josie.twophase.eos import TwoPhaseEOS
@@ -24,11 +26,13 @@ from josie.twophase.state import PhasePair, Q
 
 
 class AdvectionOnly(Upwind, ExplicitEuler):
-    def post_step(self, values):
+    def post_step(self, values, neighbours):
         pass
 
     def CFL(
-        self, values: Q, volumes: np.ndarray, surfaces: np.ndarray, CFL_value,
+        self,
+        cells: MeshCellSet,
+        CFL_value,
     ) -> float:
 
         return 1e-3
@@ -82,15 +86,35 @@ riemann_states = [
         left=RiemannBCState(
             alpha=0.5,
             state=PhasePair(
-                phase1=RiemannState(rho=1, U=0, V=0, p=1,),
-                phase2=RiemannState(rho=1, U=0, V=0, p=1,),
+                phase1=RiemannState(
+                    rho=1,
+                    U=0,
+                    V=0,
+                    p=1,
+                ),
+                phase2=RiemannState(
+                    rho=1,
+                    U=0,
+                    V=0,
+                    p=1,
+                ),
             ),
         ),
         right=RiemannBCState(
             alpha=0.5,
             state=PhasePair(
-                phase1=RiemannState(rho=0.125, U=0, V=0, p=0.1,),
-                phase2=RiemannState(rho=0.125, U=0, V=0, p=0.1,),
+                phase1=RiemannState(
+                    rho=0.125,
+                    U=0,
+                    V=0,
+                    p=0.1,
+                ),
+                phase2=RiemannState(
+                    rho=0.125,
+                    U=0,
+                    V=0,
+                    p=0.1,
+                ),
             ),
         ),
         scheme=ToroScheme(
@@ -112,15 +136,35 @@ riemann_states = [
         left=RiemannBCState(
             alpha=0.8,
             state=PhasePair(
-                phase1=RiemannState(rho=1, U=0, V=0, p=1,),
-                phase2=RiemannState(rho=1, U=0, V=0, p=1,),
+                phase1=RiemannState(
+                    rho=1,
+                    U=0,
+                    V=0,
+                    p=1,
+                ),
+                phase2=RiemannState(
+                    rho=1,
+                    U=0,
+                    V=0,
+                    p=1,
+                ),
             ),
         ),
         right=RiemannBCState(
             alpha=0.3,
             state=PhasePair(
-                phase1=RiemannState(rho=1, U=0, V=0, p=1,),
-                phase2=RiemannState(rho=1, U=0, V=0, p=1,),
+                phase1=RiemannState(
+                    rho=1,
+                    U=0,
+                    V=0,
+                    p=1,
+                ),
+                phase2=RiemannState(
+                    rho=1,
+                    U=0,
+                    V=0,
+                    p=1,
+                ),
             ),
         ),
         scheme=AdvectionOnly(
@@ -140,15 +184,35 @@ riemann_states = [
         left=RiemannBCState(
             alpha=0.8,
             state=PhasePair(
-                phase1=RiemannState(rho=1, U=0, V=0, p=1,),
-                phase2=RiemannState(rho=0.2, U=0, V=0, p=0.3,),
+                phase1=RiemannState(
+                    rho=1,
+                    U=0,
+                    V=0,
+                    p=1,
+                ),
+                phase2=RiemannState(
+                    rho=0.2,
+                    U=0,
+                    V=0,
+                    p=0.3,
+                ),
             ),
         ),
         right=RiemannBCState(
             alpha=0.3,
             state=PhasePair(
-                phase1=RiemannState(rho=1, U=0, V=0, p=1,),
-                phase2=RiemannState(rho=1, U=0, V=0, p=1,),
+                phase1=RiemannState(
+                    rho=1,
+                    U=0,
+                    V=0,
+                    p=1,
+                ),
+                phase2=RiemannState(
+                    rho=1,
+                    U=0,
+                    V=0,
+                    p=1,
+                ),
             ),
         ),
         scheme=ToroScheme(
@@ -168,15 +232,35 @@ riemann_states = [
         left=RiemannBCState(
             alpha=0.2,
             state=PhasePair(
-                phase1=RiemannState(rho=1900, U=0, V=0, p=10,),
-                phase2=RiemannState(rho=2, U=0, V=0, p=3,),
+                phase1=RiemannState(
+                    rho=1900,
+                    U=0,
+                    V=0,
+                    p=10,
+                ),
+                phase2=RiemannState(
+                    rho=2,
+                    U=0,
+                    V=0,
+                    p=3,
+                ),
             ),
         ),
         right=RiemannBCState(
             alpha=0.9,
             state=PhasePair(
-                phase1=RiemannState(rho=1950, U=0, V=0, p=1000,),
-                phase2=RiemannState(rho=1, U=0, V=0, p=1,),
+                phase1=RiemannState(
+                    rho=1950,
+                    U=0,
+                    V=0,
+                    p=1000,
+                ),
+                phase2=RiemannState(
+                    rho=1,
+                    U=0,
+                    V=0,
+                    p=1,
+                ),
             ),
         ),
         scheme=ToroScheme(
@@ -197,15 +281,35 @@ riemann_states = [
         left=RiemannBCState(
             alpha=0.8,
             state=PhasePair(
-                phase1=RiemannState(rho=1, U=0.75, V=0, p=1,),
-                phase2=RiemannState(rho=1, U=0.75, V=0, p=1,),
+                phase1=RiemannState(
+                    rho=1,
+                    U=0.75,
+                    V=0,
+                    p=1,
+                ),
+                phase2=RiemannState(
+                    rho=1,
+                    U=0.75,
+                    V=0,
+                    p=1,
+                ),
             ),
         ),
         right=RiemannBCState(
             alpha=0.3,
             state=PhasePair(
-                phase1=RiemannState(rho=0.125, U=0, V=0, p=0.1,),
-                phase2=RiemannState(rho=0.125, U=0, V=0, p=0.0,),
+                phase1=RiemannState(
+                    rho=0.125,
+                    U=0,
+                    V=0,
+                    p=0.1,
+                ),
+                phase2=RiemannState(
+                    rho=0.125,
+                    U=0,
+                    V=0,
+                    p=0.0,
+                ),
             ),
         ),
         scheme=ToroScheme(
@@ -225,15 +329,35 @@ riemann_states = [
         left=RiemannBCState(
             alpha=0.8,
             state=PhasePair(
-                phase1=RiemannState(rho=1, U=-2, V=0, p=0.4,),
-                phase2=RiemannState(rho=1, U=-2, V=0, p=0.4,),
+                phase1=RiemannState(
+                    rho=1,
+                    U=-2,
+                    V=0,
+                    p=0.4,
+                ),
+                phase2=RiemannState(
+                    rho=1,
+                    U=-2,
+                    V=0,
+                    p=0.4,
+                ),
             ),
         ),
         right=RiemannBCState(
             alpha=0.5,
             state=PhasePair(
-                phase1=RiemannState(rho=1, U=2, V=0, p=0.4,),
-                phase2=RiemannState(rho=1, U=2, V=0, p=0.4,),
+                phase1=RiemannState(
+                    rho=1,
+                    U=2,
+                    V=0,
+                    p=0.4,
+                ),
+                phase2=RiemannState(
+                    rho=1,
+                    U=2,
+                    V=0,
+                    p=0.4,
+                ),
             ),
         ),
         scheme=ToroScheme(
@@ -253,15 +377,35 @@ riemann_states = [
         left=RiemannBCState(
             alpha=0.6,
             state=PhasePair(
-                phase1=RiemannState(rho=1.4, U=0, V=0, p=2.0,),
-                phase2=RiemannState(rho=1.4, U=0, V=0, p=1.0,),
+                phase1=RiemannState(
+                    rho=1.4,
+                    U=0,
+                    V=0,
+                    p=2.0,
+                ),
+                phase2=RiemannState(
+                    rho=1.4,
+                    U=0,
+                    V=0,
+                    p=1.0,
+                ),
             ),
         ),
         right=RiemannBCState(
             alpha=0.3,
             state=PhasePair(
-                phase1=RiemannState(rho=1, U=0, V=0, p=3.0,),
-                phase2=RiemannState(rho=1, U=0, V=0, p=1.0,),
+                phase1=RiemannState(
+                    rho=1,
+                    U=0,
+                    V=0,
+                    p=3.0,
+                ),
+                phase2=RiemannState(
+                    rho=1,
+                    U=0,
+                    V=0,
+                    p=1.0,
+                ),
             ),
         ),
         scheme=ToroScheme(
@@ -282,15 +426,35 @@ riemann_states = [
         left=RiemannBCState(
             alpha=0.7,
             state=PhasePair(
-                phase1=RiemannState(rho=1, U=-19.5975, V=0, p=1000,),
-                phase2=RiemannState(rho=1, U=-19.5975, V=0, p=1000,),
+                phase1=RiemannState(
+                    rho=1,
+                    U=-19.5975,
+                    V=0,
+                    p=1000,
+                ),
+                phase2=RiemannState(
+                    rho=1,
+                    U=-19.5975,
+                    V=0,
+                    p=1000,
+                ),
             ),
         ),
         right=RiemannBCState(
             alpha=0.2,
             state=PhasePair(
-                phase1=RiemannState(rho=1, U=-19.5975, V=0, p=0.01,),
-                phase2=RiemannState(rho=1, U=-19.5975, V=0, p=0.01,),
+                phase1=RiemannState(
+                    rho=1,
+                    U=-19.5975,
+                    V=0,
+                    p=0.01,
+                ),
+                phase2=RiemannState(
+                    rho=1,
+                    U=-19.5975,
+                    V=0,
+                    p=0.01,
+                ),
             ),
         ),
         scheme=ToroScheme(
@@ -393,11 +557,11 @@ def test_toro(riemann: RiemannProblem, request, plot, write):
     mesh.interpolate(500, 1)
     mesh.generate()
 
-    def init_fun(solver: TwoPhaseSolver):
-        xc = solver.mesh.centroids[:, :, 0]
+    def init_fun(cells: MeshCellSet):
+        xc = cells.centroids[..., 0]
 
-        solver.values[np.where(xc > riemann.discontinuity_x0), :, :] = Q_right
-        solver.values[np.where(xc <= riemann.discontinuity_x0), :, :] = Q_left
+        cells.values[np.where(xc > riemann.discontinuity_x0), ...] = Q_right
+        cells.values[np.where(xc <= riemann.discontinuity_x0), ...] = Q_left
 
     scheme = riemann.scheme
     solver = TwoPhaseSolver(mesh, scheme)
@@ -423,7 +587,7 @@ def test_toro(riemann: RiemannProblem, request, plot, write):
     artists = []
     axes = []
 
-    x = solver.mesh.centroids[..., 0]
+    x = solver.mesh.cells.centroids[..., 0]
     x = x.reshape(x.size)
 
     fig = plt.figure()
@@ -432,7 +596,7 @@ def test_toro(riemann: RiemannProblem, request, plot, write):
     num_fields += 1
     gs = GridSpec(num_fields, 2)
     ax: plt.Axes = fig.add_subplot(gs[0, :])
-    alpha = solver.values[..., fields.alpha]
+    alpha = solver.mesh.cells.values[..., fields.alpha]
     (line,) = ax.plot(x, alpha, label=r"$\alpha$")
     ax.legend(loc="best")
     time_annotation = fig.text(
@@ -445,7 +609,7 @@ def test_toro(riemann: RiemannProblem, request, plot, write):
         # Indices in the plot grid
         idx, idy = np.unravel_index(i, (num_fields, 2))
         ax: plt.Axes = fig.add_subplot(gs[idx, idy])
-        field_value = solver.values[..., field]
+        field_value = solver.mesh.cells.values[..., field]
         (line,) = ax.plot(x, field_value, label=field.name)
         ax.legend(loc="best")
         artists.append(line)
@@ -455,15 +619,16 @@ def test_toro(riemann: RiemannProblem, request, plot, write):
 
     while t <= final_time:
         # :: Plot Stuff ::
-        x = solver.mesh.centroids[..., 0]
+        x = solver.mesh.cells.centroids[..., 0]
         x = x.reshape(x.size)
 
-        time_series.append((t, x, np.copy(solver.values).view(Q)))
+        time_series.append((t, x, np.copy(solver.mesh.cells.values).view(Q)))
 
         # :: End Plot Stuff ::
 
         dt = scheme.CFL(
-            solver.values, solver.mesh.volumes, solver.mesh.surfaces, CFL,
+            solver.mesh.cells,
+            CFL,
         )
         assert ~np.isnan(dt)
         solver.step(dt)
@@ -473,7 +638,9 @@ def test_toro(riemann: RiemannProblem, request, plot, write):
 
     fig.tight_layout()
     fig.subplots_adjust(
-        bottom=0.15, top=0.95, hspace=0.35,
+        bottom=0.15,
+        top=0.95,
+        hspace=0.35,
     )
     ani = FuncAnimation(
         fig,

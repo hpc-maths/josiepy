@@ -24,13 +24,19 @@
 # The views and conclusions contained in the software and documentation
 # are those of the authors and should not be interpreted as representing
 # official policies, either expressed or implied, of Ruben Di Battista.
+from __future__ import annotations
+
 import abc
 
 import numpy as np
 
-from josie.solver.state import State
+from typing import Sequence, TYPE_CHECKING
+
 from josie.solver.problem import Problem
-from josie.mesh.mesh import Mesh
+from josie.solver.state import State
+
+if TYPE_CHECKING:
+    from josie.mesh.cellset import CellSet, MeshCellSet
 
 
 class Scheme(abc.ABC):
@@ -57,6 +63,10 @@ class Scheme(abc.ABC):
 
     * .. math::
 
+        \numDiffusiveFull
+
+    * .. math::
+
         \numSourceFull
 
     Together with the time update scheme to solve:
@@ -72,94 +82,54 @@ class Scheme(abc.ABC):
     problem
         An instance of :class:`Problem` representing the physical problem that
         this scheme discretizes
-
     """
 
     def __init__(self, problem: Problem):
         self.problem = problem
 
-    def accumulate_convective(
-        self,
-        values: State,
-        neigh_values: State,
-        normals: np.ndarray,
-        surfaces: np.ndarray,
-    ) -> State:
-        r""" This method implements the accumulation for the convective
-        fluxes between each cell and its neighbour.
-
-        .. math::
-
-            \numConvectiveFaces
-        """
-
-        return np.zeros_like(values)
-
-    def accumulate_nonconservative(
-        self,
-        values: State,
-        neigh_values: State,
-        normals: np.ndarray,
-        surfaces: np.ndarray,
-    ) -> State:
-        r""" This method implements the accumulation for the non-conservative
-        fluxes between each cell and its neighbour.
-
-        .. math::
-
-            \numNonConservativeFaces
-        """
-
-        return np.zeros_like(values)
-
-    def accumulate_source(
-        self,
-        values: State,
-        neigh_values: State,
-        normals: np.ndarray,
-        surfaces: np.ndarray,
-    ) -> State:
-        r""" This method implements the accumulation for the source
-        terms between each cell and its neighbour.
-
-        .. math::
-
-            \numSource
-        """
-
-        return np.zeros_like(values)
-
-    def accumulate(
-        self,
-        values: State,
-        neigh_values: State,
-        normals: np.ndarray,
-        surfaces: np.ndarray,
-    ) -> State:
+    def accumulate(self, cells: MeshCellSet, neighs: CellSet):
         r""" This method implements the accumulation of all fluxes between
-        each cell and its neigbhour
+        each cell and its neigbhour. It modifies in place
+        :attr:`_fluxes`
+
 
         Potentially if the :attr:`problem` is a full problem featuring all
-        the terms, this method accumulates the terms :math:`\numSpaceTerms`
+        the terms, this method accumulates the terms
+
+        Attributes
+        ----------
+        values
+            The values of the state fields in each cell
+
+        neighs
+            A :class:`CellSet` containing data of neighbour cells corresponding
+            to the :attr:`values`
+
+        .. math::
+
+            \numSpaceTerms
+
+
         """
-        fluxes = np.zeros_like(values)
 
-        for accumulate_fun in [
-            self.accumulate_convective,
-            self.accumulate_nonconservative,
-            self.accumulate_source,
-        ]:
-            fluxes += accumulate_fun(values, neigh_values, normals, surfaces)
-
-        return fluxes
+        pass
 
     @abc.abstractmethod
-    def update(self, fluxes: State, mesh: Mesh, dt: float) -> State:
+    def update(self, cells: MeshCellSet, dt: float) -> State:
         r""" This method implements the discretization of the time derivative
 
         .. math::
 
             \numTimeFull
+
+        Parameters
+        ---------
+        mesh
+            The :class:`Mesh` object used to retrieve the right
+            :math:`\text{d}x`
+
+        dt
+            Time step
 
         Returns
         -------
@@ -172,9 +142,7 @@ class Scheme(abc.ABC):
     @abc.abstractmethod
     def CFL(
         self,
-        values: State,
-        volumes: State,
-        surfaces: np.ndarray,
+        cells: MeshCellSet,
         CFL_value: float,
     ) -> float:
         r""" This method returns the optimal `dt` value that fulfills the CFL
@@ -182,34 +150,23 @@ class Scheme(abc.ABC):
 
         Parameters
         ----------
-        values
-            A :class:`np.ndarray` that has dimension :math:`Nx \times Ny \times
-            N_\text{fields}` containing the values for all the states in all
-            the mesh points
-        volumes
-            A :class:`np.ndarray` that has the dimensions :math:`Nx \times Ny`
-            containing the values of the cell volumes
-        normals
-            A :class:`np.ndarray` that has the dimensions :math:`Nx \times Ny
-            \times N_\text{centroids} \times 2` containing the values of the
-            normals to the faces of the cell
-        surfaces
-            A :class:`np.ndarray` that has the dimensions :math:`Nx \times Ny
-            \times N_\text{centroids}` containing the values of the face
-            surfaces of the face connecting the cell to is neighbour
+        cells:
+            A :class:`MeshCellSet` containing the cell data at the current time
+            step
         CFL_value
             The value of the CFL coefficient to impose
 
         Returns
         -------
-        The Optimal `dt` fulfilling the CFL condition for the given
-        CFL number
+        dt
+            The Optimal `dt` fulfilling the CFL condition for the given
+            CFL number
         """
 
         raise NotImplementedError
 
-    def post_init(self, values: State):
-        """ :class:`Scheme` can implement a :meth:`post_init` in order to
+    def post_init(self, cells: MeshCellSet, neighbours: Sequence[CellSet]):
+        r""":class:`Scheme` can implement a :meth:`post_init` in order to
         perform operations after the :meth:`Solver.init` initialize the
         solver state
 
@@ -219,15 +176,43 @@ class Scheme(abc.ABC):
         Parameters
         ----------
         values
-            The values of the fields in the mesh cells
+            A :math:`N_x \times N_y \times N_\text{eqs
         """
 
-        pass
+        # Initialize the datastructure containing the fluxes
+        self._fluxes: State = np.empty_like(cells.values)
 
-    def post_step(self, values: State) -> State:
-        """ :class:`Scheme` can implement a post-step hook that is executed by the
+    def pre_step(self, cells: MeshCellSet, neighbours: Sequence[CellSet]):
+        """
+        Hook called just before the fluxes accumulation. It's used by default
+        to reset the fluxes array to zeros. It can be extended to do other
+        things like for :class:`DiffusiveScheme`.
+
+        Parameters
+        ----------
+        cells
+            A :class:`MeshCellSet` containing the cell data at the current time
+        neighbours
+            An iterable of :class:`CellSet` containing all the sets of
+            neighbours of the mesh cells. For example in a 2D structured cell,
+            each cell is gonna have a left, right, top and bottom
+            :class:`CellSet`
+        """
+
+        self._fluxes.fill(0)
+
+    def post_step(self, cells: MeshCellSet, neighbours: Sequence[CellSet]):
+        r""":class:`Scheme` can implement a post-step hook that is executed by the
         solver after the update step.
-        It can be needed, for example, to apply an Equation of State
+        It can be needed, for example, to apply an :class:`~.euler.eos.EOS`
+
+        cells
+            A :class:`MeshCellSet` containing the cell data at the current time
+        neighbours
+            An iterable of :class:`CellSet` containing all the sets of
+            neighbours of the mesh cells. For example in a 2D structured cell,
+            each cell is gonna have a left, right, top and bottom
+            :class:`CellSet`
         """
 
         pass

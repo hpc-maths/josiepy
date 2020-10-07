@@ -24,9 +24,13 @@
 # The views and conclusions contained in the software and documentation
 # are those of the authors and should not be interpreted as representing
 # official policies, either expressed or implied, of Ruben Di Battista.
+from __future__ import annotations
+
 import numpy as np
 
+from typing import Iterable
 
+from josie.mesh.cellset import CellSet, MeshCellSet
 from josie.solver.scheme import ConvectiveScheme
 
 
@@ -41,12 +45,14 @@ class EulerScheme(ConvectiveScheme):
     def __init__(self, eos: EOS):
         self.problem: EulerProblem = EulerProblem(eos)
 
-    def post_step(self, values: Q):
+    def post_step(self, cells: MeshCellSet, neighbours: Iterable[CellSet]):
         """During the step we update the conservative values. After the
         step we update the non-conservative variables. This method updates
         the values of the non-conservative (auxiliary) variables using the
         :class:`~.EOS`
         """
+
+        values: Q = cells.values
 
         fields = values.fields
 
@@ -102,65 +108,60 @@ class EulerScheme(ConvectiveScheme):
 
         return U
 
-    def CFL(
-        self,
-        values: Q,
-        volumes: np.ndarray,
-        surfaces: np.ndarray,
-        CFL_value,
-    ) -> float:
+    def CFL(self, cells: MeshCellSet, CFL_value: float) -> float:
 
+        values: Q = cells.values
         fields = values.fields
 
         # Get the velocity components
         UV_slice = slice(fields.U, fields.V + 1)
-        UV = values[..., UV_slice]
+        UV = cells.values[..., UV_slice]
 
         U = np.linalg.norm(UV, axis=-1)
-        c = values[..., fields.c]
+        c = cells.values[..., fields.c]
 
         sigma = np.max(Rusanov.compute_sigma(U, c))
 
         # Min face surface
-        # TODO: This probably needs to be generalized for 3D
-        dx = np.min(volumes[..., np.newaxis] / surfaces)
+        dx = np.min(cells.volumes[..., np.newaxis] / cells.surfaces)
 
         return CFL_value * dx / sigma
 
 
 class HLL(EulerScheme):
-    def F(
-        self,
-        values: Q,
-        neigh_values: Q,
-        normals: np.ndarray,
-        surfaces: np.ndarray,
-    ):
+    def F(self, cells: MeshCellSet, neighs: CellSet):
         """This method implements the HLL scheme."""
+
+        values: Q = cells.values
+
+        Q_L, Q_R = cells, neighs
 
         FS = np.zeros_like(values).view(Q)
         F = np.zeros_like(values.get_conservative())
-        Q_L, Q_R = values, neigh_values
         fields = values.fields
 
         # Get normal velocities
-        U_L = self.compute_U_norm(Q_L, normals)
-        U_R = self.compute_U_norm(Q_R, normals)
+        U_L = self.compute_U_norm(Q_L.values, neighs.normals)
+        U_R = self.compute_U_norm(Q_R.values, neighs.normals)
 
         # Get sound speed
-        a_L = Q_L[..., np.newaxis, fields.c]
-        a_R = Q_R[..., np.newaxis, fields.c]
+        a_L = Q_L.values[..., np.newaxis, fields.c]
+        a_R = Q_R.values[..., np.newaxis, fields.c]
 
         # Compute the values of the wave velocities on every cell
         (sigma_L, sigma_R) = (U_L - a_L, U_R + a_R)
 
-        F_L = np.einsum("...kl,...l->...k", self.problem.F(Q_L), normals)
-        F_R = np.einsum("...kl,...l->...k", self.problem.F(Q_R), normals)
+        F_L = np.einsum(
+            "...kl,...l->...k", self.problem.F(Q_L), neighs.normals
+        )
+        F_R = np.einsum(
+            "...kl,...l->...k", self.problem.F(Q_R), neighs.normals
+        )
 
         # First four variables of the total state are the conservative
         # variables (rho, rhoU, rhoV, rhoE)
         Qc_L = values.get_conservative()
-        Qc_R = neigh_values.get_conservative()
+        Qc_R = neighs.values.get_conservative()
 
         np.copyto(F, F_L, where=(sigma_L > 0))
         np.copyto(F, F_R, where=(sigma_R < 0))
@@ -175,7 +176,7 @@ class HLL(EulerScheme):
             where=(sigma_L <= 0) * (sigma_R >= 0),
         )
 
-        FS.set_conservative(surfaces[..., np.newaxis] * F)
+        FS.set_conservative(neighs.surfaces[..., np.newaxis] * F)
 
         return FS
 
@@ -186,13 +187,10 @@ class Rusanov(EulerScheme):
         r"""Returns the value of the :math:`\sigma`(i.e. the wave velocity) for
         the the Rusanov scheme.
 
-        .. math:
+        .. math::
 
-            \qty|\pdeConvective|_{i+\frac{1}{2}} =
-                \frac{1}{2} \qty[%
-                \qty|\pdeConvective|_{i+1} + \qty|\pdeConvective|_{i}
-                - \sigma \qty(\pdeState_{i+1} - \pdeState{i})
-                ]
+            \sigma = \max{\qty(\norm{\vb{u}} + c, \norm{\vb{u}} - c)}
+
 
         Parameters
         ----------
@@ -218,16 +216,22 @@ class Rusanov(EulerScheme):
 
         return sigma
 
-    def F(
-        self,
-        values: Q,
-        neigh_values: Q,
-        normals: np.ndarray,
-        surfaces: np.ndarray,
-    ):
-        """This method implements the Rusanov scheme. See :cite: `rusanov` for
-        a detailed view on compressible schemes, given a suitable
+    def F(self, cells: MeshCellSet, neighs: CellSet):
+
+        r"""This method implements the Rusanov scheme. See
+        :cite:`toro_riemann_2009` for a detailed view on compressible schemes.
+        The Rusanov scheme is discretized by:
+
+        .. math::
+
+            \numConvective  =
+                \frac{1}{2} \qty[%
+                \qty|\pdeConvective|_{i+1} + \qty|\pdeConvective|_{i}
+                - \sigma \qty(\pdeState_{i+1} - \pdeState_{i})
+                ] S_f
         """
+
+        values: Q = cells.values
 
         FS = np.zeros_like(values).view(Q)
         fields = values.fields
@@ -235,14 +239,14 @@ class Rusanov(EulerScheme):
         # Get the velocity components
         UV_slice = slice(fields.U, fields.V + 1)
         UV = values[..., UV_slice]
-        UV_neigh = neigh_values[..., UV_slice]
+        UV_neigh = neighs.values[..., UV_slice]
 
         U = np.linalg.norm(UV, axis=-1)
         U_neigh = np.linalg.norm(UV_neigh, axis=-1)
 
         # Speed of sound
         c = values[..., fields.c]
-        c_neigh = neigh_values[..., fields.c]
+        c_neigh = neighs.values[..., fields.c]
 
         # Let's retrieve the values of the sigma on every cell
         # for current cell
@@ -257,18 +261,20 @@ class Rusanov(EulerScheme):
         # of sigma for each cell)
         sigma = np.max(sigma_array, axis=-1, keepdims=True)
 
-        DeltaF = 0.5 * (self.problem.F(values) + self.problem.F(neigh_values))
+        DeltaF = 0.5 * (self.problem.F(cells) + self.problem.F(neighs))
 
         # This is the flux tensor dot the normal
-        DeltaF = np.einsum("...kl,...l->...k", DeltaF, normals)
+        DeltaF = np.einsum("...kl,...l->...k", DeltaF, neighs.normals)
 
         # First four variables of the total state are the conservative
         # variables (rho, rhoU, rhoV, rhoE)
         values_cons = values.get_conservative()
-        neigh_values_cons = neigh_values.get_conservative()
+        neigh_values_cons = neighs.values.get_conservative()
 
         DeltaQ = 0.5 * sigma * (neigh_values_cons - values_cons)
 
-        FS.set_conservative(surfaces[..., np.newaxis] * (DeltaF - DeltaQ))
+        FS.set_conservative(
+            neighs.surfaces[..., np.newaxis] * (DeltaF - DeltaQ)
+        )
 
         return FS

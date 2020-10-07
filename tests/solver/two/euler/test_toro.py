@@ -3,16 +3,24 @@ import pytest
 
 from josie.bc import Dirichlet, Neumann, Direction, make_periodic
 from josie.euler.eos import PerfectGas
-from josie.euler.schemes import Rusanov
+from josie.euler.schemes import EulerScheme
 from josie.euler.solver import EulerSolver
 from josie.euler.state import Q
 from josie.general.schemes.time import ExplicitEuler
 from josie.geom import Line
-from josie.mesh import Mesh, SimpleCell
+from josie.mesh import Mesh
+from josie.mesh.cell import SimpleCell
+from josie.mesh.cellset import MeshCellSet
 
 
-class ToroScheme(Rusanov, ExplicitEuler):
-    pass
+@pytest.fixture(params=EulerScheme.__subclasses__())
+def Scheme(request):
+    """ Create all the different schemes """
+
+    class ToroScheme(request.param, ExplicitEuler):
+        pass
+
+    return ToroScheme
 
 
 riemann_states = [
@@ -74,8 +82,8 @@ riemann_states = [
 ]
 
 
-def init_test(direction, riemann_problem, bc_fun):
-    """ A handy function to init the test state on the base of the direction,
+def init_test(direction, Scheme, riemann_problem, bc_fun):
+    """A handy function to init the test state on the base of the direction,
     to avoid code duplication"""
 
     if direction is Direction.X:
@@ -120,14 +128,14 @@ def init_test(direction, riemann_problem, bc_fun):
         right.bc = Dirichlet(Q_right)
         bottom, top = bc_fun(bottom, top, Direction.Y)
 
-        def init_fun(solver: EulerSolver):
-            xc = solver.mesh.centroids[:, :, 0]
+        def init_fun(cells: MeshCellSet):
+            xc = cells.centroids[..., 0]
 
             idx_left = np.where(xc >= 0.5)
             idx_right = np.where(xc < 0.5)
 
-            solver.values[idx_left[0], idx_left[1], :] = Q_right
-            solver.values[idx_right[0], idx_right[1], :] = Q_left
+            cells.values[idx_left[0], idx_left[1], :] = Q_right
+            cells.values[idx_right[0], idx_right[1], :] = Q_left
 
         plot_var = "U"
 
@@ -136,14 +144,14 @@ def init_test(direction, riemann_problem, bc_fun):
         top.bc = Dirichlet(Q_right)
         left, right = bc_fun(left, right, Direction.X)
 
-        def init_fun(solver: EulerSolver):
-            yc = solver.mesh.centroids[:, :, 1]
+        def init_fun(cells: MeshCellSet):
+            yc = cells.centroids[..., 1]
 
             idx_top = np.where(yc >= 0.5)
             idx_btm = np.where(yc < 0.5)
 
-            solver.values[idx_btm[0], idx_btm[1], :] = Q_left
-            solver.values[idx_top[0], idx_top[1], :] = Q_right
+            cells.values[idx_btm[0], idx_btm[1], ...] = Q_left
+            cells.values[idx_top[0], idx_top[1], ...] = Q_right
 
         plot_var = "V"
 
@@ -151,7 +159,7 @@ def init_test(direction, riemann_problem, bc_fun):
     mesh.interpolate(30, 30)
     mesh.generate()
 
-    scheme = ToroScheme(eos)
+    scheme = Scheme(eos)
     solver = EulerSolver(mesh, scheme)
     solver.init(init_fun)
 
@@ -172,9 +180,9 @@ def periodic(first, second, direction):
 @pytest.mark.parametrize("riemann_problem", riemann_states)
 @pytest.mark.parametrize("bc_fun", [periodic, neumann])
 @pytest.mark.parametrize("direction", [Direction.X, Direction.Y])
-def test_toro(direction, riemann_problem, bc_fun, plot):
+def test_toro(direction, Scheme, riemann_problem, bc_fun, plot):
 
-    solver, plot_var = init_test(direction, riemann_problem, bc_fun)
+    solver, plot_var = init_test(direction, Scheme, riemann_problem, bc_fun)
     scheme = solver.scheme
 
     if plot:
@@ -190,8 +198,12 @@ def test_toro(direction, riemann_problem, bc_fun, plot):
             # solver.save(t, "toro.xmf")
 
         dt = scheme.CFL(
-            solver.values, solver.mesh.volumes, solver.mesh.surfaces, CFL,
+            solver.mesh.cells,
+            CFL,
         )
+
+        # TODO: Basic check. The best would be to check against analytical
+        # solution
         assert ~np.isnan(dt)
         solver.step(dt)
 

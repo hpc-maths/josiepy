@@ -23,10 +23,10 @@ def copy_docs(c):
 
 @task(copy_docs)
 def convert_examples(c):
-    """ Convert the Jupyter notebooks into RST files and move them in the
+    """Convert the Jupyter notebooks into RST files and move them in the
     documentation build directory"""
 
-    print(f"Converting notebooks...")
+    print("Converting notebooks...")
 
     for filename in EXAMPLES:
         exporter = MdBinderExporter()
@@ -53,4 +53,4 @@ def docs(c):
     SPHINX_BUILD = ["sphinx-build", source_dir, dest_dir]
 
     subprocess.run(SPHINX_BUILD)
-    shutil.copytree(DOCS_DIR / "build", DOCS_DEPLOY_DIR)
+    shutil.copytree(DOCS_DIR / "build", DOCS_DEPLOY_DIR, dirs_exist_ok=True)

@@ -24,59 +24,24 @@
 # The views and conclusions contained in the software and documentation
 # are those of the authors and should not be interpreted as representing
 # official policies, either expressed or implied, of Ruben Di Battista.
-
 """ This module contains the primitives related to the mesh generation """
+from __future__ import annotations
 
 import meshio
 import numpy as np
 import os
 
-from dataclasses import dataclass
 from meshio import Mesh as MeshIO
-from typing import Iterable, Tuple, Type, TYPE_CHECKING, Union
+from typing import Iterable, Tuple, Type, TYPE_CHECKING
 
 from josie.exceptions import InvalidMesh
-from josie.geom import BoundaryCurve
+from josie.geom import Boundary, BoundaryCurve, BoundarySide
 from josie.plot import DefaultBackend
 from josie.plot.backend import PlotBackend
 
-from .cell import Cell
-
 if TYPE_CHECKING:
-    # This is a trick to enable mypy to evaluate the Enum as a standard
-    # library Enum for type checking but we use `aenum` in the running code
-    from enum import IntEnum  # pragma: no cover
-
-    NoAlias = object()  # pragma: no cover
-else:
-    from aenum import IntEnum, NoAlias
-
-MeshIndex = Union[int, slice]
-
-
-@dataclass
-class Boundary:
-    """ A simple :class:`dataclass` coupling a :class:`~.BoundaryCurve` with
-    the indices of the cells that are part of that boundary
-
-    Attributes
-    ----------
-    boundary_curve
-        The :class:`~.BoundaryCurve`
-
-    idx
-        The cell indices
-    """
-
-    curve: BoundaryCurve
-    cells_idx: Tuple[MeshIndex, ...]
-
-
-class _BoundarySide(IntEnum, settings=NoAlias):
-    LEFT = 0
-    RIGHT = -1
-    TOP = -1
-    BOTTOM = 0
+    from .cell import Cell
+    from .cellset import MeshCellSet
 
 
 class Mesh:
@@ -118,12 +83,12 @@ class Mesh:
         An iterable over the boundaries available based on the
         :attr:`dimensionality`
 
-    oneD: bool
-        A flag to indicate if the mesh is 1D or not
-
     cell_type
         A :class:`Cell` class that implements a
         :func:`~Cell.create_connectivity`
+
+    dimensionality
+        The mesh dimensionality (i.e. 1 for 1D, 2 for 2D...)
 
     num_cells_x
         The number of cells in the :math:`x`-direction
@@ -131,18 +96,9 @@ class Mesh:
     num_cells_y
         The number of cells in the :math:`y`-direction
 
-    centroids
-        An array containing the centroid of the cells. It has the dimensions of
-        :math:`N_x \times N_y`
-
-    volumes
-        An array containing the volumes of the cells. It has the dimensions of
-        :math:`N_x \times N_y`
-
-    surfaces
-        An array containing the surfaces of the cells. It has the dimensions of
-        :math:`N_x \times N_y \times N_\text{points}` where
-        N_\text{points} depends on the :class:`Cell` type provided
+    cells
+        A :class:`MeshCellSet` storing cell data (centroids coordinates,
+        normals to each face, face surface area, cell volume, field values)
 
     points
         An array containing the points that constitute a cell. It has the
@@ -155,17 +111,16 @@ class Mesh:
 
     backend
         An instance of :class:`PlotBackend` used to plot mesh and its values
+
+    Note
+    ----
+    The centroids coordinates are stored internally in :attr:`_centroids`, an
+    augmented array that also stores the centroids of the ghost cells
     """
 
-    centroids: np.ndarray
-    volumes: np.ndarray
     points: np.ndarray
-    surfaces: np.ndarray
-    normals: np.ndarray
+    cells: MeshCellSet
     boundaries: Iterable[Boundary]
-
-    # TODO: This will need to be removed when we go 3D
-    MAX_DIMENSIONALITY = 2
 
     def __init__(
         self,
@@ -177,11 +132,31 @@ class Mesh:
         Backend: Type[PlotBackend] = DefaultBackend,
     ):
 
-        self.left = Boundary(left, (_BoundarySide.LEFT, slice(None)))
-        self.btm = Boundary(bottom, (slice(None), _BoundarySide.BOTTOM))
-        self.right = Boundary(right, (_BoundarySide.RIGHT, slice(None)))
+        self.left = Boundary(
+            side=BoundarySide.LEFT,
+            curve=left,
+            cells_idx=(BoundarySide.LEFT + 1, slice(1, -1)),
+            ghost_cells_idx=(BoundarySide.LEFT, slice(1, -1)),
+        )
+        self.btm = Boundary(
+            side=BoundarySide.BOTTOM,
+            curve=bottom,
+            cells_idx=(slice(1, -1), BoundarySide.BOTTOM + 1),
+            ghost_cells_idx=(slice(1, -1), BoundarySide.BOTTOM),
+        )
+        self.right = Boundary(
+            side=BoundarySide.RIGHT,
+            curve=right,
+            cells_idx=(BoundarySide.RIGHT - 1, slice(1, -1)),
+            ghost_cells_idx=(BoundarySide.RIGHT, slice(1, -1)),
+        )
 
-        self.top = Boundary(top, (slice(None), _BoundarySide.TOP))
+        self.top = Boundary(
+            side=BoundarySide.TOP,
+            curve=top,
+            cells_idx=(slice(1, -1), BoundarySide.TOP - 1),
+            ghost_cells_idx=(slice(1, -1), BoundarySide.TOP),
+        )
 
         self.cell_type = cell_type
         self.backend = Backend()
@@ -199,7 +174,7 @@ class Mesh:
     def interpolate(
         self, num_cells_x: int, num_cells_y: int
     ) -> Tuple[np.ndarray, np.ndarray]:
-        """ This methods generates the mesh within the four given
+        """This methods generates the mesh within the four given
         BoundaryCurve using Transfinite Interpolation
 
         Args:
@@ -289,7 +264,7 @@ class Mesh:
         return self._x, self._y
 
     def generate(self):
-        """ Build the geometrical information and the connectivity associated
+        """Build the geometrical information and the connectivity associated
         to the mesh using the specific cell type
         :meth:`~.Cell.create_connectivity`
         """
@@ -302,7 +277,7 @@ class Mesh:
         return self.cell_type.export_connectivity(self)
 
     def write(self, filepath: os.PathLike):
-        """ Save the cell into a file using :mod:`meshio`
+        """Save the cell into a file using :mod:`meshio`
 
         Parameters
         ---------

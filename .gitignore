@@ -23,3 +23,6 @@ htmlcov/
 docs/build/
 docs/source/examples/
 public/
+
+# Wheels build
+build/

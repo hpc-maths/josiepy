@@ -28,7 +28,7 @@ import numpy as np
 
 from josie.solver.scheme.time import TimeScheme
 from josie.solver.state import State
-from josie.mesh.mesh import Mesh
+from josie.mesh.cellset import MeshCellSet
 
 
 class ExplicitEuler(TimeScheme):
@@ -40,6 +40,5 @@ class ExplicitEuler(TimeScheme):
             \Delta t \; \vb{f}\qty(\pdeState^k,\pdeGradient^k)
     """
 
-    @classmethod
-    def update(cls, fluxes: State, mesh: Mesh, dt: float) -> State:
-        return fluxes * dt / mesh.volumes[..., np.newaxis]
+    def update(self, cells: MeshCellSet, dt: float) -> State:
+        return self._fluxes * dt / cells.volumes[..., np.newaxis]

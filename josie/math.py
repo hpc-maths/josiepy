@@ -25,8 +25,11 @@
 # are those of the authors and should not be interpreted as representing
 # official policies, either expressed or implied, of Ruben Di Battista.
 """ General purpose math primitives """
+import numpy as np
 
 from enum import IntEnum
+
+from ._dim import MAX_DIMENSIONALITY
 
 
 def map01to(x, a, b):
@@ -36,9 +39,20 @@ def map01to(x, a, b):
 
 
 class Direction(IntEnum):
-    """ An Enum encapsulating the coordinates indices
-    """
+    """An :class:`Enum` encapsulating the coordinates indices"""
 
     X = 0
     Y = 1
     Z = 2
+
+
+class R3:
+    """An :class:`Enum` encapsulating the unit vectors for a cartesia R2
+    space
+    """
+
+    _eye = np.eye(MAX_DIMENSIONALITY)
+
+    X = _eye[:, Direction.X]
+    Y = _eye[:, Direction.Y]
+    # Z = _eye[:, Direction.Z]

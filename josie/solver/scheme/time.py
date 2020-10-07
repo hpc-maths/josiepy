@@ -27,7 +27,7 @@
 import abc
 
 from josie.solver.state import State
-from josie.mesh.mesh import Mesh
+from josie.mesh.cellset import MeshCellSet
 
 from .scheme import Scheme
 
@@ -41,7 +41,6 @@ class TimeScheme(Scheme):
         \numTime
     """
 
-    @classmethod
     @abc.abstractmethod
-    def update(cls, fluxes: State, mesh: Mesh, dt: float) -> State:
+    def update(self, cells: MeshCellSet, dt: float) -> State:
         raise NotImplementedError

@@ -1,4 +1,4 @@
-image: python:slim
+image: python:3.8-slim
 
 variables:
     DEBIAN_FRONTEND: noninteractive
@@ -18,7 +18,7 @@ before_script:
 test:
     stage: test
     script:
-        - pygount --format cloc-xml -o loc.xml
+        - pygount --format cloc-xml -o loc.xml josie
         - pytest
     artifacts:
         paths: 

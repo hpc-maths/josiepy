@@ -18,23 +18,27 @@ def test_1D(solver):
     """ In 1D, the top and bottom ghost cells are not present """
 
     assert solver.mesh.dimensionality == 1
-    assert len(solver.ghosts) == 2
+    assert len(solver.mesh.boundaries) == 2
 
 
 def test_periodic(solver):
-    """ Testing that the neighbours of boundary cells are the corresponding
+    """Testing that the neighbours of boundary cells are the corresponding
     cells on the other domain and, for 1D, that the cells on the 'top' and
     'bottom' boundary actually do not have neighbours
     """
 
-    assert np.array_equal(solver._values[0, 1:-1], solver.values[-1, :])
-    assert np.array_equal(solver._values[-1, 1:-1], solver.values[0, :])
+    assert np.array_equal(
+        solver.mesh.cells._values[0, 1:-1], solver.mesh.cells.values[-1, :]
+    )
+    assert np.array_equal(
+        solver.mesh.cells._values[-1, 1:-1], solver.mesh.cells.values[0, :]
+    )
 
 
 def test_periodic_state(solver):
-    """ Just testing that updating the values of the cells that are interlinked
-    as periodic, we get the actual state and not the previous one """
-    solver.values[0, 0] = 42.19
+    """Just testing that updating the values of the cells that are interlinked
+    as periodic, we get the actual state and not the previous one"""
+    solver.mesh.cells.values[0, 0] = 42.19
     solver._update_ghosts()
 
-    assert solver._values[-1, 1] == 42.19
+    assert solver.mesh.cells._values[-1, 1] == 42.19

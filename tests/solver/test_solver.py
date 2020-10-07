@@ -4,13 +4,13 @@ from josie.solver import Solver
 
 
 def test_init(solver):
-    xc = solver.mesh.centroids[:, :, 0]
+    xc = solver.mesh.cells.centroids[..., 0]
 
     xc_r = np.where(xc >= 0.45)
     xc_l = np.where(xc < 0.45)
 
-    right_values = solver.values[xc_r[0], xc_r[1], :]
-    left_values = solver.values[xc_l[0], xc_l[1], :]
+    right_values = solver.mesh.cells.values[xc_r[0], xc_r[1], :]
+    left_values = solver.mesh.cells.values[xc_l[0], xc_l[1], :]
 
     assert np.all(right_values == 1.0)
     assert np.all(left_values == 0.0)
@@ -24,7 +24,7 @@ def test_plot(solver):
 def test_animate(solver):
     for i in range(10):
         solver.animate(i)
-        solver.values[1, :, :] -= 1
+        solver.mesh.cells.values[1, :, :] -= 1
 
     solver.show("u")
 
@@ -49,12 +49,16 @@ def test_linear_index(mocker, mesh, Q):
 
     solver.init(init_fun)  # This also updates ghosts
 
-    assert np.all(solver.values[0, :].ravel() == np.array([6, 11, 16]).ravel())
     assert np.all(
-        solver.values[:, 1].ravel() == np.array([11, 12, 13]).ravel()
+        solver.mesh.cells.values[0, :].ravel() == np.array([6, 11, 16]).ravel()
+    )
+    assert np.all(
+        solver.mesh.cells.values[:, 1].ravel()
+        == np.array([11, 12, 13]).ravel()
     )
 
     # This got updated after init
     assert np.all(
-        solver._values[0, 1:-1].ravel() == np.array([8, 13, 18]).ravel()
+        solver.mesh.cells._values[0, 1:-1].ravel()
+        == np.array([8, 13, 18]).ravel()
     )

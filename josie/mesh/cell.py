@@ -28,29 +28,24 @@ from __future__ import annotations
 
 import abc
 
-from enum import IntEnum
-
 import numpy as np
 
 from meshio import Mesh as MeshIO
 from typing import TYPE_CHECKING
 
 from josie.geom import PointType
+from josie._dim import MAX_DIMENSIONALITY
+from josie.math import R3
+
+from .cellset import MeshCellSet, NormalDirection
 
 
 if TYPE_CHECKING:
     from josie.mesh import Mesh
 
 
-class NormalDirection(IntEnum):
-    LEFT = 0
-    BOTTOM = 1
-    RIGHT = 2
-    TOP = 3
-
-
 class Cell(metaclass=abc.ABCMeta):
-    """ This is a class interface representing a generic cell of a
+    """This is a class interface representing a generic cell of a
     :class:`Mesh`.
 
     A cell is defined by the number of points (:attr:`num_points`) that are
@@ -97,32 +92,36 @@ class Cell(metaclass=abc.ABCMeta):
     def volume(
         cls, nw: PointType, sw: PointType, se: PointType, ne: PointType
     ) -> float:
-        """ Compute the volume of a cell from its points.
-        """
+        """Compute the volume of a cell from its points."""
         raise NotImplementedError
 
     @classmethod
     @abc.abstractmethod
     def face_surface(cls, p0: PointType, p1: PointType) -> float:
-        """ Compute the surface of a face from its points.
-        """
+        """Compute the surface of a face from its points."""
         raise NotImplementedError
 
     @classmethod
     @abc.abstractmethod
     def face_normal(cls, p0: PointType, p1: PointType) -> np.ndarray:
-        """ Compute the normal vector to a face.
-        """
+        """Compute the normal vector to a face."""
         raise NotImplementedError
 
     @classmethod
     @abc.abstractmethod
     def create_connectivity(cls, mesh: Mesh):
-        """ This method creates the connectivity from the given points of
+        r"""This method creates the connectivity from the given points of
         a mesh. It modifies attributes of the :class:`Mesh` instance.
 
         It takes into account the nature of the cell composing the
         mesh, e.g. quadrangles.
+
+        **Data Structure**
+
+        The data structures holding the cell centroids and field values on the
+        mesh are :class:`numpy.ndarray` of dimensions :math:`N_x + 2 \times N_y
+        + 2\times \ldots`. That is, we have one layer of ghosts per direction.
+        (The corner cells are unused)
 
         Parameters
         ----------
@@ -137,13 +136,13 @@ class Cell(metaclass=abc.ABCMeta):
     @classmethod
     @abc.abstractmethod
     def export_connectivity(cls, mesh: "Mesh") -> MeshIO:
-        """ This method exports the connectivity of the mesh in the format
+        """This method exports the connectivity of the mesh in the format
         accepted by the :class:`~meshio.Mesh`.
         """
 
 
 class SimpleCell(Cell):
-    """ This class describes the classical type of 2D quadrangular cell that
+    """This class describes the classical type of 2D quadrangular cell that
     stores the :class:`State` value in its centroid. The cell needs 4 points
     to be defined and has 1 degree of freedom.
 
@@ -163,11 +162,13 @@ class SimpleCell(Cell):
     num_points = 4
     _meshio_cell_type = "quad"
 
+    _side_normal = {"LEFT": -R3.X, "RIGHT": R3.X, "TOP": R3.Y, "BOTTOM": -R3.Y}
+
     @classmethod
     def centroid(
         cls, nw: PointType, sw: PointType, se: PointType, ne: PointType
     ) -> PointType:
-        """ This class method computes the centroid of a cell from its points.
+        """This class method computes the centroid of a cell from its points.
 
         The centroid is computed as the mean value of the for points
 
@@ -201,7 +202,7 @@ class SimpleCell(Cell):
     def volume(
         cls, nw: PointType, sw: PointType, se: PointType, ne: PointType
     ) -> float:
-        """ This class method computes the volume of a cell from its points.
+        """This class method computes the volume of a cell from its points.
 
         The surface is computed calculating the surface of the two triangles
         made by the two triplets of its points and summing them up.
@@ -236,7 +237,7 @@ class SimpleCell(Cell):
 
     @classmethod
     def face_surface(cls, p0: PointType, p1: PointType) -> float:
-        """ This class method computes the surface of a face from its points.
+        """This class method computes the surface of a face from its points.
 
         The surface is simply the norm of the vector that is made by the two
         given points of the face (being in 2D).
@@ -290,71 +291,123 @@ class SimpleCell(Cell):
 
     @classmethod
     def create_connectivity(cls, mesh: Mesh):
-        num_cells_x = mesh.num_cells_x
-        num_cells_y = mesh.num_cells_y
+        nx = mesh.num_cells_x
+        ny = mesh.num_cells_y
         x = mesh._x
         y = mesh._y
 
-        # This are the centroids of the cells. For cell i, j the third
-        # dimension contain the coordinates of each centroid of a cell.
-        # So in the SimpleCell case, each cell stored one DOF, so
-        # it has a 3rd dimension of 1 (== num_dofs) and a 4th dimension
-        # equal to 2 (since each coordinate point has x, y coordinates)
-        mesh.points = np.empty((num_cells_x, num_cells_y, cls.num_points, 2))
-        mesh.centroids = np.empty((num_cells_x, num_cells_y, 2))
-        mesh.volumes = np.empty((num_cells_x, num_cells_y))
-        mesh.normals = np.empty_like(mesh.points)
-        mesh.surfaces = np.empty((num_cells_x, num_cells_y, cls.num_points))
+        # Init internal data structures
+        points = np.empty((nx, ny, cls.num_points, MAX_DIMENSIONALITY))
 
+        # Create basic :class:`MeshCellSet` data structure that contains data
+        # also for the ghost cells. Init with NaN since some of the entries are
+        # not used for ghost cells (i.e. corner values for centroids and
+        # values, entire array for volumes and surfaces)
+
+        centroids = np.full(
+            (
+                nx + 2,
+                ny + 2,
+                cls.num_dofs,
+                MAX_DIMENSIONALITY,
+            ),
+            np.nan,
+        )
+
+        volumes = np.full((nx + 2, ny + 2), np.nan)
+        normals = np.full(
+            (nx + 2, ny + 2, cls.num_points, MAX_DIMENSIONALITY), np.nan
+        )
+        surfaces = np.full((nx + 2, ny + 2, cls.num_points), np.nan)
+
+        cells = MeshCellSet(
+            centroids=centroids,
+            volumes=volumes,
+            surfaces=surfaces,
+            normals=normals,
+        )
+
+        # Loop to build connectivity
         # TODO: This can be probably vectorized
-        for i in range(num_cells_x):
-            for j in range(num_cells_y):
+        for i in range(nx):
+            for j in range(ny):
                 p0 = np.asarray((x[i, j + 1], y[i, j + 1]))
                 p1 = np.asarray((x[i, j], y[i, j]))
                 p2 = np.asarray((x[i + 1, j], y[i + 1, j]))
                 p3 = np.asarray((x[i + 1, j + 1], y[i + 1, j + 1]))
 
-                mesh.points[i, j, :, :] = np.vstack(
+                points[i, j, :, :] = np.vstack(
                     (p0, p1, p2, p3)
                 )  # type: ignore # noqa: E501
-                mesh.centroids[i, j, :] = cls.centroid(
+                cells.centroids[i, j, :] = cls.centroid(
                     p0, p1, p2, p3
                 )  # type: ignore # noqa: E501
-                mesh.volumes[i, j] = cls.volume(
+                cells.volumes[i, j] = cls.volume(
                     p0, p1, p2, p3
                 )  # type: ignore # noqa: E501
 
-                mesh.surfaces[i, j, NormalDirection.LEFT] = cls.face_surface(
+                cells.surfaces[i, j, NormalDirection.LEFT] = cls.face_surface(
                     p0, p1
                 )  # type: ignore # noqa: E501
-                mesh.surfaces[i, j, NormalDirection.BOTTOM] = cls.face_surface(
+                cells.surfaces[
+                    i, j, NormalDirection.BOTTOM
+                ] = cls.face_surface(
                     p1, p2
                 )  # type: ignore # noqa: E501
-                mesh.surfaces[i, j, NormalDirection.RIGHT] = cls.face_surface(
+                cells.surfaces[i, j, NormalDirection.RIGHT] = cls.face_surface(
                     p2, p3
                 )  # type: ignore # noqa: E501
-                mesh.surfaces[i, j, NormalDirection.TOP] = cls.face_surface(
+                cells.surfaces[i, j, NormalDirection.TOP] = cls.face_surface(
                     p3, p0
                 )  # type: ignore # noqa: E501
 
-                mesh.normals[i, j, NormalDirection.LEFT, :] = cls.face_normal(
+                cells.normals[i, j, NormalDirection.LEFT, :] = cls.face_normal(
                     p0, p1
                 )  # type: ignore # noqa: E501
-                mesh.normals[
+                cells.normals[
                     i, j, NormalDirection.BOTTOM, :
                 ] = cls.face_normal(
                     p1, p2
                 )  # type: ignore # noqa: E501
 
-                mesh.normals[i, j, NormalDirection.RIGHT, :] = cls.face_normal(
+                cells.normals[
+                    i, j, NormalDirection.RIGHT, :
+                ] = cls.face_normal(
                     p2, p3
                 )  # type: ignore # noqa: E501
-                mesh.normals[i, j, NormalDirection.TOP, :] = cls.face_normal(
+                cells.normals[i, j, NormalDirection.TOP, :] = cls.face_normal(
                     p3, p0
                 )  # type: ignore # noqa: E501
 
+        # Assign back to mesh object
+        mesh.points = points
+        mesh.cells = cells
+
+        cls._generate_ghosts(mesh)
+
     @classmethod
-    def export_connectivity(cls, mesh: "Mesh") -> MeshIO:
+    def _generate_ghosts(cls, mesh: Mesh):
+        r"""
+        Generate ghost cells centroids ortogonal to
+        :math:\hat{\vb{x}},\hat{\vb{y}},\hat{\vb{z}}
+
+        """
+        for boundary in mesh.boundaries:
+            side = boundary.side
+            boundary_idx = boundary.cells_idx
+            ghost_idx = boundary.ghost_cells_idx
+
+            boundary_centroids = mesh.cells._centroids[
+                boundary_idx[0], boundary_idx[1]
+            ]
+
+            # Compute the ghost cells centroids
+            mesh.cells._centroids[ghost_idx[0], ghost_idx[1]] = (
+                boundary_centroids + cls._side_normal[side.name]
+            )
+
+    @classmethod
+    def export_connectivity(cls, mesh: Mesh) -> MeshIO:
         # Recast points in the format meshio wants them. I.e. an array of
         # [nx*ny*num_points, 3] elements. Each row is a point in 3D.
         nx = mesh.num_cells_x

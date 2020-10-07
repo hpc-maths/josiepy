@@ -27,6 +27,9 @@
 
 import numpy as np
 
+from typing import Iterable
+
+from josie.mesh.cellset import CellSet, MeshCellSet
 from josie.euler.schemes import Rusanov as EulerRusanov
 from josie.solver.scheme import Scheme
 from josie.solver.scheme.nonconservative import NonConservativeScheme
@@ -44,12 +47,13 @@ class TwoPhaseScheme(Scheme):
     def __init__(self, eos: TwoPhaseEOS, closure: Closure):
         self.problem: TwoPhaseProblem = TwoPhaseProblem(eos, closure)
 
-    def post_step(self, values: Q):
-        """ During the step we update the conservative values. After the
+    def post_step(self, cells: MeshCellSet, neighbours: Iterable[CellSet]):
+        """During the step we update the conservative values. After the
         step we update the non-conservative variables. This method updates
         the values of the non-conservative (auxiliary) variables using the
         :class:`~.EOS`
         """
+        values: Q = cells.values
 
         alpha = values[..., values.fields.alpha]
 
@@ -82,31 +86,29 @@ class TwoPhaseScheme(Scheme):
 
 
 class Upwind(NonConservativeScheme, TwoPhaseScheme):
-    def accumulate_nonconservative(
-        self,
-        values: Q,
-        neigh_values: Q,
-        normals: np.ndarray,
-        surfaces: np.ndarray,
-    ) -> Q:
+    r""" An optimized upwind scheme that reduces the size of the
+    :math:`\pdeNonConservativeMultiplier` knowing that for
+    :cite:`baer_two-phase_1986` the only state variable appearing in the non
+    conservative term is :math:`\alpha`. It concentratres the numerical
+    flux computation into :meth:`G`.
+
+    Check also :class:`~twophase.problem.TwoPhaseProblem.B`.
+    """
+
+    def accumulate(self, cells: MeshCellSet, neighs: CellSet):
 
         # Compute fluxes computed eventually by the other schemes (e.g.
-        # conservative)
-        fluxes = np.zeros_like(values)
+        # conservative) but not the accumulate method of NonConservativeScheme
+        # since we're overriding it
+        TwoPhaseScheme.accumulate(self, cells, neighs)
 
         # Add nonconservative contribution
-        G = self.G(values, neigh_values, normals, surfaces)
-        fluxes += G
+        G = self.G(cells, neighs)
+        self._fluxes += G
 
-        return fluxes
+    def G(self, cells: MeshCellSet, neighs: CellSet) -> np.ndarray:
 
-    def G(
-        self,
-        values: Q,
-        neigh_values: Q,
-        normals: np.ndarray,
-        surfaces: np.ndarray,
-    ) -> np.ndarray:
+        values = cells.values
 
         nx, ny, _ = values.shape
 
@@ -114,29 +116,26 @@ class Upwind(NonConservativeScheme, TwoPhaseScheme):
 
         # Get vector of uI
         UI_VI = self.problem.closure.uI(values)
-        UI_VI_neigh = self.problem.closure.uI(neigh_values)
+        UI_VI_neigh = self.problem.closure.uI(neighs.values)
 
         UI_VI_face = 0.5 * (UI_VI + UI_VI_neigh)
 
         # Normal uI
-        U_face = np.einsum("...k,...k->...", UI_VI_face, normals)
+        U_face = np.einsum("...k,...k->...", UI_VI_face, neighs.normals)
 
         alpha = values[..., Q.fields.alpha]
-        alpha_neigh = neigh_values[..., Q.fields.alpha]
+        alpha_neigh = neighs.values[..., Q.fields.alpha]
 
-        idx = np.where(U_face >= 0)
-        if np.any(idx):
-            alpha_face[idx] = alpha[idx]
+        np.copyto(alpha_face, alpha, where=U_face >= 0)
+        np.copyto(alpha_face, alpha_neigh, where=U_face < 0)
 
-        idx = np.where(U_face < 0)
-        if np.any(idx):
-            alpha_face[idx] = alpha_neigh[idx]
+        alphan_face = np.einsum(
+            "...i,...ij->...ij", alpha_face, neighs.normals
+        )
 
-        alphan_face = np.einsum("...i,...ij->...ij", alpha_face, normals)
+        G = np.einsum("...ij,...j->...i", self.problem.B(cells), alphan_face)
 
-        G = np.einsum("...ij,...j->...i", self.problem.B(values), alphan_face)
-
-        GS = surfaces[..., np.newaxis] * G
+        GS = neighs.surfaces[..., np.newaxis] * G
 
         return GS
 
@@ -144,34 +143,36 @@ class Upwind(NonConservativeScheme, TwoPhaseScheme):
 class Rusanov(ConvectiveScheme, TwoPhaseScheme):
     def F(
         self,
-        values: Q,
-        neigh_values: Q,
-        normals: np.ndarray,
-        surfaces: np.ndarray,
+        cells: MeshCellSet,
+        neighs: CellSet,
     ) -> Q:
         r""" This schemes implements the Rusanov scheme for a
-        :class:`~.TwoPhaseProblem`. It applies the :class:`~.euler.Rusanov`
+        :class:`TwoPhaseProblem`. It applies the :class:`~.euler.Rusanov`
         scheme indipendently for each phase (with the :math:`\sigma` correctly
         calculated among all the two phases state)
 
         Parameters
         ----------
         values
-            A :class:`np.ndarray` that has dimension [Nx * Ny * 19] containing
-            the values for all the states in all the mesh points
+            A :class:`np.ndarray` that has dimension :math:`N_\text{x} \times
+            N_\text{y} \times 19` containing the values for all the states in
+            all the mesh points
         neigh_values
-            A :class:`np.ndarray` that has the same dimension of `values`. It
+            A :class:`np.ndarray` that has the same dimension of ``values``. It
             contains the corresponding neighbour values of the state stored in
-            `values`, i.e. the neighbour of `values[i]` is `neigh_values[i]`
+            ``values``, i.e. the neighbour of ``values[i]`` is
+            ``neigh_values[i]``
         normals
-            A :class:`np.ndarray` that has the dimensions [Nx * Ny * 2]
-            containing the values of the normals to the face connecting the
-            cell to its neighbour
+            A :class:`np.ndarray` that has the dimensions :math:`N_\text{x}
+            \times N_\text{y} \times  2` containing the values of the normals
+            to the face connecting the cell to its neighbour
         surfaces
-            A :class:`np.ndarray` that has the dimensions [Nx * Ny] containing
-            the values of the face surfaces of the face connecting the cell to
-            is neighbour
+            A :class:`np.ndarray` that has the dimensions :math:`N_\text{x}
+            \times N_\text{y}` containing the values of the face surfaces of
+            the face connecting the cell to is neighbour
         """
+        values: Q = cells.values
+
         FS = np.zeros_like(values).view(Q)
 
         # Compute the sigma per each phase
@@ -183,7 +184,7 @@ class Rusanov(ConvectiveScheme, TwoPhaseScheme):
 
         for phase in Phases:
             phase_values = values.get_phase(phase)
-            phase_neigh_values = neigh_values.get_phase(phase)
+            phase_neigh_values = neighs.values.get_phase(phase)
 
             fields = phase_values.fields
 
@@ -221,31 +222,34 @@ class Rusanov(ConvectiveScheme, TwoPhaseScheme):
         # of sigma for each cell)
         sigma = np.max(sigma_array, axis=-1, keepdims=True)
 
-        DeltaF = 0.5 * (self.problem.F(values) + self.problem.F(neigh_values))
+        DeltaF = 0.5 * (self.problem.F(cells) + self.problem.F(neighs))
 
         # This is the flux tensor dot the normal
-        DeltaF = np.einsum("...kl,...l->...k", DeltaF, normals)
+        DeltaF = np.einsum("...kl,...l->...k", DeltaF, neighs.normals)
 
         values_cons = values.get_conservative()
-        neigh_values_cons = neigh_values.get_conservative()
+        neigh_values_cons = neighs.values.get_conservative()
 
         DeltaQ = 0.5 * sigma * (neigh_values_cons - values_cons)
 
-        # Remove first row related to alpha
-        FS.set_conservative(surfaces[..., np.newaxis] * (DeltaF - DeltaQ))
+        FS.set_conservative(
+            neighs.surfaces[..., np.newaxis] * (DeltaF - DeltaQ)
+        )
 
         return FS
 
     def CFL(
-        self, values: Q, volumes: np.ndarray, surfaces: np.ndarray, CFL_value,
+        self,
+        cells: MeshCellSet,
+        CFL_value,
     ) -> float:
 
         dt = 1e9
-        dx = np.min(volumes[..., np.newaxis] / surfaces)
-        alpha = values[..., Q.fields.alpha]
+        dx = np.min(cells.volumes[..., np.newaxis] / cells.surfaces)
+        alpha = cells.values[..., Q.fields.alpha]
         alphas = PhasePair(alpha, 1 - alpha)
         for phase in Phases:
-            phase_values = values.get_phase(phase)
+            phase_values = cells.values.get_phase(phase)
             fields = phase_values.fields
             alpha = alphas[phase]
 

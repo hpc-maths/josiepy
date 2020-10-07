@@ -6,16 +6,25 @@ from matplotlib.animation import ArtistAnimation
 
 from josie.bc import Dirichlet
 from josie.geom import Line
-from josie.mesh import Mesh, SimpleCell
+from josie.math import Direction
+from josie.mesh import Mesh
+from josie.mesh.cell import SimpleCell
+from josie.mesh.cellset import MeshCellSet
 from josie.euler.eos import PerfectGas
-from josie.euler.schemes import Rusanov
+from josie.euler.schemes import EulerScheme
 from josie.general.schemes.time import ExplicitEuler
 from josie.euler.solver import EulerSolver
 from josie.euler.state import Q
 
 
-class ToroScheme(Rusanov, ExplicitEuler):
-    pass
+@pytest.fixture(params=EulerScheme.__subclasses__())
+def Scheme(request):
+    """ Create all the different schemes """
+
+    class ToroScheme(request.param, ExplicitEuler):
+        pass
+
+    return ToroScheme
 
 
 riemann_states = [
@@ -83,7 +92,7 @@ riemann_states = [
 
 
 @pytest.mark.parametrize("riemann", riemann_states)
-def test_toro(riemann, plot):
+def test_toro(riemann, Scheme, plot):
     left = Line([0, 0], [0, 1])
     bottom = Line([0, 0], [1, 0])
     right = Line([1, 0], [1, 1])
@@ -120,13 +129,13 @@ def test_toro(riemann, plot):
     mesh.interpolate(500, 1)
     mesh.generate()
 
-    def init_fun(solver: EulerSolver):
-        xc = solver.mesh.centroids[:, :, 0]
+    def init_fun(cells: MeshCellSet):
+        xc = cells.centroids[..., 0]
 
-        solver.values[np.where(xc > 0.5), :, :] = Q_right
-        solver.values[np.where(xc <= 0.5), :, :] = Q_left
+        cells.values[np.where(xc > 0.5), ...] = Q_right
+        cells.values[np.where(xc <= 0.5), ...] = Q_left
 
-    scheme = ToroScheme(eos)
+    scheme = Scheme(eos)
     solver = EulerSolver(mesh, scheme)
     solver.init(init_fun)
 
@@ -141,17 +150,23 @@ def test_toro(riemann, plot):
         ax2 = plt.subplot(132)
         ax3 = plt.subplot(133)
 
+    # TODO: Use josie.io.strategy and josie.io.writer to save the plot every
+    # time instant.  In particular it might useful to choose a Strategy (or
+    # multiple strategies) and append to each strategy some "executors" that do
+    # stuff with the Solver data
     while t <= final_time:
-        x = solver.mesh.centroids[:, :, 0]
+        cells = solver.mesh.cells
+
+        x = cells.centroids[..., Direction.X]
         x = x.reshape(x.size)
 
-        rho = solver.values[:, :, 0]
+        rho = cells.values[..., Q.fields.rho]
         rho = rho.reshape(rho.size)
 
-        U = solver.values[:, :, 5]
+        U = cells.values[..., Q.fields.U]
         U = U.reshape(U.size)
 
-        p = solver.values[:, :, 7]
+        p = cells.values[..., Q.fields.p]
         p = p.reshape(p.size)
 
         if plot:
@@ -169,9 +184,11 @@ def test_toro(riemann, plot):
 
             ims.append([im1, im2, im3])
 
-        dt = scheme.CFL(
-            solver.values, solver.mesh.volumes, solver.mesh.surfaces, CFL
-        )
+        dt = scheme.CFL(cells, CFL)
+
+        # TODO: Basic check. The best would be to check against analytical
+        # solution
+        assert ~np.isnan(dt)
         solver.step(dt)
 
         t += dt

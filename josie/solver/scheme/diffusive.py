@@ -24,26 +24,37 @@
 # The views and conclusions contained in the software and documentation
 # are those of the authors and should not be interpreted as representing
 # official policies, either expressed or implied, of Ruben Di Battista.
-from __future__ import annotations
-
 import abc
+import numpy as np
 
-from typing import TYPE_CHECKING
+from typing import Sequence
 
-if TYPE_CHECKING:
-    from josie.mesh.cellset import CellSet, MeshCellSet
-    from josie.solver.state import State
+from josie._dim import MAX_DIMENSIONALITY
+from josie.mesh.cellset import MeshCellSet, CellSet
 
 from .scheme import Scheme
 
 
-class ConvectiveScheme(Scheme):
-    """A mixin that provides the scheme implementation for the convective
+class DiffusiveScheme(Scheme):
+    r""" A mixin that provides the scheme implementation for the diffusive
     term"""
 
+    _gradient: np.ndarray
+
+    def post_init(self, cells: MeshCellSet, neighbours: Sequence[CellSet]):
+        r""" Initialize the datastructure holding the gradient
+        :math:`\pdeGradient, \ipdeGradient` per each cell
+        """
+
+        nx, ny, num_state = cells.values.shape
+
+        super().post_init(cells, neighbours)
+
+        self._gradient = np.zeros((nx, ny, num_state, MAX_DIMENSIONALITY))
+
     @abc.abstractmethod
-    def F(self, cells: MeshCellSet, neighs: CellSet) -> State:
-        r""" This is the convective flux implementation of the scheme. See
+    def D(self, cells: MeshCellSet, neighs: CellSet) -> np.ndarray:
+        r""" This is the diffusive flux implementation of the scheme. See
         :cite:`toro_riemann_2009` for a great overview on numerical methods for
         hyperbolic problems.
 
@@ -53,21 +64,21 @@ class ConvectiveScheme(Scheme):
 
             \pdeFull
 
-        The convective term is discretized as follows:
+        The diffusive term is discretized as follows:
 
         .. math::
 
-            \numConvectiveFull
+            \numDiffusiveFull
+
 
         A concrete implementation of this method needs to implement the
-        discretization of the numerical flux on **one** face of a cell. It
-        needs to implement the term :math:`\numConvective`
-
+        discretization of the numerical diffusive flux on **one** face of a
+        cell. It needs to implement the term :math:`\numDiffusive`
 
         Parameters
         ----------
-        cells:
-            A :class:`MeshCellSet` containing the state of the mesh cells
+        values
+            The values of the state fields in each cell
 
         neighs
             A :class:`CellSet` containing data of neighbour cells corresponding
@@ -75,18 +86,13 @@ class ConvectiveScheme(Scheme):
 
         Returns
         -------
-        F
-            The value of the numerical convective flux multiplied by the
-            surface value :math:`\numConvective`
-
+        D
+            The value of the numerical diffusive flux multiplied by
+            the surface value :math:`\numDiffusive`
         """
-        raise NotImplementedError
+
+        pass
 
     def accumulate(self, cells: MeshCellSet, neighs: CellSet):
 
-        # Compute fluxes computed eventually by the other terms (diffusive,
-        # nonconservative, source)
-        super().accumulate(cells, neighs)
-
-        # Add conservative contribution
-        self._fluxes += self.F(cells, neighs)
+        raise NotImplementedError

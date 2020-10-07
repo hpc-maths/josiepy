@@ -26,7 +26,8 @@
 # official policies, either expressed or implied, of Ruben Di Battista.
 import numpy as np
 
-
+from josie._dim import MAX_DIMENSIONALITY
+from josie.mesh.cellset import CellSet
 from josie.solver.problem import Problem
 from josie.math import Direction
 
@@ -36,14 +37,14 @@ from .state import Q, FluxQ
 
 
 class TwoPhaseProblem(Problem):
-    """ A class representing a two-phase system problem governed by the
-    equations first described in :cite:`baer_two-phase_1986` """
+    """A class representing a two-phase system problem governed by the
+    equations first described in :cite:`baer_two-phase_1986`"""
 
     def __init__(self, eos: TwoPhaseEOS, closure: Closure):
         self.eos = eos
         self.closure = closure
 
-    def B(self, state_array: Q):
+    def B(self, cells: CellSet):
         r""" This returns the tensor that pre-multiplies the non-conservative
         term of the problem.
 
@@ -94,28 +95,26 @@ class TwoPhaseProblem(Problem):
 
         Parameters
         ----------
-        Q
-            The :class:`~.Q` array containing the values of all the fields
+        cells
+            A :class:`MeshCellSet` that contains the cell data
 
         eos
             An implementation of the equation of state. In particular it needs
             to implement the :class:`~.Closure` trait in order to be able to
             return `pI` and `uI` (in addition to the :class:`~.euler.EOS`)
         """
-        # TODO: Needs to be generalized for 3D
-        DIMENSIONALITY = 2
 
-        num_cells_x, num_cells_y, num_fields = state_array.shape
+        num_cells_x, num_cells_y, num_fields = cells.values.shape
 
         B = np.zeros(
-            (num_cells_x, num_cells_y, num_fields, DIMENSIONALITY)
+            (num_cells_x, num_cells_y, num_fields, MAX_DIMENSIONALITY)
         ).view(Q)
 
         # Compute pI
-        pI = self.closure.pI(state_array)
+        pI = self.closure.pI(cells.values)
 
         # This is the vector (uI, vI)
-        UI_VI = self.closure.uI(state_array)
+        UI_VI = self.closure.uI(cells.values)
 
         # First component of (uI, vI) along x
         UI = UI_VI[..., Direction.X]
@@ -141,14 +140,14 @@ class TwoPhaseProblem(Problem):
 
         return B
 
-    def F(self, state_array: Q) -> np.ndarray:
+    def F(self, cells: CellSet) -> np.ndarray:
         r""" This returns the tensor representing the flux for a two-fluid model
         as described originally by :cite:`baer_two-phase_1986`
 
 
         Parameters
         ----------
-        state_array
+        cells.values
             A :class:`np.ndarray` that has dimension :math:`Nx \times Ny \times
             19` containing the values for all the state variables in all the
             mesh points
@@ -177,20 +176,20 @@ class TwoPhaseProblem(Problem):
                     \alpha_2(\rho_2 E_2 + p_2)u_2 & \alpha_2 (\rho_2 E + p)v_2
                 \end{bmatrix}
         """
-
-        num_cells_x, num_cells_y, _ = state_array.shape
+        values: Q = cells.values
+        num_cells_x, num_cells_y, _ = values.shape
 
         # Flux tensor
         F = np.zeros((num_cells_x, num_cells_y, 9, 2)).view(FluxQ)
-        fields = state_array.fields
+        fields = values.fields
 
-        alpha1 = state_array[..., fields.alpha]
-        arhoU1 = state_array[..., fields.arhoU1]
-        arhoV1 = state_array[..., fields.arhoV1]
-        arhoE1 = state_array[..., fields.arhoE1]
-        U1 = state_array[..., fields.U1]
-        V1 = state_array[..., fields.V1]
-        p1 = state_array[..., fields.p1]
+        alpha1 = values[..., fields.alpha]
+        arhoU1 = values[..., fields.arhoU1]
+        arhoV1 = values[..., fields.arhoV1]
+        arhoE1 = values[..., fields.arhoE1]
+        U1 = values[..., fields.U1]
+        V1 = values[..., fields.V1]
+        p1 = values[..., fields.p1]
         ap1 = alpha1 * p1
 
         alpha2 = 1 - alpha1
@@ -199,12 +198,12 @@ class TwoPhaseProblem(Problem):
         arhoVV1 = np.multiply(arhoV1, V1)
         arhoVU1 = np.multiply(arhoV1, U1)
 
-        arhoU2 = state_array[..., fields.arhoU2]
-        arhoV2 = state_array[..., fields.arhoV2]
-        arhoE2 = state_array[..., fields.arhoE2]
-        U2 = state_array[..., fields.U2]
-        V2 = state_array[..., fields.V2]
-        p2 = state_array[..., fields.p2]
+        arhoU2 = values[..., fields.arhoU2]
+        arhoV2 = values[..., fields.arhoV2]
+        arhoE2 = values[..., fields.arhoE2]
+        U2 = values[..., fields.U2]
+        V2 = values[..., fields.V2]
+        p2 = values[..., fields.p2]
         ap2 = alpha2 * p2
 
         arhoUU2 = np.multiply(arhoU2, U2)

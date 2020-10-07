@@ -27,7 +27,7 @@
 import abc
 import numpy as np
 
-from josie.solver.state import State
+from josie.mesh.cellset import CellSet, MeshCellSet
 
 from .scheme import Scheme
 
@@ -35,53 +35,23 @@ from .scheme import Scheme
 class NonConservativeScheme(Scheme):
     r""" A mixin that provides the scheme implementation for the non
     conservative term
-
-    A general problem can be written in a compact way:
-
-    .. math::
-
-        \pdeFull
-
-    A concrete instance of this class needs to implement the discretization
-    of the numerical flux on **one** face of a cell. It needs to implement
-    the term :math:`\vb{G}\qty(\pdeState) = \numNonConservative`
-
-    .. math::
-
-        \numNonConservativeFull
-
-
     """
 
-    def accumulate_nonconservative(
-        self,
-        values: State,
-        neigh_values: State,
-        normals: np.ndarray,
-        surfaces: np.ndarray,
-    ) -> State:
+    def accumulate(self, cells: MeshCellSet, neighs: CellSet):
 
-        fluxes = super().accumulate_nonconservative(
-            values, neigh_values, normals, surfaces
-        )
+        # Accumulate other terms
+        super().accumulate(cells, neighs)
 
-        B = self.problem.B(values)
-        G = self.G(values, neigh_values, normals, surfaces)
+        B = self.problem.B(cells)
+        G = self.G(cells, neighs)
         BG = np.einsum("...ijk,...k->...i", B, G)
 
-        fluxes += BG
-
-        return fluxes
+        self._fluxes += BG
 
     @abc.abstractmethod
-    def G(
-        self,
-        values: State,
-        neigh_values: State,
-        normals: np.ndarray,
-        surfaces: np.ndarray,
-    ) -> np.ndarray:
-        r""" This is the nonconservative flux implementation of the scheme. See
+    def G(self, cells: MeshCellSet, neighs: CellSet) -> np.ndarray:
+
+        r""" This is the non-conservative flux implementation of the scheme. See
         :cite:`toro_riemann_2009` for a great overview on numerical methods for
         hyperbolic problems.
 
@@ -91,36 +61,31 @@ class NonConservativeScheme(Scheme):
 
             \pdeFull
 
+        The non-conservative term is discretized as follows:
+
+        .. math::
+
+            \numNonConservativeFull
 
         A concrete instance of this class needs to implement the discretization
         of the numerical flux on **one** face of a cell. It needs to implement
         the term :math:`\numNonConservative`
 
-        .. math::
-
-            \numNonConservativeFull
 
         Parameters
         ----------
         values
             The values of the state fields in each cell
 
-        neigh_values
-            The values of the state fields in the each neighbour of a cell
-
-        normals
-            The normal unit vectors associated to the face between each cell
-            and its neigbour
-
-        surfaces
-            The surface values associated at the face between each cell and its
-            neighbour
+        neighs
+            A :class:`CellSet` containing data of neighbour cells corresponding
+            to the :attr:`values`
 
         Returns
         -------
-        The value of the numerical nonconservative flux multiplied by
-        the surface value :math:`\numNonConservative`
-
+        G
+            The value of the numerical nonconservative flux multiplied by
+            the surface value :math:`\numNonConservative`
         """
 
         pass

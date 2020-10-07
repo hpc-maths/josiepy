@@ -39,10 +39,9 @@ from .strategy import NoopStrategy, Strategy
 
 
 class Writer(abc.ABC):
-    """ A context manager to apply a writing strategy for a simulation
+    """A context manager to apply a writing strategy for a simulation
 
-    Child classes implement writing every :math:`n_t` time-steps or every
-    :math:`n` iterations and so on....
+    Child classes implement writing on files or in memory.
 
     Attributes
     ----------
@@ -74,14 +73,14 @@ class Writer(abc.ABC):
 
     @abc.abstractmethod
     def write(self):
-        """ This methods serializes the solver state to disk or else
-        """
+        """This methods serializes the solver state to disk or else"""
 
         pass
 
     def solve(self):
-        """ This method updates the internal state of the Writer and saves
-        solver state to the file if needed
+        """This method updates the time instant in the :class:`Solver`, the
+        internal state of the Writer and saves current solver state to the file
+        if needed
         """
 
         solver = self.solver
@@ -89,9 +88,7 @@ class Writer(abc.ABC):
         while self.solver.t < self.final_time:
 
             dt = solver.scheme.CFL(
-                solver.values,
-                solver.mesh.volumes,
-                solver.mesh.surfaces,
+                solver.mesh.cells,
                 self.CFL,
             )
 
@@ -100,6 +97,8 @@ class Writer(abc.ABC):
             if self.strategy.should_write:
                 self.write()
                 if self.strategy.animate:
+                    # TODO: Factor out in separate object hierarchy the
+                    # `animate` method of :class:`Solver`
                     solver.animate(self.solver.t)
 
             solver.step(dt)
@@ -118,7 +117,7 @@ class NoopWriter(Writer):
 
 
 class FileWriter(Writer):
-    """ This abstract class provides an interface to write to a file
+    """This abstract class provides an interface to write to a file
 
     Attributes
     ----------
@@ -151,7 +150,7 @@ class FileWriter(Writer):
 
 
 class MemoryWriter(Writer):
-    """ This class provides serialization of simulation data into a
+    """This class provides serialization of simulation data into a
     list of :class:`~.StateElement`
 
     Attributes
@@ -185,14 +184,14 @@ class MemoryWriter(Writer):
 
         for field in self.solver.Q.fields:
             data[field.name] = copy.deepcopy(
-                self.solver.values[..., field].ravel()
+                self.solver.mesh.cells.values[..., field].ravel()
             )
 
         self.store.append(StateElement(time=self._t, data=data))
 
 
 class XDMFWriter(FileWriter):
-    """ A class allowing to serialize simulation data to an XDMF time-series
+    """A class allowing to serialize simulation data to an XDMF time-series
 
     Attributes
     ----------
@@ -221,7 +220,9 @@ class XDMFWriter(FileWriter):
 
         for field in self.solver.Q.fields:
             cell_data[field.name] = {
-                cell_type_str: self.solver.values[..., field].ravel()
+                cell_type_str: self.solver.mesh.cells.values[
+                    ..., field
+                ].ravel()
             }
 
         self._writer.write_data(self._t, cell_data=cell_data)

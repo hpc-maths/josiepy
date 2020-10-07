@@ -28,71 +28,24 @@ from __future__ import annotations
 
 import numpy as np
 
-from dataclasses import dataclass
 from typing import (
     Callable,
-    Iterable,
+    Sequence,
     List,
     NoReturn,
     Union,
-    Tuple,
     Type,
     TYPE_CHECKING,
 )
 
-from .state import Field, State
+from josie.mesh.cellset import CellSet, MeshCellSet, NeighbourDirection
+
+from .state import State
 from .scheme import Scheme
 
-from josie.mesh import NormalDirection
 
 if TYPE_CHECKING:
-    from josie.mesh.mesh import Boundary, Mesh, MeshIndex
-
-
-@dataclass
-class Neighbour:
-    """ A class representing the set of neighbours to some values.
-    It ships the values of the fields in the neighbour cells, together with the
-    face normals and the face surfaces"""
-
-    values: State
-    normals: np.ndarray
-    surfaces: np.ndarray
-
-
-@dataclass
-class Ghost:
-    """ A class representing the set of ghosts associated to a
-    :class:`~.Mesh` boundary
-
-    Attributes
-    ----------
-    idx
-        The indices of the values within the :attr:`Solver._values` data
-        structure
-
-    boundary
-        The :class:`~.BoundaryCurve` which the ghost cells are associated
-    """
-
-    solver: Solver
-    ghost_cells_idx: Tuple[MeshIndex, ...]
-    boundary: Boundary
-
-    def get_values(self, field: Field):
-        return self.solver._values[self.ghost_cells_idx, field]
-
-    def set_values(self, field: Field, values):
-        cells_idx = self.ghost_cells_idx
-        self.solver._values[cells_idx[0], cells_idx[1], field] = values
-
-    def get_boundary_values(self, field: Field):
-        cells_idx = self.boundary.cells_idx
-        return self.solver.values[cells_idx[0], cells_idx[1], field]
-
-    def get_boundary_centroids(self):
-        cells_idx = self.boundary.cells_idx
-        return self.solver.mesh.centroids[cells_idx[0], cells_idx[1]]
+    from josie.mesh.mesh import Mesh
 
 
 class Solver:
@@ -118,16 +71,14 @@ class Solver:
 
     Attributes
     ----------
-    values
-        An array of dimensions :math:`Nx \times Ny \times \N_\text{fields}`
-        storing the value of the :class:`State` for each cell of the
-        :class:`Mesh`
+    t
+        The time instant of the simulation held by the :class:`Solver` object
     """
 
     # Type Checking
     _values: State
-    _neighs: Iterable[Neighbour]
-    _ghosts: Iterable[Ghost]
+    _neighs: Sequence[CellSet]
+    t: float
 
     # TODO: Fix _values to adapt on mesh.dimensionality
 
@@ -137,156 +88,82 @@ class Solver:
         self.scheme = scheme
 
     @property
-    def values(self) -> np.ndarray:
-        return self._values[1:-1, 1:-1]
-
-    @values.setter
-    def values(self, value: np.ndarray):
-        self._values[1:-1, 1:-1, :] = value
-
-    @property
-    def ghosts(self) -> Iterable[Ghost]:
-        """ A property returning an iterable of :class:`Ghost`, associated to
-        each :class:`~.BoundaryCurve` of the :class:`~.Mesh`
-
-        Returns
-        -------
-        ghosts
-            A tuple of :class:`Ghost` elements, each one associated to one
-            :class:`~.Boundary`, encapsulating the indices of the elements in
-            :attr:`_values` that contain the ghost values
-        """
-
-        try:
-            return self._ghosts
-        except AttributeError:
-            ghosts: List[Ghost] = []
-
-            for boundary in self.mesh.boundaries:
-
-                # Retrieve the position of the index that is not a slice
-                index, side = next(
-                    (i, v)
-                    for i, v in enumerate(boundary.cells_idx)
-                    if not (isinstance(v, slice))
-                )
-
-                # Assign the same value for the Ghost idx, at the same position
-                # The other positions are `ghost_slice`
-                ghost_cells_idx: List[Union[slice, int]] = [
-                    side if item == index else slice(1, -1, None)
-                    for item in range(self.mesh.MAX_DIMENSIONALITY)
-                ]
-
-                ghosts.append(
-                    Ghost(
-                        solver=self,
-                        ghost_cells_idx=tuple(ghost_cells_idx),
-                        boundary=boundary,
-                    )
-                )
-
-            self._ghosts = tuple(ghosts)
-            return self._ghosts
-
-    @property
-    def neighbours(self) -> Iterable[Neighbour]:
-        """ A property returning an iterable of neighbours of the
+    def neighbours(self) -> Sequence[CellSet]:
+        """A property returning an iterable of neighbours of the
         :attr:`values`
 
         Returns
         -------
         neighbours
-            A tuple of :class:`Neighbour`.
+            A tuple of :class:`CellSet`.
         """
+
+        # OPTIMIZE: Probably instead of the Iterable using a numpy array
+        # would help to make computations faster
 
         try:
             return self._neighs
         except AttributeError:
-            neighs: List[Neighbour] = []
-
-            left: Neighbour = Neighbour(
-                values=self._values[:-2, 1:-1],
-                normals=self.mesh.normals[..., NormalDirection.LEFT, :],
-                surfaces=self.mesh.surfaces[..., NormalDirection.LEFT],
-            )
-
-            right: Neighbour = Neighbour(
-                values=self._values[2:, 1:-1],
-                normals=self.mesh.normals[..., NormalDirection.RIGHT, :],
-                surfaces=self.mesh.surfaces[..., NormalDirection.RIGHT],
-            )
-
-            neighs.extend((left, right))
+            cells = self.mesh.cells
+            neighs = [
+                cells.get_neighbours(NeighbourDirection.LEFT),
+                cells.get_neighbours(NeighbourDirection.RIGHT),
+            ]
 
             if not (self.mesh.dimensionality == 1):
-                top: Neighbour = Neighbour(
-                    values=self._values[1:-1, 2:],
-                    normals=self.mesh.normals[..., NormalDirection.TOP, :],
-                    surfaces=self.mesh.surfaces[..., NormalDirection.TOP],
+                neighs.extend(
+                    (
+                        cells.get_neighbours(NeighbourDirection.TOP),
+                        cells.get_neighbours(NeighbourDirection.BOTTOM),
+                    )
                 )
-                btm: Neighbour = Neighbour(
-                    values=self._values[1:-1, :-2],
-                    normals=self.mesh.normals[..., NormalDirection.BOTTOM, :],
-                    surfaces=self.mesh.surfaces[..., NormalDirection.BOTTOM],
-                )
-
-                neighs.extend((top, btm))
 
             self._neighs = tuple(neighs)
-            return self._neighs
+        return self._neighs
 
-    def init(self, init_fun: Callable[[Solver], NoReturn]):
+    def init(self, init_fun: Callable[[MeshCellSet], NoReturn]):
         """
         This method initialize the internal values of the cells of the
         :class:`~.Mesh` and the values of the ghost cells that apply the
         :class:`~.BoundaryCondition` for each boundary of the domain
 
-        **Data Structure**
-
-        The data structure holding the values of the field on the mesh is a
-        :class:`numpy.ndarray` of dimensions (``num_cells_x+2``,
-        ``num_cells_y+2``, ``state_size``).  That is, we have one layer of
-        ghosts per direction.  (The corner cells are unused)
-
         Parameters
         ---------
         init_fun
             The function to use to initialize the value in the domain
-
         """
 
         # Init time
         self.t = 0
 
-        # Init data structure
-        self._values = self.Q.from_mesh(self.mesh)
+        # Init data structure for field values
+        self.mesh.cells._values = self.Q.from_mesh(self.mesh)
 
         # First set all the values for the internal cells
         # The actual values are a view of only the internal cells
-        init_fun(self)
+        init_fun(self.mesh.cells)
 
-        # Corner values are unused, with set to NaN
-        self._values[0, 0] = np.nan
-        self._values[0, -1] = np.nan
-        self._values[-1, -1] = np.nan
-        self._values[-1, 0] = np.nan
-
-        self.scheme.post_init(self.values)
+        # Corner values are unused, set to NaN
+        self.mesh.cells._values[0, 0] = np.nan
+        self.mesh.cells._values[0, -1] = np.nan
+        self.mesh.cells._values[-1, -1] = np.nan
+        self.mesh.cells._values[-1, 0] = np.nan
 
         self._update_ghosts()
 
-    def _update_ghosts(self):
-        """ This method updates the ghost cells of the mesh with the current
-        values depending on the specified boundary condition """
+        # Initialize the scheme datastructures (notably the fluxes)
+        self.scheme.post_init(self.mesh.cells, self.neighbours)
 
-        for ghost in self.ghosts:
-            ghost.boundary.curve.bc(ghost, self.t)
+    def _update_ghosts(self):
+        """This method updates the ghost cells of the mesh with the current
+        values depending on the specified boundary condition"""
+
+        for boundary in self.mesh.boundaries:
+            boundary.bc(self)
 
     def step(self, dt: float):
-        """ This method advances one step in time (for the moment using an
-        explicit Euler scheme for time integration, but in future we will
-        provide a way to give arbitrary time schemes)
+        """This method advances one step in time using the
+        :meth:`Scheme.update` method of the given numerical scheme.
 
         A `scheme` callable gets as input the internal values of the cells, the
         neighbour values, the normals associated to the neighbours and the
@@ -322,33 +199,30 @@ class Solver:
         dt
             Time increment of the step
         """
+        cells = self.mesh.cells
 
-        # We accumulate the delta fluxes for each set of neighbours
-        fluxes = np.zeros_like(self.values)
+        self.scheme.pre_step(cells, self.neighbours)
 
         # Loop on all the cells neigbours
         for neighs in self.neighbours:
-            fluxes += self.scheme.accumulate(
-                self.values, neighs.values, neighs.normals, neighs.surfaces
-            )
+            self.scheme.accumulate(cells, neighs)
 
         # Update
-        self.values -= self.scheme.update(fluxes, self.mesh, dt)
+        cells.values -= self.scheme.update(cells, dt)
 
         # Let's put here an handy post step if needed after the values update
-        self.scheme.post_step(self.values)
+        self.scheme.post_step(cells, self.neighbours)
 
         # Keep ghost cells updated
         self._update_ghosts()
 
     def plot(self):
-        """ Plot the current state of the simulation in a GUI.
-        """
+        """Plot the current state of the simulation in a GUI."""
         plt = self.mesh.backend
         plt.update(self)
 
     def animate(self, t):
-        """ Animate the simulation. Call :meth:`animate` for each time instant
+        """Animate the simulation. Call :meth:`animate` for each time instant
         you want to provide in the animation.
 
         Parameters
@@ -360,7 +234,7 @@ class Solver:
         plt.append(self, t)
 
     def show(self, fields: Union[List[str], str]):
-        """ Display on screen the given fields
+        """Display on screen the given fields
 
         Parameters
         ---------
