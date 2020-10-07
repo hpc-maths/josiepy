@@ -3,7 +3,7 @@ import pytest
 
 from josie.bc import Dirichlet, Neumann, Direction, make_periodic
 from josie.euler.eos import PerfectGas
-from josie.euler.schemes import Rusanov
+from josie.euler.schemes import EulerScheme
 from josie.euler.solver import EulerSolver
 from josie.euler.state import Q
 from josie.general.schemes.time import ExplicitEuler
@@ -13,8 +13,14 @@ from josie.mesh.cell import SimpleCell
 from josie.mesh.cellset import MeshCellSet
 
 
-class ToroScheme(Rusanov, ExplicitEuler):
-    pass
+@pytest.fixture(params=EulerScheme.__subclasses__())
+def Scheme(request):
+    """ Create all the different schemes """
+
+    class ToroScheme(request.param, ExplicitEuler):
+        pass
+
+    return ToroScheme
 
 
 riemann_states = [
@@ -76,7 +82,7 @@ riemann_states = [
 ]
 
 
-def init_test(direction, riemann_problem, bc_fun):
+def init_test(direction, Scheme, riemann_problem, bc_fun):
     """A handy function to init the test state on the base of the direction,
     to avoid code duplication"""
 
@@ -153,7 +159,7 @@ def init_test(direction, riemann_problem, bc_fun):
     mesh.interpolate(30, 30)
     mesh.generate()
 
-    scheme = ToroScheme(eos)
+    scheme = Scheme(eos)
     solver = EulerSolver(mesh, scheme)
     solver.init(init_fun)
 
@@ -174,9 +180,9 @@ def periodic(first, second, direction):
 @pytest.mark.parametrize("riemann_problem", riemann_states)
 @pytest.mark.parametrize("bc_fun", [periodic, neumann])
 @pytest.mark.parametrize("direction", [Direction.X, Direction.Y])
-def test_toro(direction, riemann_problem, bc_fun, plot):
+def test_toro(direction, Scheme, riemann_problem, bc_fun, plot):
 
-    solver, plot_var = init_test(direction, riemann_problem, bc_fun)
+    solver, plot_var = init_test(direction, Scheme, riemann_problem, bc_fun)
     scheme = solver.scheme
 
     if plot:
