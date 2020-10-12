@@ -96,19 +96,19 @@ class Scheme(abc.ABC):
         Potentially if the :attr:`problem` is a full problem featuring all
         the terms, this method accumulates the terms
 
-        Attributes
-        ----------
-        values
-            The values of the state fields in each cell
-
-        neighs
-            A :class:`CellSet` containing data of neighbour cells corresponding
-            to the :attr:`values`
-
         .. math::
 
             \numSpaceTerms
 
+
+        Parameters
+        ----------
+        cells
+            A :class:`MeshCellSet` containing the state of the mesh cells
+
+        neighs
+            A :class:`CellSet` containing data of neighbour cells corresponding
+            to the :attr:`cells`
 
         """
 
@@ -124,16 +124,17 @@ class Scheme(abc.ABC):
 
         Parameters
         ---------
-        mesh
-            The :class:`Mesh` object used to retrieve the right
-            :math:`\text{d}x`
+        cells
+            A :class:`MeshCellSet` containing the state of the mesh cells
 
         dt
             Time step
 
         Returns
         -------
-        The term :math:`\numTime`
+        Q_updated
+            The term :math:`\numTime` integrated in time with a specific time
+            scheme
 
         """
 
@@ -150,9 +151,10 @@ class Scheme(abc.ABC):
 
         Parameters
         ----------
-        cells:
+        cells
             A :class:`MeshCellSet` containing the cell data at the current time
             step
+
         CFL_value
             The value of the CFL coefficient to impose
 
@@ -176,7 +178,7 @@ class Scheme(abc.ABC):
         Parameters
         ----------
         values
-            A :math:`N_x \times N_y \times N_\text{eqs
+            A :math:`N_x \times N_y \times N_\text{eqs}`
         """
 
         # Initialize the datastructure containing the fluxes
@@ -191,12 +193,11 @@ class Scheme(abc.ABC):
         Parameters
         ----------
         cells
-            A :class:`MeshCellSet` containing the cell data at the current time
-        neighbours
-            An iterable of :class:`CellSet` containing all the sets of
-            neighbours of the mesh cells. For example in a 2D structured cell,
-            each cell is gonna have a left, right, top and bottom
-            :class:`CellSet`
+            A :class:`MeshCellSet` containing the state of the mesh cells
+
+        neighs
+            A :class:`CellSet` containing data of neighbour cells corresponding
+            to the :attr:`cells`
         """
 
         self._fluxes.fill(0)
@@ -206,13 +207,15 @@ class Scheme(abc.ABC):
         solver after the update step.
         It can be needed, for example, to apply an :class:`~.euler.eos.EOS`
 
+        Attributes
+        ----------
+
         cells
-            A :class:`MeshCellSet` containing the cell data at the current time
-        neighbours
-            An iterable of :class:`CellSet` containing all the sets of
-            neighbours of the mesh cells. For example in a 2D structured cell,
-            each cell is gonna have a left, right, top and bottom
-            :class:`CellSet`
+            A :class:`MeshCellSet` containing the state of the mesh cells
+
+        neighs
+            A :class:`CellSet` containing data of neighbour cells corresponding
+            to the :attr:`cells`
         """
 
         pass

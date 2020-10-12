@@ -107,7 +107,7 @@ class Mesh:
         points specific to a cell (e.g. for a :class:`SimpleCell`, that is 2D
         quadrangle, the points are 4) and :math:`N_\text{dimensions}` is the
         dimensionality of the mesh, currently 2D
-        (:math:`N_\text{dimensions}`=2)
+        (:math:`N_\text{dimensions} = 2`)
 
     backend
         An instance of :class:`PlotBackend` used to plot mesh and its values

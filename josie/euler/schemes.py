@@ -78,7 +78,7 @@ class EulerScheme(ConvectiveScheme):
 
     @staticmethod
     def compute_U_norm(values: Q, normals: np.ndarray):
-        """Returns the value of the normal velocity component to the given
+        r"""Returns the value of the normal velocity component to the given
         ``normals``.
 
         Parameters

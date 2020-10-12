@@ -148,13 +148,16 @@ def StateTemplate(*fields: str) -> Type[State]:
 
 
     A scalar :class:`State` as for the advection equation
+
     >>> Q = StateTemplate("u")
 
     Than you can concretize the state with a value
+
     >>> zero = Q(0)
 
     You can also create higher dimensional states, for examples the state
     of the 2D Euler compressible equations
+
     >>> Q = StateTemplate("rho", "rhoU", "rhoV", "E")
     >>> zero = Q(0, 0, 0, 0)
     >>> assert zero[Q.fields.rho] == 0
