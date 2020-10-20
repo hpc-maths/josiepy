@@ -7,6 +7,7 @@ Subpackages
 .. toctree::
    :maxdepth: 4
 
+   josie.boundary
    josie.euler
    josie.general
    josie.io
@@ -43,10 +44,10 @@ josie.exceptions module
    :undoc-members:
    :show-inheritance:
 
-josie.geom module
------------------
+josie.geometry module
+---------------------
 
-.. automodule:: josie.geom
+.. automodule:: josie.geometry
    :members:
    :special-members: __call__
    :undoc-members:
@@ -68,6 +69,13 @@ josie.nbconvert module
    :undoc-members:
    :show-inheritance:
 
+josie.ode module
+----------------
+
+.. automodule:: josie.ode
+   :members:
+   :undoc-members:
+   :show-inheritance:
 
 Module contents
 ---------------

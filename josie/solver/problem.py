@@ -24,14 +24,18 @@
 # The views and conclusions contained in the software and documentation
 # are those of the authors and should not be interpreted as representing
 # official policies, either expressed or implied, of Ruben Di Battista.
+from __future__ import annotations
 
 import abc
+import numpy as np
 
 from josie.mesh.cellset import MeshCellSet
 
+from .state import State
+
 
 class Problem(metaclass=abc.ABCMeta):
-    r""" A class representing a physical problem to be solved (governed by
+    r"""A class representing a physical problem to be solved (governed by
     a PDE).
 
     A general problem can be written in a compact way:
@@ -47,8 +51,8 @@ class Problem(metaclass=abc.ABCMeta):
         \pdeTermList
     """
 
-    def F(self, cells: MeshCellSet):
-        r""" The convective flux operator :math:`\pdeConvective`
+    def F(self, cells: MeshCellSet) -> np.ndarray:
+        r"""The convective flux operator :math:`\pdeConvective`
 
         Parameters
         ----------
@@ -64,8 +68,8 @@ class Problem(metaclass=abc.ABCMeta):
         """
         pass
 
-    def B(self, cells: MeshCellSet):
-        r""" This returns the tensor that pre-multiplies the non-conservative
+    def B(self, cells: MeshCellSet) -> np.ndarray:
+        r"""This returns the tensor that pre-multiplies the non-conservative
         term of the problem.
 
         A general problem can be written in a compact way:
@@ -91,8 +95,8 @@ class Problem(metaclass=abc.ABCMeta):
         """
         pass
 
-    def D(self, cells: MeshCellSet):
-        r""" This returns the tensor that pre-multiplies the gradient in the
+    def D(self, cells: MeshCellSet) -> np.ndarray:
+        r"""This returns the tensor that pre-multiplies the gradient in the
         diffusive term of the problem.
 
         A general problem can be written in a compact way:
@@ -116,9 +120,10 @@ class Problem(metaclass=abc.ABCMeta):
             \times N_\text{state} \times N_\text{dim} \times N_\text{dim}`
             containing the computed pre-multiplier tensor
         """
+        pass
 
-    def s(self, cells: MeshCellSet):
-        r""" This returns the values of the source terms
+    def s(self, cells: MeshCellSet) -> State:
+        r"""This returns the values of the source terms
 
         A general problem can be written in a compact way:
 

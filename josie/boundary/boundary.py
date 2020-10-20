@@ -35,14 +35,15 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Sequence, Tuple, Union
+from typing import TYPE_CHECKING, Tuple
 
+from josie.geometry import MeshIndex, PointType
 from josie.math import map01to
 
 
 if TYPE_CHECKING:
-    from josie.bc import BoundaryCondition  # pragma: no cover
-    from josie.solver import Solver
+    from josie.bc import BoundaryCondition
+    from josie.mesh.cellset import MeshCellSet
 
     # This is a trick to enable mypy to evaluate the Enum as a standard
     # library Enum for type checking but we use `aenum` in the running code
@@ -51,9 +52,6 @@ if TYPE_CHECKING:
     NoAlias = object()  # pragma: no cover
 else:
     from aenum import IntEnum, NoAlias
-
-PointType = Union[np.ndarray, Sequence[float]]
-MeshIndex = Union[int, slice]
 
 
 class BoundarySide(IntEnum, settings=NoAlias):
@@ -110,14 +108,14 @@ class Boundary:
     cells_idx: Tuple[MeshIndex, ...]
     ghost_cells_idx: Tuple[MeshIndex, ...]
 
-    def bc(self, solver: Solver):
+    def bc(self, cells: MeshCellSet, t: float):
         """ Proxy method to :meth:`BoundaryCurve.bc` """
 
-        self.curve.bc(solver, self)
+        self.curve.bc(cells, self, t)
 
 
 class BoundaryCurve(metaclass=abc.ABCMeta):
-    r""" A class representing a :class:`BoundaryCurve`. A
+    r"""A class representing a :class:`BoundaryCurve`. A
     :class:`BoundaryCurve` is parametrized with a single parameter. It
     implements a :meth:`__call__` method that returns the :math:`(x,y)` values
     of the curve for a given :math:`\xi` parameter value.
@@ -133,7 +131,7 @@ class BoundaryCurve(metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
     def __call__(self, xi):
-        r""" The effective parametrization of the BoundaryCurve. Assume ``xi``
+        r"""The effective parametrization of the BoundaryCurve. Assume ``xi``
         (:math:`\xi`) to range into :math:`[0, 1]`
 
         Args:

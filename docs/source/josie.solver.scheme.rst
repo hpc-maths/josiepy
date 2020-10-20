@@ -13,7 +13,7 @@ josie.solver.scheme.convective module
    :show-inheritance:
 
 josie.solver.scheme.diffusive module
--------------------------------------
+------------------------------------
 
 .. automodule:: josie.solver.scheme.diffusive
    :members:
@@ -36,6 +36,14 @@ josie.solver.scheme.scheme module
    :undoc-members:
    :show-inheritance:
 
+josie.solver.scheme.source module
+---------------------------------
+
+.. automodule:: josie.solver.scheme.source
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 josie.solver.scheme.time module
 -------------------------------
 
@@ -43,7 +51,6 @@ josie.solver.scheme.time module
    :members:
    :undoc-members:
    :show-inheritance:
-
 
 Module contents
 ---------------

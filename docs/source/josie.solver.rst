@@ -36,7 +36,6 @@ josie.solver.state module
    :undoc-members:
    :show-inheritance:
 
-
 Module contents
 ---------------
 

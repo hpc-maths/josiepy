@@ -39,6 +39,6 @@ def test_periodic_state(solver):
     """Just testing that updating the values of the cells that are interlinked
     as periodic, we get the actual state and not the previous one"""
     solver.mesh.cells.values[0, 0] = 42.19
-    solver._update_ghosts()
+    solver.mesh.update_ghosts(t=0)
 
     assert solver.mesh.cells._values[-1, 1] == 42.19

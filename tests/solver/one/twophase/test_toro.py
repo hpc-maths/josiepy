@@ -1,6 +1,9 @@
+import inspect
 import matplotlib.pyplot as plt
 import numpy as np
 import pytest
+
+import josie.general.schemes.time as time_schemes
 
 from collections import namedtuple
 from dataclasses import dataclass
@@ -12,34 +15,56 @@ from josie.euler.eos import (
     StiffenedGas,
 )
 from josie.bc import Dirichlet
-from josie.general.schemes.time import ExplicitEuler
-from josie.geom import Line
+from josie.boundary import Line
 from josie.mesh import Mesh
 from josie.mesh.cell import SimpleCell
 from josie.mesh.cellset import MeshCellSet
-from josie.solver.scheme.scheme import Scheme
+from josie.solver.scheme import Scheme
+from josie.solver.scheme.convective import ConvectiveScheme
+from josie.solver.scheme.nonconservative import NonConservativeScheme
 from josie.twophase.closure import Classical
 from josie.twophase.eos import TwoPhaseEOS
-from josie.twophase.schemes import Rusanov, Upwind
+from josie.twophase.schemes import TwoPhaseScheme
 from josie.twophase.solver import TwoPhaseSolver
 from josie.twophase.state import PhasePair, Q
 
 
-class AdvectionOnly(Upwind, ExplicitEuler):
-    def post_step(self, values, neighbours):
-        pass
+@pytest.fixture(
+    params=[
+        member[1]
+        for member in inspect.getmembers(time_schemes, inspect.isclass)
+    ],
+)
+def TimeScheme(request):
+    """Fixture that yields all the concrete time schemes implemented in
+    :mod:`josie.general.schemes.time`"""
+    yield request.param
 
-    def CFL(
-        self,
-        cells: MeshCellSet,
-        CFL_value,
-    ) -> float:
 
-        return 1e-3
+@pytest.fixture(
+    params=[
+        subcls
+        for subcls in TwoPhaseScheme.__subclasses__()
+        if issubclass(subcls, NonConservativeScheme)
+    ]
+)
+def ToroNonConservativeScheme(request):
+    """Fixture that yields all the concrete :class:`TwoPhaseScheme` that are
+    also :class:`NonConservativeScheme`"""
+    yield request.param
 
 
-class ToroScheme(Rusanov, Upwind, ExplicitEuler):
-    pass
+@pytest.fixture(
+    params=[
+        subcls
+        for subcls in TwoPhaseScheme.__subclasses__()
+        if issubclass(subcls, ConvectiveScheme)
+    ]
+)
+def ToroConvectiveScheme(request):
+    """Fixture that yields all the concrete :class:`TwoPhaseScheme` that are
+    also :class:`ConvectiveScheme`"""
+    yield request.param
 
 
 class NoPI(Classical):
@@ -76,399 +101,425 @@ class RiemannProblem:
     CFL: float
 
 
-riemann_states = [
-    # Test #1
-    # -------
-    # We set a constant value of alpha such that the non-conservative flux
-    # doesnt' intervene. The value for the rho, U, V, p values are the same as
-    # for the Test #1 in the Euler tests. We need to retrieve the same plots
-    RiemannProblem(
-        left=RiemannBCState(
-            alpha=0.5,
-            state=PhasePair(
-                phase1=RiemannState(
-                    rho=1,
-                    U=0,
-                    V=0,
-                    p=1,
-                ),
-                phase2=RiemannState(
-                    rho=1,
-                    U=0,
-                    V=0,
-                    p=1,
-                ),
-            ),
-        ),
-        right=RiemannBCState(
-            alpha=0.5,
-            state=PhasePair(
-                phase1=RiemannState(
-                    rho=0.125,
-                    U=0,
-                    V=0,
-                    p=0.1,
-                ),
-                phase2=RiemannState(
-                    rho=0.125,
-                    U=0,
-                    V=0,
-                    p=0.1,
-                ),
-            ),
-        ),
-        scheme=ToroScheme(
-            eos=TwoPhaseEOS(
-                phase1=PerfectGas(gamma=1.4), phase2=PerfectGas(gamma=1.4)
-            ),
-            closure=Classical(),
-        ),
-        discontinuity_x0=0.5,
-        final_time=0.25,
-        CFL=0.45,
-    ),
-    # Test #2
-    # -------
-    # We set a constant value of rho, U, V, p and just a non-constant alpha. In
-    # addition we set a Closure equation such that pI = 0. This should just
-    # make the non-conservative sheme work only for the alpha equation
-    RiemannProblem(
-        left=RiemannBCState(
-            alpha=0.8,
-            state=PhasePair(
-                phase1=RiemannState(
-                    rho=1,
-                    U=0,
-                    V=0,
-                    p=1,
-                ),
-                phase2=RiemannState(
-                    rho=1,
-                    U=0,
-                    V=0,
-                    p=1,
+@pytest.fixture
+def riemann_states(
+    ToroConvectiveScheme, ToroNonConservativeScheme, TimeScheme
+):
+    class AdvectionOnly(ToroConvectiveScheme, TimeScheme):
+        # Define this to avoid exception of ABC
+        def post_step(self, cells):
+            pass
+
+        def CFL(
+            self,
+            cells: MeshCellSet,
+            CFL_value,
+        ) -> float:
+
+            return 1e-3
+
+    class ToroScheme(
+        ToroConvectiveScheme, ToroNonConservativeScheme, TimeScheme
+    ):
+        pass
+
+    tests = [
+        # Test #1
+        # -------
+        # We set a constant value of alpha such that the non-conservative flux
+        # doesnt' intervene. The value for the rho, U, V, p values are the same
+        # as for the Test #1 in the Euler tests. We need to retrieve the same
+        # plots
+        RiemannProblem(
+            left=RiemannBCState(
+                alpha=0.5,
+                state=PhasePair(
+                    phase1=RiemannState(
+                        rho=1,
+                        U=0,
+                        V=0,
+                        p=1,
+                    ),
+                    phase2=RiemannState(
+                        rho=1,
+                        U=0,
+                        V=0,
+                        p=1,
+                    ),
                 ),
             ),
-        ),
-        right=RiemannBCState(
-            alpha=0.3,
-            state=PhasePair(
-                phase1=RiemannState(
-                    rho=1,
-                    U=0,
-                    V=0,
-                    p=1,
-                ),
-                phase2=RiemannState(
-                    rho=1,
-                    U=0,
-                    V=0,
-                    p=1,
-                ),
-            ),
-        ),
-        scheme=AdvectionOnly(
-            eos=TwoPhaseEOS(
-                phase1=PerfectGas(gamma=1.4), phase2=PerfectGas(gamma=1.4)
-            ),
-            closure=NoPI(),
-        ),
-        discontinuity_x0=0.5,
-        final_time=0.25,
-        CFL=0.45,
-    ),
-    # Test # 3
-    # -------
-    # The same as the test #1 in :cite:`tokareva_toro`
-    RiemannProblem(
-        left=RiemannBCState(
-            alpha=0.8,
-            state=PhasePair(
-                phase1=RiemannState(
-                    rho=1,
-                    U=0,
-                    V=0,
-                    p=1,
-                ),
-                phase2=RiemannState(
-                    rho=0.2,
-                    U=0,
-                    V=0,
-                    p=0.3,
+            right=RiemannBCState(
+                alpha=0.5,
+                state=PhasePair(
+                    phase1=RiemannState(
+                        rho=0.125,
+                        U=0,
+                        V=0,
+                        p=0.1,
+                    ),
+                    phase2=RiemannState(
+                        rho=0.125,
+                        U=0,
+                        V=0,
+                        p=0.1,
+                    ),
                 ),
             ),
-        ),
-        right=RiemannBCState(
-            alpha=0.3,
-            state=PhasePair(
-                phase1=RiemannState(
-                    rho=1,
-                    U=0,
-                    V=0,
-                    p=1,
+            scheme=ToroScheme(
+                eos=TwoPhaseEOS(
+                    phase1=PerfectGas(gamma=1.4), phase2=PerfectGas(gamma=1.4)
                 ),
-                phase2=RiemannState(
-                    rho=1,
-                    U=0,
-                    V=0,
-                    p=1,
+                closure=Classical(),
+            ),
+            discontinuity_x0=0.5,
+            final_time=0.25,
+            CFL=0.45,
+        ),
+        # Test #2
+        # -------
+        # We set a constant value of rho, U, V, p and just a non-constant
+        # alpha. In addition we set a Closure equation such that pI = 0. This
+        # should just make the non-conservative sheme work only for the alpha
+        # equation
+        RiemannProblem(
+            left=RiemannBCState(
+                alpha=0.8,
+                state=PhasePair(
+                    phase1=RiemannState(
+                        rho=1,
+                        U=0,
+                        V=0,
+                        p=1,
+                    ),
+                    phase2=RiemannState(
+                        rho=1,
+                        U=0,
+                        V=0,
+                        p=1,
+                    ),
                 ),
             ),
-        ),
-        scheme=ToroScheme(
-            eos=TwoPhaseEOS(
-                phase1=PerfectGas(gamma=1.4), phase2=PerfectGas(gamma=1.4)
-            ),
-            closure=Classical(),
-        ),
-        discontinuity_x0=0.5,
-        final_time=0.15,
-        CFL=0.45,
-    ),
-    # Test # 4
-    # -------
-    # The same as the test #2 in :cite:`tokareva_toro`
-    RiemannProblem(
-        left=RiemannBCState(
-            alpha=0.2,
-            state=PhasePair(
-                phase1=RiemannState(
-                    rho=1900,
-                    U=0,
-                    V=0,
-                    p=10,
-                ),
-                phase2=RiemannState(
-                    rho=2,
-                    U=0,
-                    V=0,
-                    p=3,
+            right=RiemannBCState(
+                alpha=0.3,
+                state=PhasePair(
+                    phase1=RiemannState(
+                        rho=1,
+                        U=0,
+                        V=0,
+                        p=1,
+                    ),
+                    phase2=RiemannState(
+                        rho=1,
+                        U=0,
+                        V=0,
+                        p=1,
+                    ),
                 ),
             ),
-        ),
-        right=RiemannBCState(
-            alpha=0.9,
-            state=PhasePair(
-                phase1=RiemannState(
-                    rho=1950,
-                    U=0,
-                    V=0,
-                    p=1000,
+            scheme=AdvectionOnly(
+                eos=TwoPhaseEOS(
+                    phase1=PerfectGas(gamma=1.4), phase2=PerfectGas(gamma=1.4)
                 ),
-                phase2=RiemannState(
-                    rho=1,
-                    U=0,
-                    V=0,
-                    p=1,
+                closure=NoPI(),
+            ),
+            discontinuity_x0=0.5,
+            final_time=0.25,
+            CFL=0.45,
+        ),
+        # Test # 3
+        # -------
+        # The same as the test #1 in :cite:`tokareva_toro`
+        RiemannProblem(
+            left=RiemannBCState(
+                alpha=0.8,
+                state=PhasePair(
+                    phase1=RiemannState(
+                        rho=1,
+                        U=0,
+                        V=0,
+                        p=1,
+                    ),
+                    phase2=RiemannState(
+                        rho=0.2,
+                        U=0,
+                        V=0,
+                        p=0.3,
+                    ),
                 ),
             ),
-        ),
-        scheme=ToroScheme(
-            eos=TwoPhaseEOS(
-                phase1=StiffenedGas(gamma=3.0, p0=3400),
-                phase2=PerfectGas(gamma=1.35),
-            ),
-            closure=Classical(),
-        ),
-        discontinuity_x0=0.5,
-        final_time=0.15,
-        CFL=0.45,
-    ),
-    # Test # 5
-    # -------
-    # The same as the test #3 in :cite:`tokareva_toro`
-    RiemannProblem(
-        left=RiemannBCState(
-            alpha=0.8,
-            state=PhasePair(
-                phase1=RiemannState(
-                    rho=1,
-                    U=0.75,
-                    V=0,
-                    p=1,
-                ),
-                phase2=RiemannState(
-                    rho=1,
-                    U=0.75,
-                    V=0,
-                    p=1,
+            right=RiemannBCState(
+                alpha=0.3,
+                state=PhasePair(
+                    phase1=RiemannState(
+                        rho=1,
+                        U=0,
+                        V=0,
+                        p=1,
+                    ),
+                    phase2=RiemannState(
+                        rho=1,
+                        U=0,
+                        V=0,
+                        p=1,
+                    ),
                 ),
             ),
-        ),
-        right=RiemannBCState(
-            alpha=0.3,
-            state=PhasePair(
-                phase1=RiemannState(
-                    rho=0.125,
-                    U=0,
-                    V=0,
-                    p=0.1,
+            scheme=ToroScheme(
+                eos=TwoPhaseEOS(
+                    phase1=PerfectGas(gamma=1.4), phase2=PerfectGas(gamma=1.4)
                 ),
-                phase2=RiemannState(
-                    rho=0.125,
-                    U=0,
-                    V=0,
-                    p=0.0,
+                closure=Classical(),
+            ),
+            discontinuity_x0=0.5,
+            final_time=0.15,
+            CFL=0.45,
+        ),
+        # Test # 4
+        # -------
+        # The same as the test #2 in :cite:`tokareva_toro`
+        RiemannProblem(
+            left=RiemannBCState(
+                alpha=0.2,
+                state=PhasePair(
+                    phase1=RiemannState(
+                        rho=1900,
+                        U=0,
+                        V=0,
+                        p=10,
+                    ),
+                    phase2=RiemannState(
+                        rho=2,
+                        U=0,
+                        V=0,
+                        p=3,
+                    ),
                 ),
             ),
-        ),
-        scheme=ToroScheme(
-            eos=TwoPhaseEOS(
-                phase1=PerfectGas(gamma=1.4), phase2=PerfectGas(gamma=1.4)
-            ),
-            closure=Classical(),
-        ),
-        discontinuity_x0=0.5,
-        final_time=0.15,
-        CFL=0.45,
-    ),
-    # Test # 6
-    # -------
-    # The same as the test #4 in :cite:`tokareva_toro`
-    RiemannProblem(
-        left=RiemannBCState(
-            alpha=0.8,
-            state=PhasePair(
-                phase1=RiemannState(
-                    rho=1,
-                    U=-2,
-                    V=0,
-                    p=0.4,
-                ),
-                phase2=RiemannState(
-                    rho=1,
-                    U=-2,
-                    V=0,
-                    p=0.4,
+            right=RiemannBCState(
+                alpha=0.9,
+                state=PhasePair(
+                    phase1=RiemannState(
+                        rho=1950,
+                        U=0,
+                        V=0,
+                        p=1000,
+                    ),
+                    phase2=RiemannState(
+                        rho=1,
+                        U=0,
+                        V=0,
+                        p=1,
+                    ),
                 ),
             ),
-        ),
-        right=RiemannBCState(
-            alpha=0.5,
-            state=PhasePair(
-                phase1=RiemannState(
-                    rho=1,
-                    U=2,
-                    V=0,
-                    p=0.4,
+            scheme=ToroScheme(
+                eos=TwoPhaseEOS(
+                    phase1=StiffenedGas(gamma=3.0, p0=3400),
+                    phase2=PerfectGas(gamma=1.35),
                 ),
-                phase2=RiemannState(
-                    rho=1,
-                    U=2,
-                    V=0,
-                    p=0.4,
+                closure=Classical(),
+            ),
+            discontinuity_x0=0.5,
+            final_time=0.15,
+            CFL=0.45,
+        ),
+        # Test # 5
+        # -------
+        # The same as the test #3 in :cite:`tokareva_toro`
+        RiemannProblem(
+            left=RiemannBCState(
+                alpha=0.8,
+                state=PhasePair(
+                    phase1=RiemannState(
+                        rho=1,
+                        U=0.75,
+                        V=0,
+                        p=1,
+                    ),
+                    phase2=RiemannState(
+                        rho=1,
+                        U=0.75,
+                        V=0,
+                        p=1,
+                    ),
                 ),
             ),
-        ),
-        scheme=ToroScheme(
-            eos=TwoPhaseEOS(
-                phase1=PerfectGas(gamma=1.4), phase2=PerfectGas(gamma=1.4)
-            ),
-            closure=Classical(),
-        ),
-        discontinuity_x0=0.5,
-        final_time=0.15,
-        CFL=0.45,
-    ),
-    # Test # 7
-    # -------
-    # The same as the test #5 in :cite:`tokareva_toro`
-    RiemannProblem(
-        left=RiemannBCState(
-            alpha=0.6,
-            state=PhasePair(
-                phase1=RiemannState(
-                    rho=1.4,
-                    U=0,
-                    V=0,
-                    p=2.0,
-                ),
-                phase2=RiemannState(
-                    rho=1.4,
-                    U=0,
-                    V=0,
-                    p=1.0,
+            right=RiemannBCState(
+                alpha=0.3,
+                state=PhasePair(
+                    phase1=RiemannState(
+                        rho=0.125,
+                        U=0,
+                        V=0,
+                        p=0.1,
+                    ),
+                    phase2=RiemannState(
+                        rho=0.125,
+                        U=0,
+                        V=0,
+                        p=0.0,
+                    ),
                 ),
             ),
-        ),
-        right=RiemannBCState(
-            alpha=0.3,
-            state=PhasePair(
-                phase1=RiemannState(
-                    rho=1,
-                    U=0,
-                    V=0,
-                    p=3.0,
+            scheme=ToroScheme(
+                eos=TwoPhaseEOS(
+                    phase1=PerfectGas(gamma=1.4), phase2=PerfectGas(gamma=1.4)
                 ),
-                phase2=RiemannState(
-                    rho=1,
-                    U=0,
-                    V=0,
-                    p=1.0,
+                closure=Classical(),
+            ),
+            discontinuity_x0=0.5,
+            final_time=0.15,
+            CFL=0.45,
+        ),
+        # Test # 6
+        # -------
+        # The same as the test #4 in :cite:`tokareva_toro`
+        RiemannProblem(
+            left=RiemannBCState(
+                alpha=0.8,
+                state=PhasePair(
+                    phase1=RiemannState(
+                        rho=1,
+                        U=-2,
+                        V=0,
+                        p=0.4,
+                    ),
+                    phase2=RiemannState(
+                        rho=1,
+                        U=-2,
+                        V=0,
+                        p=0.4,
+                    ),
                 ),
             ),
-        ),
-        scheme=ToroScheme(
-            eos=TwoPhaseEOS(
-                phase1=StiffenedGas(gamma=3.0, p0=10),
-                phase2=PerfectGas(gamma=1.4),
-            ),
-            closure=Classical(),
-        ),
-        discontinuity_x0=0.5,
-        final_time=0.15,
-        CFL=0.45,
-    ),
-    # Test # 8
-    # -------
-    # The same as the test #6 in :cite:`tokareva_toro`
-    RiemannProblem(
-        left=RiemannBCState(
-            alpha=0.7,
-            state=PhasePair(
-                phase1=RiemannState(
-                    rho=1,
-                    U=-19.5975,
-                    V=0,
-                    p=1000,
-                ),
-                phase2=RiemannState(
-                    rho=1,
-                    U=-19.5975,
-                    V=0,
-                    p=1000,
+            right=RiemannBCState(
+                alpha=0.5,
+                state=PhasePair(
+                    phase1=RiemannState(
+                        rho=1,
+                        U=2,
+                        V=0,
+                        p=0.4,
+                    ),
+                    phase2=RiemannState(
+                        rho=1,
+                        U=2,
+                        V=0,
+                        p=0.4,
+                    ),
                 ),
             ),
-        ),
-        right=RiemannBCState(
-            alpha=0.2,
-            state=PhasePair(
-                phase1=RiemannState(
-                    rho=1,
-                    U=-19.5975,
-                    V=0,
-                    p=0.01,
+            scheme=ToroScheme(
+                eos=TwoPhaseEOS(
+                    phase1=PerfectGas(gamma=1.4), phase2=PerfectGas(gamma=1.4)
                 ),
-                phase2=RiemannState(
-                    rho=1,
-                    U=-19.5975,
-                    V=0,
-                    p=0.01,
+                closure=Classical(),
+            ),
+            discontinuity_x0=0.5,
+            final_time=0.15,
+            CFL=0.45,
+        ),
+        # Test # 7
+        # -------
+        # The same as the test #5 in :cite:`tokareva_toro`
+        RiemannProblem(
+            left=RiemannBCState(
+                alpha=0.6,
+                state=PhasePair(
+                    phase1=RiemannState(
+                        rho=1.4,
+                        U=0,
+                        V=0,
+                        p=2.0,
+                    ),
+                    phase2=RiemannState(
+                        rho=1.4,
+                        U=0,
+                        V=0,
+                        p=1.0,
+                    ),
                 ),
             ),
-        ),
-        scheme=ToroScheme(
-            eos=TwoPhaseEOS(
-                phase1=StiffenedGas(gamma=3.0, p0=100),
-                phase2=PerfectGas(gamma=1.4),
+            right=RiemannBCState(
+                alpha=0.3,
+                state=PhasePair(
+                    phase1=RiemannState(
+                        rho=1,
+                        U=0,
+                        V=0,
+                        p=3.0,
+                    ),
+                    phase2=RiemannState(
+                        rho=1,
+                        U=0,
+                        V=0,
+                        p=1.0,
+                    ),
+                ),
             ),
-            closure=Classical(),
+            scheme=ToroScheme(
+                eos=TwoPhaseEOS(
+                    phase1=StiffenedGas(gamma=3.0, p0=10),
+                    phase2=PerfectGas(gamma=1.4),
+                ),
+                closure=Classical(),
+            ),
+            discontinuity_x0=0.5,
+            final_time=0.15,
+            CFL=0.45,
         ),
-        discontinuity_x0=0.8,
-        final_time=0.007,
-        CFL=0.45,
-    ),
-]
+        # Test # 8
+        # -------
+        # The same as the test #6 in :cite:`tokareva_toro`
+        RiemannProblem(
+            left=RiemannBCState(
+                alpha=0.7,
+                state=PhasePair(
+                    phase1=RiemannState(
+                        rho=1,
+                        U=-19.5975,
+                        V=0,
+                        p=1000,
+                    ),
+                    phase2=RiemannState(
+                        rho=1,
+                        U=-19.5975,
+                        V=0,
+                        p=1000,
+                    ),
+                ),
+            ),
+            right=RiemannBCState(
+                alpha=0.2,
+                state=PhasePair(
+                    phase1=RiemannState(
+                        rho=1,
+                        U=-19.5975,
+                        V=0,
+                        p=0.01,
+                    ),
+                    phase2=RiemannState(
+                        rho=1,
+                        U=-19.5975,
+                        V=0,
+                        p=0.01,
+                    ),
+                ),
+            ),
+            scheme=ToroScheme(
+                eos=TwoPhaseEOS(
+                    phase1=StiffenedGas(gamma=3.0, p0=100),
+                    phase2=PerfectGas(gamma=1.4),
+                ),
+                closure=Classical(),
+            ),
+            discontinuity_x0=0.8,
+            final_time=0.007,
+            CFL=0.45,
+        ),
+    ]
+
+    yield tests
 
 
 def set_bc_state(bc_state: RiemannBCState, eos: TwoPhaseEOS):
@@ -537,123 +588,129 @@ def plot_func(data, time_annotation, lines, axes, fields_to_plot):
         ax.autoscale_view()
 
 
-@pytest.mark.parametrize("riemann", riemann_states)
-def test_toro(riemann: RiemannProblem, request, plot, write):
-    left = Line([0, 0], [0, 1])
-    bottom = Line([0, 0], [1, 0])
-    right = Line([1, 0], [1, 1])
-    top = Line([0, 1], [1, 1])
+def test_toro(riemann_states, request, plot, write):
+    for riemann in riemann_states:
+        left = Line([0, 0], [0, 1])
+        bottom = Line([0, 0], [1, 0])
+        right = Line([1, 0], [1, 1])
+        top = Line([0, 1], [1, 1])
 
-    # BC
-    Q_left: Q = set_bc_state(riemann.left, riemann.scheme.problem.eos)
-    Q_right: Q = set_bc_state(riemann.right, riemann.scheme.problem.eos)
+        # BC
+        Q_left: Q = set_bc_state(riemann.left, riemann.scheme.problem.eos)
+        Q_right: Q = set_bc_state(riemann.right, riemann.scheme.problem.eos)
 
-    left.bc = Dirichlet(Q_left)
-    right.bc = Dirichlet(Q_right)
-    top.bc = None
-    bottom.bc = None
+        left.bc = Dirichlet(Q_left)
+        right.bc = Dirichlet(Q_right)
+        top.bc = None
+        bottom.bc = None
 
-    mesh = Mesh(left, bottom, right, top, SimpleCell)
-    mesh.interpolate(500, 1)
-    mesh.generate()
+        mesh = Mesh(left, bottom, right, top, SimpleCell)
+        mesh.interpolate(500, 1)
+        mesh.generate()
 
-    def init_fun(cells: MeshCellSet):
-        xc = cells.centroids[..., 0]
+        def init_fun(cells: MeshCellSet):
+            xc = cells.centroids[..., 0]
 
-        cells.values[np.where(xc > riemann.discontinuity_x0), ...] = Q_right
-        cells.values[np.where(xc <= riemann.discontinuity_x0), ...] = Q_left
+            cells.values[
+                np.where(xc > riemann.discontinuity_x0), ...
+            ] = Q_right
+            cells.values[
+                np.where(xc <= riemann.discontinuity_x0), ...
+            ] = Q_left
 
-    scheme = riemann.scheme
-    solver = TwoPhaseSolver(mesh, scheme)
-    solver.init(init_fun)
+        scheme = riemann.scheme
+        solver = TwoPhaseSolver(mesh, scheme)
+        solver.init(init_fun)
 
-    final_time = riemann.final_time
-    t = 0
-    CFL = riemann.CFL
+        final_time = riemann.final_time
+        t = 0
+        CFL = riemann.CFL
 
-    # :: Plot stuff ::
-    fields = Q.fields
-    fields_to_plot = [
-        fields.arho1,
-        fields.arho2,
-        fields.U1,
-        fields.U2,
-        fields.p1,
-        fields.p2,
-    ]
-    num_fields = len(fields_to_plot) // 2
+        # :: Plot stuff ::
+        fields = Q.fields
+        fields_to_plot = [
+            fields.arho1,
+            fields.arho2,
+            fields.U1,
+            fields.U2,
+            fields.p1,
+            fields.p2,
+        ]
+        num_fields = len(fields_to_plot) // 2
 
-    time_series = []
-    artists = []
-    axes = []
+        time_series = []
+        artists = []
+        axes = []
 
-    x = solver.mesh.cells.centroids[..., 0]
-    x = x.reshape(x.size)
-
-    fig = plt.figure()
-
-    # First plot alpha
-    num_fields += 1
-    gs = GridSpec(num_fields, 2)
-    ax: plt.Axes = fig.add_subplot(gs[0, :])
-    alpha = solver.mesh.cells.values[..., fields.alpha]
-    (line,) = ax.plot(x, alpha, label=r"$\alpha$")
-    ax.legend(loc="best")
-    time_annotation = fig.text(
-        0.5, 0.05, "t=0.00s", horizontalalignment="center"
-    )
-    artists.append(line)
-    axes.append(ax)
-
-    for i, field in enumerate(fields_to_plot, 2):
-        # Indices in the plot grid
-        idx, idy = np.unravel_index(i, (num_fields, 2))
-        ax: plt.Axes = fig.add_subplot(gs[idx, idy])
-        field_value = solver.mesh.cells.values[..., field]
-        (line,) = ax.plot(x, field_value, label=field.name)
-        ax.legend(loc="best")
-        artists.append(line)
-        axes.append(ax)
-
-    # :: End Plot Stuff ::
-
-    while t <= final_time:
-        # :: Plot Stuff ::
         x = solver.mesh.cells.centroids[..., 0]
         x = x.reshape(x.size)
 
-        time_series.append((t, x, np.copy(solver.mesh.cells.values).view(Q)))
+        fig = plt.figure()
+
+        # First plot alpha
+        num_fields += 1
+        gs = GridSpec(num_fields, 2)
+        ax: plt.Axes = fig.add_subplot(gs[0, :])
+        alpha = solver.mesh.cells.values[..., fields.alpha]
+        (line,) = ax.plot(x, alpha, label=r"$\alpha$")
+        ax.legend(loc="best")
+        time_annotation = fig.text(
+            0.5, 0.05, "t=0.00s", horizontalalignment="center"
+        )
+        artists.append(line)
+        axes.append(ax)
+
+        for i, field in enumerate(fields_to_plot, 2):
+            # Indices in the plot grid
+            idx, idy = np.unravel_index(i, (num_fields, 2))
+            ax: plt.Axes = fig.add_subplot(gs[idx, idy])
+            field_value = solver.mesh.cells.values[..., field]
+            (line,) = ax.plot(x, field_value, label=field.name)
+            ax.legend(loc="best")
+            artists.append(line)
+            axes.append(ax)
 
         # :: End Plot Stuff ::
 
-        dt = scheme.CFL(
-            solver.mesh.cells,
-            CFL,
+        while t <= final_time:
+            # :: Plot Stuff ::
+            x = solver.mesh.cells.centroids[..., 0]
+            x = x.reshape(x.size)
+
+            time_series.append(
+                (t, x, np.copy(solver.mesh.cells.values).view(Q))
+            )
+
+            # :: End Plot Stuff ::
+
+            dt = scheme.CFL(
+                solver.mesh.cells,
+                CFL,
+            )
+            assert ~np.isnan(dt)
+            solver.step(dt)
+
+            t += dt
+            print(f"Time: {t}, dt: {dt}")
+
+        fig.tight_layout()
+        fig.subplots_adjust(
+            bottom=0.15,
+            top=0.95,
+            hspace=0.35,
         )
-        assert ~np.isnan(dt)
-        solver.step(dt)
+        ani = FuncAnimation(
+            fig,
+            plot_func,
+            [(data[0], data[1], data[2]) for data in time_series],
+            fargs=(time_annotation, artists, axes, fields_to_plot),
+            repeat=False,
+        )
 
-        t += dt
-        print(f"Time: {t}, dt: {dt}")
+        if write:
+            ani.save(f"twophase-{request.node.name}.mp4")
 
-    fig.tight_layout()
-    fig.subplots_adjust(
-        bottom=0.15,
-        top=0.95,
-        hspace=0.35,
-    )
-    ani = FuncAnimation(
-        fig,
-        plot_func,
-        [(data[0], data[1], data[2]) for data in time_series],
-        fargs=(time_annotation, artists, axes, fields_to_plot),
-        repeat=False,
-    )
+        if plot:
+            plt.show()
 
-    if write:
-        ani.save(f"twophase-{request.node.name}.mp4")
-
-    if plot:
-        plt.show()
-
-    plt.close()
+        plt.close()

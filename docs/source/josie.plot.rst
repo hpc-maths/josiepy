@@ -20,7 +20,6 @@ josie.plot.matplotlib module
    :undoc-members:
    :show-inheritance:
 
-
 Module contents
 ---------------
 

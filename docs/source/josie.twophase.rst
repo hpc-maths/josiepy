@@ -19,7 +19,6 @@ josie.twophase.eos module
    :members:
    :undoc-members:
    :show-inheritance:
-   :special-members:
 
 josie.twophase.problem module
 -----------------------------
@@ -52,7 +51,6 @@ josie.twophase.state module
    :members:
    :undoc-members:
    :show-inheritance:
-
 
 Module contents
 ---------------

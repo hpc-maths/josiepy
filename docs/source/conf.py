@@ -185,6 +185,10 @@ imgmath_latex_preamble = r"""
     \rho, \rho U, \rho V, \rho E, \rho e, U, V, p, c
 )}
 
+% :: RK ::
+\newcommand{\rungeKutta}{\ensuremath{%
+    \pdeState^{k+1} = \pdeState^{k} + \Delta t \sum_i^s b_i k_i
+}}
 
 """
 

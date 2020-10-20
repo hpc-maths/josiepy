@@ -3,11 +3,12 @@ import numpy as np
 
 from dataclasses import dataclass
 from enum import Enum, IntEnum
-from typing import TYPE_CHECKING, Tuple
+from typing import TYPE_CHECKING, Iterable, List, Tuple
 
-from josie.geom import MeshIndex
+from josie.geometry import MeshIndex
 
 if TYPE_CHECKING:
+    from josie.boundary import Boundary
     from josie.solver.state import State
 
 
@@ -114,7 +115,7 @@ class NeighbourDirection(Enum):
 
 
 class MeshCellSet(CellSet):
-    r""" A class representing the cells in a :class:`Mesh` object, i.e. a
+    r"""A class representing the cells in a :class:`Mesh` object, i.e. a
     structured mesh. It stores internally the mesh cells data (centroids,
     values, etc...) including values for the ghost cells. The non-ghost values
     are then exposed as views on the internal array
@@ -143,9 +144,13 @@ class MeshCellSet(CellSet):
         An array of dimensions :math:`N_x \times N_y \times N_\text{fields}`
         storing the value of the :class:`State` for each cell of the
         :class:`Mesh`
+
+    dimensionality
+        The :class:`Mesh` dimensionality
     """
 
     _values: State
+    _neighbours: List[CellSet]
 
     def __init__(
         self,
@@ -153,11 +158,13 @@ class MeshCellSet(CellSet):
         volumes: np.ndarray,
         surfaces: np.ndarray,
         normals: np.ndarray,
+        dimensionality: int,
     ):
         self._centroids = centroids
         self._volumes = volumes
         self._surfaces = surfaces
         self._normals = normals
+        self.dimensionality = dimensionality
 
     def __getitem__(self, key: Tuple[MeshIndex, ...]) -> CellSet:
         """For :class:`MeshCellSet`, differently from :class:`CellSet`, we
@@ -172,20 +179,37 @@ class MeshCellSet(CellSet):
             values=self._values[key],
         )
 
-    def get_neighbours(self, key: NeighbourDirection) -> CellSet:
-        """Similar to :meth:`__getitem__`, but to slice the
-        :class:`MeshCellSet` as whole to get neighbours on all the mesh sides
-        """
-        data_index = key.value.data_index
-        normal_direction = key.value.normal_direction
+    def create_neighbours(self):
+        directions = []
+        if self.dimensionality > 0:
+            directions = [
+                NeighbourDirection.LEFT,
+                NeighbourDirection.RIGHT,
+            ]
 
-        return CellSet(
-            centroids=self._centroids[data_index],
-            values=self._values[data_index],
-            volumes=self._volumes[data_index],
-            normals=self.normals[..., normal_direction, :],
-            surfaces=self.surfaces[..., normal_direction],
-        )
+        if self.dimensionality > 1:
+            directions.extend(
+                (NeighbourDirection.TOP, NeighbourDirection.BOTTOM)
+            )
+
+        # TODO Add 3D
+        # if self.dimensionality > 2:
+
+        self.neighbours = []
+
+        for direction in directions:
+            data_index = direction.value.data_index
+            normal_direction = direction.value.normal_direction
+
+            self.neighbours.append(
+                CellSet(
+                    centroids=self._centroids[data_index],
+                    values=self._values[data_index],
+                    volumes=self._volumes[data_index],
+                    normals=self.normals[..., normal_direction, :],
+                    surfaces=self.surfaces[..., normal_direction],
+                )
+            )
 
     @property  # type: ignore
     def volumes(self) -> np.ndarray:
@@ -226,3 +250,20 @@ class MeshCellSet(CellSet):
     @values.setter
     def values(self, values: State):
         self._values[1:-1, 1:-1, :] = values
+
+    def update_ghosts(self, boundaries: Iterable[Boundary], t: float):
+        """This method updates the ghost cells of the mesh with the current
+        values depending on the specified boundary condition
+
+        Parameters
+        ----------
+        boundaries
+            The :class:`Boundary` objects holding the
+            :class:`BoundaryCondition` callables
+        t
+            The time instant to evaluate time dependent
+            :class:`BoundaryCondition`
+        """
+
+        for boundary in boundaries:
+            boundary.bc(self, t)

@@ -1,9 +1,6 @@
 [submodule "vendor/commonmark.py"]
 	path = vendor/commonmark.py
 	url = https://github.com/rubendibattista/commonmark.py.git
-[submodule "vendor/nbconvert"]
-	path = vendor/nbconvert
-    url = https://github.com/rubendibattista/nbconvert
 [submodule "vendor/recommonmark"]
 	path = vendor/recommonmark
 	url = https://github.com/rubendibattista/recommonmark.git

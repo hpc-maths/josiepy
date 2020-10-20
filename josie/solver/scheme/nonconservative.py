@@ -33,14 +33,14 @@ from .scheme import Scheme
 
 
 class NonConservativeScheme(Scheme):
-    r""" A mixin that provides the scheme implementation for the non
+    r"""A mixin that provides the scheme implementation for the non
     conservative term
     """
 
-    def accumulate(self, cells: MeshCellSet, neighs: CellSet):
+    def accumulate(self, cells: MeshCellSet, neighs: CellSet, t: float):
 
         # Accumulate other terms
-        super().accumulate(cells, neighs)
+        super().accumulate(cells, neighs, t)
 
         B = self.problem.B(cells)
         G = self.G(cells, neighs)
@@ -51,7 +51,7 @@ class NonConservativeScheme(Scheme):
     @abc.abstractmethod
     def G(self, cells: MeshCellSet, neighs: CellSet) -> np.ndarray:
 
-        r""" This is the non-conservative flux implementation of the scheme. See
+        r"""This is the non-conservative flux implementation of the scheme. See
         :cite:`toro_riemann_2009` for a great overview on numerical methods for
         hyperbolic problems.
 

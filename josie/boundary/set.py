@@ -24,33 +24,65 @@
 # The views and conclusions contained in the software and documentation
 # are those of the authors and should not be interpreted as representing
 # official policies, either expressed or implied, of Ruben Di Battista.
-import abc
+from dataclasses import dataclass
+from typing import Iterator
 
-from josie.mesh import Mesh
-from josie.solver.problem import Problem
-
-from .scheme import Scheme
+from .boundary import BoundaryCurve, Line
 
 
-class TimeScheme(Scheme):
-    r"""A mixin that provides the scheme implementation for the time
-    derivative
+@dataclass
+class BoundarySet:
+    left: BoundaryCurve
+    bottom: BoundaryCurve
+    right: BoundaryCurve
+    top: BoundaryCurve
 
-    .. math::
+    def __iter__(self) -> Iterator[BoundaryCurve]:
+        return iter([self.left, self.bottom, self.right, self.top])
 
-        \numTime
 
-    Attributes
+class BoxMesh(BoundarySet):
+    """A convenience class to create a rectangular mesh provided its
+    dimensions
+
+    Parameters
     ----------
-    order
-        The supposed order for the scheme. Useful for exemple when testing.
+    length
+        The length of the box
+
+    height
+        The height of the box
     """
 
-    time_order: float
+    def __init__(
+        self,
+        length: float,
+        height: float,
+    ):
+        left = Line([0, 0], [0, height])
+        bottom = Line([0, 0], [length, 0])
+        right = Line([length, 0], [length, height])
+        top = Line([0, height], [length, height])
 
-    def __init__(self, problem: Problem, *args, **kwargs):
-        super().__init__(problem)
+        super().__init__(left, bottom, right, top)
 
-    @abc.abstractmethod
-    def step(self, mesh: Mesh, dt: float, t: float):
-        raise NotImplementedError
+
+class Cube(BoxMesh):
+    """ A :class:`BoxMesh` with equal lenght and height """
+
+    def __init__(
+        self,
+        side_length: float,
+    ):
+
+        super().__init__(side_length, side_length)
+
+
+class UnitCube(Cube):
+    """ :class:`Cube` with length equal to 1 """
+
+    def __init__(
+        self,
+    ):
+
+        super().__init__(1.0)

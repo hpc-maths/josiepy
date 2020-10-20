@@ -26,7 +26,6 @@
 # official policies, either expressed or implied, of Ruben Di Battista.
 from __future__ import annotations
 
-import numpy as np
 
 from typing import (
     Callable,
@@ -38,7 +37,7 @@ from typing import (
     TYPE_CHECKING,
 )
 
-from josie.mesh.cellset import CellSet, MeshCellSet, NeighbourDirection
+from josie.mesh.cellset import CellSet, MeshCellSet
 
 from .state import State
 from .scheme import Scheme
@@ -49,7 +48,7 @@ if TYPE_CHECKING:
 
 
 class Solver:
-    r""" This class is used to solve a problem governed by PDEs.
+    r"""This class is used to solve a problem governed by PDEs.
 
     The internal state of the mesh is stored in :attr:`values`, while the
     values of the ghost cells (used to apply the
@@ -87,40 +86,6 @@ class Solver:
         self.Q = Q
         self.scheme = scheme
 
-    @property
-    def neighbours(self) -> Sequence[CellSet]:
-        """A property returning an iterable of neighbours of the
-        :attr:`values`
-
-        Returns
-        -------
-        neighbours
-            A tuple of :class:`CellSet`.
-        """
-
-        # OPTIMIZE: Probably instead of the Iterable using a numpy array
-        # would help to make computations faster
-
-        try:
-            return self._neighs
-        except AttributeError:
-            cells = self.mesh.cells
-            neighs = [
-                cells.get_neighbours(NeighbourDirection.LEFT),
-                cells.get_neighbours(NeighbourDirection.RIGHT),
-            ]
-
-            if not (self.mesh.dimensionality == 1):
-                neighs.extend(
-                    (
-                        cells.get_neighbours(NeighbourDirection.TOP),
-                        cells.get_neighbours(NeighbourDirection.BOTTOM),
-                    )
-                )
-
-            self._neighs = tuple(neighs)
-        return self._neighs
-
     def init(self, init_fun: Callable[[MeshCellSet], NoReturn]):
         """
         This method initialize the internal values of the cells of the
@@ -143,78 +108,25 @@ class Solver:
         # The actual values are a view of only the internal cells
         init_fun(self.mesh.cells)
 
-        # Corner values are unused, set to NaN
-        self.mesh.cells._values[0, 0] = np.nan
-        self.mesh.cells._values[0, -1] = np.nan
-        self.mesh.cells._values[-1, -1] = np.nan
-        self.mesh.cells._values[-1, 0] = np.nan
+        # Note: Corner values are unused
 
-        self._update_ghosts()
+        self.mesh.create_neighbours()
+        self.mesh.update_ghosts(self.t)
 
         # Initialize the scheme datastructures (notably the fluxes)
-        self.scheme.post_init(self.mesh.cells, self.neighbours)
-
-    def _update_ghosts(self):
-        """This method updates the ghost cells of the mesh with the current
-        values depending on the specified boundary condition"""
-
-        for boundary in self.mesh.boundaries:
-            boundary.bc(self)
+        self.scheme.post_init(self.mesh.cells)
 
     def step(self, dt: float):
         """This method advances one step in time using the
-        :meth:`Scheme.update` method of the given numerical scheme.
-
-        A `scheme` callable gets as input the internal values of the cells, the
-        neighbour values, the normals associated to the neighbours and the
-        value of the face surfaces. A `scheme` generally has to be coded as a
-        1D scheme that operates only on the *right* neighbour. It is then
-        called (in 2D) 4 times, one for each set of neighbours (left, bottom,
-        right, top).  As an example, when called for the right neighbours, the
-        data structures sent to the `scheme` callable for `values` and
-        `neigh_values` are:
-
-        **values**
-
-        +-----------------+-----------------+-----------------+
-        | ``values[0,2]`` | ``values[1,2]`` | ``values[2,2]`` |
-        +-----------------+-----------------+-----------------+
-        | ``values[0,1]`` | ``values[1,1]`` | ``values[2,1]`` |
-        +-----------------+-----------------+-----------------+
-        | ``values[0,0]`` | ``values[1,0]`` | ``values[2,0]`` |
-        +-----------------+-----------------+-----------------+
-
-        **neighbours**
-
-        +-----------------+-----------------+--------------------+
-        | ``values[1,2]`` | ``values[2,2]`` | ``right_ghost[2]`` |
-        +-----------------+-----------------+--------------------+
-        | ``values[1,1]`` | ``values[2,1]`` | ``right_ghost[1]`` |
-        +-----------------+-----------------+--------------------+
-        | ``values[1,0]`` | ``values[2,0]`` | ``right_ghost[0]`` |
-        +-----------------+-----------------+--------------------+
+        :meth:`Scheme.step` method of the given numerical scheme.
 
         Parameters
         ----------
         dt
             Time increment of the step
         """
-        cells = self.mesh.cells
 
-        self.scheme.pre_step(cells, self.neighbours)
-
-        # Loop on all the cells neigbours
-        for neighs in self.neighbours:
-            self.scheme.accumulate(cells, neighs)
-
-        # Update
-        cells.values -= self.scheme.update(cells, dt)
-
-        # Let's put here an handy post step if needed after the values update
-        self.scheme.post_step(cells, self.neighbours)
-
-        # Keep ghost cells updated
-        self._update_ghosts()
+        self.scheme.update(self.mesh, dt, self.t)
 
     def plot(self):
         """Plot the current state of the simulation in a GUI."""

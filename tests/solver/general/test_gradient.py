@@ -68,6 +68,6 @@ def test_least_square_gradient(mocker, tol, mesh, Q, init_fun):
     solver = Solver(mesh, Q, scheme)
     solver.init(init_fun)
 
-    scheme.pre_step(solver.mesh.cells, solver.neighbours)
+    scheme.pre_step(mesh.cells)
 
     assert np.all(np.abs(scheme._gradient - 1 < tol))

@@ -38,12 +38,18 @@ from .scheme import Scheme
 
 
 class ConvectiveScheme(Scheme):
-    """A mixin that provides the scheme implementation for the convective
-    term"""
+    r"""A mixin that provides the scheme implementation for the convective
+    term
+
+    .. math::
+
+        \numConvectiveFull
+
+    """
 
     @abc.abstractmethod
     def F(self, cells: MeshCellSet, neighs: CellSet) -> State:
-        r""" This is the convective flux implementation of the scheme. See
+        r"""This is the convective flux implementation of the scheme. See
         :cite:`toro_riemann_2009` for a great overview on numerical methods for
         hyperbolic problems.
 
@@ -82,11 +88,11 @@ class ConvectiveScheme(Scheme):
         """
         raise NotImplementedError
 
-    def accumulate(self, cells: MeshCellSet, neighs: CellSet):
+    def accumulate(self, cells: MeshCellSet, neighs: CellSet, t: float):
 
         # Compute fluxes computed eventually by the other terms (diffusive,
         # nonconservative, source)
-        super().accumulate(cells, neighs)
+        super().accumulate(cells, neighs, t)
 
         # Add conservative contribution
         self._fluxes += self.F(cells, neighs)

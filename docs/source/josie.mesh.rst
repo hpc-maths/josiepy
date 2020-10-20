@@ -12,6 +12,14 @@ josie.mesh.cell module
    :undoc-members:
    :show-inheritance:
 
+josie.mesh.cellset module
+-------------------------
+
+.. automodule:: josie.mesh.cellset
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 josie.mesh.mesh module
 ----------------------
 
@@ -19,7 +27,6 @@ josie.mesh.mesh module
    :members:
    :undoc-members:
    :show-inheritance:
-
 
 Module contents
 ---------------
