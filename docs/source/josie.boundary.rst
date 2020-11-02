@@ -1,21 +1,21 @@
-josie.io.write package
+josie.boundary package
 ======================
 
 Submodules
 ----------
 
-josie.io.write.strategy module
+josie.boundary.boundary module
 ------------------------------
 
-.. automodule:: josie.io.write.strategy
+.. automodule:: josie.boundary.boundary
    :members:
    :undoc-members:
    :show-inheritance:
 
-josie.io.write.writer module
-----------------------------
+josie.boundary.set module
+-------------------------
 
-.. automodule:: josie.io.write.writer
+.. automodule:: josie.boundary.set
    :members:
    :undoc-members:
    :show-inheritance:
@@ -23,7 +23,7 @@ josie.io.write.writer module
 Module contents
 ---------------
 
-.. automodule:: josie.io.write
+.. automodule:: josie.boundary
    :members:
    :undoc-members:
    :show-inheritance:

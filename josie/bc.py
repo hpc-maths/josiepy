@@ -34,12 +34,11 @@ from typing import Callable, Optional, Tuple, TYPE_CHECKING, Union
 
 from josie.solver.state import Field, State
 
-from .geom import Boundary, BoundaryCurve
+from .boundary import Boundary, BoundaryCurve
 from .math import Direction
 
 if TYPE_CHECKING:
-    from josie.mesh.cellset import CellSet
-    from josie.solver.solver import Solver
+    from josie.mesh.cellset import CellSet, MeshCellSet
 
     # This is a trick to enable mypy to evaluate the Enum as a standard
     # library Enum for type checking but we use `aenum` in the running code
@@ -69,30 +68,33 @@ class BoundaryCondition:
     def __init__(self, bc: State):
         self.bc = bc
 
-    def __call__(self, solver: Solver, boundary: Boundary):
+    def __call__(self, cells: MeshCellSet, boundary: Boundary, t: float):
         """
         Parameters
         ----------
-        solver
-            A :class:`Solver` object that contains informations on cells data
+        mesh
+            A :class:`Mesh` object that contains informations on cells data
             and time instant
         boundary
             A :class:`Boundary` object representing the mesh boundary on which
             the :class:`BoundaryCondition` must be applied
+        t
+            The time instant to be used to update time dependent
+            :class:`ScalarBC`
         """
 
         ghost_idx = boundary.ghost_cells_idx
         boundary_idx = boundary.cells_idx
 
-        boundary_cells = solver.mesh.cells[boundary_idx]
-        ghost_cells = solver.mesh.cells[ghost_idx]
+        boundary_cells = cells[boundary_idx]
+        ghost_cells = cells[ghost_idx]
 
         # Apply BC for each field
         for field in self.bc.fields:
 
-            solver.mesh.cells._values[
-                ghost_idx[0], ghost_idx[1], field
-            ] = self.bc[field](boundary_cells, ghost_cells, field, solver.t)
+            cells._values[ghost_idx[0], ghost_idx[1], field] = self.bc[field](
+                boundary_cells, ghost_cells, field, t
+            )
 
 
 class ScalarBC(abc.ABC):
@@ -337,10 +339,10 @@ class Periodic(BoundaryCondition):
     def __init__(self, side: Side):
         self._side = side
 
-    def __call__(self, solver: Solver, boundary: Boundary):
+    def __call__(self, cells: MeshCellSet, boundary: Boundary, t: float):
 
-        solver.mesh.cells._values[boundary.ghost_cells_idx] = copy.deepcopy(
-            solver.mesh.cells.values[self._side.value]
+        cells._values[boundary.ghost_cells_idx] = copy.deepcopy(
+            cells.values[self._side.value]
         )
 
 

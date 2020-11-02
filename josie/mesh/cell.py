@@ -33,7 +33,7 @@ import numpy as np
 from meshio import Mesh as MeshIO
 from typing import TYPE_CHECKING
 
-from josie.geom import PointType
+from josie.geometry import PointType
 from josie._dim import MAX_DIMENSIONALITY
 from josie.math import R3
 
@@ -125,10 +125,9 @@ class Cell(metaclass=abc.ABCMeta):
 
         Parameters
         ----------
-        x
-            :math:`x`-coordinates of the points of the mesh
-        y
-            :math:`y`-coordinates of the points of the mesh
+        mesh
+            An instance of the :class:`Mesh` of which we need to create the
+            connectivity
 
         """
         raise NotImplementedError
@@ -259,7 +258,7 @@ class SimpleCell(Cell):
 
     @classmethod
     def face_normal(cls, p0: PointType, p1: PointType) -> np.ndarray:
-        r""" This class method computes the normal to a face from its points.
+        r"""This class method computes the normal to a face from its points.
 
         The normal is computed as the ortogonal vector to the vector made
         by the two given points obtained doing a CW rotation
@@ -295,6 +294,10 @@ class SimpleCell(Cell):
         ny = mesh.num_cells_y
         x = mesh._x
         y = mesh._y
+        dimensionality = mesh.dimensionality
+
+        # TODO Get mesh.dimensionality as input and adapt the size of the
+        # containers accordingly
 
         # Init internal data structures
         points = np.empty((nx, ny, cls.num_points, MAX_DIMENSIONALITY))
@@ -325,6 +328,7 @@ class SimpleCell(Cell):
             volumes=volumes,
             surfaces=surfaces,
             normals=normals,
+            dimensionality=dimensionality,
         )
 
         # Loop to build connectivity

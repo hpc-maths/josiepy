@@ -24,33 +24,28 @@
 # The views and conclusions contained in the software and documentation
 # are those of the authors and should not be interpreted as representing
 # official policies, either expressed or implied, of Ruben Di Battista.
-import abc
-
+from josie.solver.scheme.time import TimeScheme
 from josie.mesh import Mesh
-from josie.solver.problem import Problem
-
-from .scheme import Scheme
 
 
-class TimeScheme(Scheme):
-    r"""A mixin that provides the scheme implementation for the time
-    derivative
+class ExplicitEuler(TimeScheme):
+    r"""Implements the explicit euler scheme
 
     .. math::
 
-        \numTime
-
-    Attributes
-    ----------
-    order
-        The supposed order for the scheme. Useful for exemple when testing.
+        \pdeState^{k+1} = \pdeState^k +
+            \Delta t \; \vb{f}\qty(t; \pdeState^k,\pdeGradient^k)
     """
 
-    time_order: float
+    time_order: float = 1
 
-    def __init__(self, problem: Problem, *args, **kwargs):
-        super().__init__(problem)
-
-    @abc.abstractmethod
     def step(self, mesh: Mesh, dt: float, t: float):
-        raise NotImplementedError
+        """For :class:`ExplicitEuler`, we just accumulate once the fluxes at
+        time :math:`t = t_k`. So nothing to do.
+        """
+        # Do the pre_accumulate
+        self.pre_accumulate(mesh.cells)
+
+        # Accumulate the numerical fluxes over all neighbours
+        for neighs in mesh.cells.neighbours:
+            self.accumulate(mesh.cells, neighs, t)

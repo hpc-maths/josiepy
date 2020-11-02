@@ -44,7 +44,6 @@ josie.euler.state module
    :undoc-members:
    :show-inheritance:
 
-
 Module contents
 ---------------
 

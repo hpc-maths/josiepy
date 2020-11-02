@@ -64,8 +64,6 @@ class Writer(abc.ABC):
         final_time: float,
         CFL: float,
     ):
-        self._t = 0
-
         self.strategy = strategy
         self.solver = solver
         self.final_time = final_time
@@ -187,7 +185,7 @@ class MemoryWriter(Writer):
                 self.solver.mesh.cells.values[..., field].ravel()
             )
 
-        self.store.append(StateElement(time=self._t, data=data))
+        self.store.append(StateElement(time=self.solver.t, data=data))
 
 
 class XDMFWriter(FileWriter):
@@ -225,7 +223,7 @@ class XDMFWriter(FileWriter):
                 ].ravel()
             }
 
-        self._writer.write_data(self._t, cell_data=cell_data)
+        self._writer.write_data(self.solver.t, cell_data=cell_data)
 
     def solve(self):
         with TimeSeriesWriter(self.filename) as self._writer:

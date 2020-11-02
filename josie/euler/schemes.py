@@ -28,8 +28,6 @@ from __future__ import annotations
 
 import numpy as np
 
-from typing import Iterable
-
 from josie.mesh.cellset import CellSet, MeshCellSet
 from josie.solver.scheme import ConvectiveScheme
 
@@ -42,10 +40,12 @@ from .state import Q
 class EulerScheme(ConvectiveScheme):
     """ A general base class for Euler schemes """
 
-    def __init__(self, eos: EOS):
-        self.problem: EulerProblem = EulerProblem(eos)
+    problem: EulerProblem
 
-    def post_step(self, cells: MeshCellSet, neighbours: Iterable[CellSet]):
+    def __init__(self, eos: EOS):
+        super().__init__(EulerProblem(eos))
+
+    def post_step(self, cells: MeshCellSet):
         """During the step we update the conservative values. After the
         step we update the non-conservative variables. This method updates
         the values of the non-conservative (auxiliary) variables using the

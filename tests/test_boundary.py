@@ -1,12 +1,12 @@
 import numpy as np
 
-from josie.geom import CircleArc, Line
+from josie.boundary import CircleArc, Line
 
 
 def test_circle_arc(tol):
     p0 = np.array([-1, 0])
     p1 = np.array([0, 1])
-    p2 = np.array([-np.sqrt(2)/2, np.sqrt(2)/2])
+    p2 = np.array([-np.sqrt(2) / 2, np.sqrt(2) / 2])
 
     arc = CircleArc(p0, p1, p2)
 

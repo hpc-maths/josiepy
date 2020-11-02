@@ -27,8 +27,6 @@
 import abc
 import numpy as np
 
-from typing import Sequence
-
 from josie._dim import MAX_DIMENSIONALITY
 from josie.mesh.cellset import MeshCellSet, CellSet
 
@@ -36,25 +34,30 @@ from .scheme import Scheme
 
 
 class DiffusiveScheme(Scheme):
-    r""" A mixin that provides the scheme implementation for the diffusive
+    r"""A mixin that provides the scheme implementation for the diffusive
     term"""
 
     _gradient: np.ndarray
 
-    def post_init(self, cells: MeshCellSet, neighbours: Sequence[CellSet]):
-        r""" Initialize the datastructure holding the gradient
+    def post_init(self, cells: MeshCellSet):
+        r"""Initialize the datastructure holding the gradient
         :math:`\pdeGradient, \ipdeGradient` per each cell
         """
 
         nx, ny, num_state = cells.values.shape
 
-        super().post_init(cells, neighbours)
+        super().post_init(cells)
 
         self._gradient = np.zeros((nx, ny, num_state, MAX_DIMENSIONALITY))
 
+    def pre_step(self, cells: MeshCellSet):
+        super().pre_step(cells)
+
+        self._gradient.fill(0)
+
     @abc.abstractmethod
     def D(self, cells: MeshCellSet, neighs: CellSet) -> np.ndarray:
-        r""" This is the diffusive flux implementation of the scheme. See
+        r"""This is the diffusive flux implementation of the scheme. See
         :cite:`toro_riemann_2009` for a great overview on numerical methods for
         hyperbolic problems.
 
@@ -93,6 +96,6 @@ class DiffusiveScheme(Scheme):
 
         pass
 
-    def accumulate(self, cells: MeshCellSet, neighs: CellSet):
+    def accumulate(self, cells: MeshCellSet, neighs: CellSet, t: float):
 
         raise NotImplementedError

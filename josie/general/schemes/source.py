@@ -24,33 +24,58 @@
 # The views and conclusions contained in the software and documentation
 # are those of the authors and should not be interpreted as representing
 # official policies, either expressed or implied, of Ruben Di Battista.
-import abc
+from __future__ import annotations
 
-from josie.mesh import Mesh
-from josie.solver.problem import Problem
+import numpy as np
 
-from .scheme import Scheme
+from typing import TYPE_CHECKING
+from josie.solver.scheme.source import SourceScheme
+
+if TYPE_CHECKING:
+    from josie.mesh.cellset import CellSet, MeshCellSet
+    from josie.solver.state import State
 
 
-class TimeScheme(Scheme):
-    r"""A mixin that provides the scheme implementation for the time
-    derivative
+class ConstantSource(SourceScheme):
+    r"""A mixing that provides the approximation of the source term as a constant
+    value computed at the centroid of the cell.
 
     .. math::
 
-        \numTime
+        \numSource \sim \abs{\pdeSource}_i V_i
 
-    Attributes
-    ----------
-    order
-        The supposed order for the scheme. Useful for exemple when testing.
     """
 
-    time_order: float
+    def pre_accumulate(self, cells: MeshCellSet):
+        """
+        We add the source term flux here since we just need cell info and not
+        neighbours info
 
-    def __init__(self, problem: Problem, *args, **kwargs):
-        super().__init__(problem)
+        Parameters
+        ----------
+        cells
+            A :class:`MeshCellSet` containing the state of the mesh cells
+        """
 
-    @abc.abstractmethod
-    def step(self, mesh: Mesh, dt: float, t: float):
+        super().pre_accumulate(cells)
+
+        self._fluxes += self.volume_s(cells)
+
+    def accumulate(
+        self, cells: MeshCellSet, neighs: CellSet, t: float
+    ) -> State:
+        """We do not use the :meth:`accumulate` method to put source
+        contribution into the fluxes but we do in in :meth:`pre_step`, because
+        we do not need to do it for each face of the cell"""
+
+        return np.zeros_like(cells.values)
+
+    def volume_s(self, cells: MeshCellSet) -> State:
+        """The source flux computed only for the cells, without taking into
+        consideration the neighbours since they're not needed
+        """
+        return self.problem.s(cells) * cells.volumes
+
+    def s(self, cells: MeshCellSet, neighs: CellSet) -> State:
+        """ Use :meth:`volume_s` instead """
         raise NotImplementedError

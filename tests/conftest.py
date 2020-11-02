@@ -1,7 +1,7 @@
 import pytest
 
 from josie.bc import make_periodic, Direction
-from josie.geom import CircleArc, Line
+from josie.boundary import CircleArc, Line
 from josie.mesh import Mesh
 from josie.mesh.cell import SimpleCell
 

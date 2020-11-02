@@ -1,13 +1,38 @@
+# josiepy
+# Copyright © 2020 Ruben Di Battista
+# All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are met:
+# 1. Redistributions of source code must retain the above copyright
+# notice, this list of conditions and the following disclaimer.
+# 2. Redistributions in binary form must reproduce the above copyright
+# notice, this list of conditions and the following disclaimer in the
+# documentation and/or other materials provided with the distribution.
+#
+# THIS SOFTWARE IS PROVIDED BY Ruben Di Battista ''AS IS'' AND ANY
+# EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+# WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+# DISCLAIMED. IN NO EVENT SHALL Ruben Di Battista BE LIABLE FOR ANY
+# DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+# (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+# LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+# ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+# SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+#
+# The views and conclusions contained in the software and documentation
+# are those of the authors and should not be interpreted as representing
+# official policies, either expressed or implied, of Ruben Di Battista.
 import numpy as np
 
-from typing import Sequence
 
-from josie.mesh.cellset import MeshCellSet, CellSet
+from josie.mesh.cellset import MeshCellSet
 from josie.solver.scheme.diffusive import DiffusiveScheme
 
 
 class LeastSquareGradient(DiffusiveScheme):
-    r""" A mixin that provides the approximation of the gradient term in the
+    r"""A mixin that provides the approximation of the gradient term in the
     diffusive term as a least square approximation over all the neighbours of
     the mesh cells
 
@@ -29,15 +54,15 @@ class LeastSquareGradient(DiffusiveScheme):
     to obtain the value of the gradient in the cell :math:`\nabla \phi_C`
     """
 
-    def post_init(self, cells: MeshCellSet, neighbours: Sequence[CellSet]):
-        r""" Initialize the datastructure holding the matrix used to solve
+    def post_init(self, cells: MeshCellSet):
+        r"""Initialize the datastructure holding the matrix used to solve
         the Least Square problem and also the RHS of the linear system
 
         """
 
         nx, ny, num_points, dimensionality = cells.centroids.shape
 
-        super().post_init(cells, neighbours)
+        super().post_init(cells)
 
         self._A = np.zeros((nx, ny, dimensionality, dimensionality))
         self._RHS = np.zeros_like(self._gradient)
@@ -58,7 +83,7 @@ class LeastSquareGradient(DiffusiveScheme):
         # Pre-allocate A
         A = np.zeros_like(self._A)
 
-        for i, neigh in enumerate(neighbours):
+        for i, neigh in enumerate(cells.neighbours):
             # Compute relative vector between cells and neighbour
             r = neigh.centroids - cells.centroids
 
@@ -81,9 +106,9 @@ class LeastSquareGradient(DiffusiveScheme):
             # ... and weight (keeping shape)
             self._w[..., i, np.newaxis] = w
 
-    def pre_step(self, cells: MeshCellSet, neighbours: Sequence[CellSet]):
+    def pre_accumulate(self, cells: MeshCellSet):
 
-        for i, neigh in enumerate(neighbours):
+        for i, neigh in enumerate(cells.neighbours):
             r = self._r[..., i, :]
             w = self._w[..., i, np.newaxis]
 
@@ -91,7 +116,9 @@ class LeastSquareGradient(DiffusiveScheme):
 
             # Compute RHS
             self._RHS += np.einsum(
-                "...i,...kj->...ij", neighbours[i].values - cells.values, r
+                "...i,...kj->...ij",
+                cells.neighbours[i].values - cells.values,
+                r,
             )
 
         self._gradient = np.linalg.solve(

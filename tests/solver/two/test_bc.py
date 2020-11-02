@@ -31,17 +31,17 @@ def test_periodic_state(solver):
     d = 4.44
 
     solver.mesh.cells.values[0, :] = a
-    solver._update_ghosts()
+    solver.mesh.update_ghosts(t=0)
     assert np.all(solver.mesh.cells._values[-1, 1:-1] == a)
 
     solver.mesh.cells.values[-1, :] = b
-    solver._update_ghosts()
+    solver.mesh.update_ghosts(t=0)
     assert np.all(solver.mesh.cells._values[0, 1:-1] == b)
 
     solver.mesh.cells.values[:, 0] = c
-    solver._update_ghosts()
+    solver.mesh.update_ghosts(t=0)
     assert np.all(solver.mesh.cells._values[1:-1, -1] == c)
 
     solver.mesh.cells.values[:, -1] = d
-    solver._update_ghosts()
+    solver.mesh.update_ghosts(t=0)
     assert np.all(solver.mesh.cells._values[1:-1, 0] == d)

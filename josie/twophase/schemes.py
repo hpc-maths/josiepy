@@ -27,8 +27,6 @@
 
 import numpy as np
 
-from typing import Iterable
-
 from josie.mesh.cellset import CellSet, MeshCellSet
 from josie.euler.schemes import Rusanov as EulerRusanov
 from josie.solver.scheme import Scheme
@@ -44,10 +42,12 @@ from .state import Q, Phases, PhasePair
 class TwoPhaseScheme(Scheme):
     """ A base class for a twophase scheme """
 
-    def __init__(self, eos: TwoPhaseEOS, closure: Closure):
-        self.problem: TwoPhaseProblem = TwoPhaseProblem(eos, closure)
+    problem: TwoPhaseProblem
 
-    def post_step(self, cells: MeshCellSet, neighbours: Iterable[CellSet]):
+    def __init__(self, eos: TwoPhaseEOS, closure: Closure):
+        super().__init__(TwoPhaseProblem(eos, closure))
+
+    def post_step(self, cells: MeshCellSet):
         """During the step we update the conservative values. After the
         step we update the non-conservative variables. This method updates
         the values of the non-conservative (auxiliary) variables using the
@@ -86,7 +86,7 @@ class TwoPhaseScheme(Scheme):
 
 
 class Upwind(NonConservativeScheme, TwoPhaseScheme):
-    r""" An optimized upwind scheme that reduces the size of the
+    r"""An optimized upwind scheme that reduces the size of the
     :math:`\pdeNonConservativeMultiplier` knowing that for
     :cite:`baer_two-phase_1986` the only state variable appearing in the non
     conservative term is :math:`\alpha`. It concentratres the numerical
@@ -95,12 +95,12 @@ class Upwind(NonConservativeScheme, TwoPhaseScheme):
     Check also :class:`~twophase.problem.TwoPhaseProblem.B`.
     """
 
-    def accumulate(self, cells: MeshCellSet, neighs: CellSet):
+    def accumulate(self, cells: MeshCellSet, neighs: CellSet, t: float):
 
         # Compute fluxes computed eventually by the other schemes (e.g.
         # conservative) but not the accumulate method of NonConservativeScheme
         # since we're overriding it
-        TwoPhaseScheme.accumulate(self, cells, neighs)
+        TwoPhaseScheme.accumulate(self, cells, neighs, t)
 
         # Add nonconservative contribution
         G = self.G(cells, neighs)
@@ -146,7 +146,7 @@ class Rusanov(ConvectiveScheme, TwoPhaseScheme):
         cells: MeshCellSet,
         neighs: CellSet,
     ) -> Q:
-        r""" This schemes implements the Rusanov scheme for a
+        r"""This schemes implements the Rusanov scheme for a
         :class:`TwoPhaseProblem`. It applies the :class:`~.euler.Rusanov`
         scheme indipendently for each phase (with the :math:`\sigma` correctly
         calculated among all the two phases state)

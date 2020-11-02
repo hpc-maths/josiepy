@@ -1,3 +1,4 @@
+import inspect
 import matplotlib.pyplot as plt
 import numpy as np
 import pytest
@@ -6,7 +7,7 @@ from matplotlib.animation import ArtistAnimation
 
 from .adv1d import main as main_1d
 
-from josie.general.schemes.time import ExplicitEuler
+import josie.general.schemes.time as time_schemes
 from josie.mesh.cellset import MeshCellSet, CellSet
 from josie.solver.state import State
 from josie.solver.solver import Solver
@@ -61,11 +62,16 @@ def upwind(cells: MeshCellSet, neighs: CellSet):
     return FS[..., np.newaxis]
 
 
-@pytest.fixture(params=[upwind])
+@pytest.fixture(
+    params=[
+        member[1]
+        for member in inspect.getmembers(time_schemes, inspect.isclass)
+    ],
+)
 def scheme(request):
-    class Upwind(ConvectiveScheme, ExplicitEuler):
+    class Upwind(ConvectiveScheme, request.param):
         def F(self, cells: MeshCellSet, neighs: CellSet):
-            return request.param(cells, neighs)
+            return upwind(cells, neighs)
 
         def CFL(
             self,

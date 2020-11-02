@@ -34,8 +34,9 @@ import os
 from meshio import Mesh as MeshIO
 from typing import Iterable, Tuple, Type, TYPE_CHECKING
 
+from josie._dim import Dimensionality
 from josie.exceptions import InvalidMesh
-from josie.geom import Boundary, BoundaryCurve, BoundarySide
+from josie.boundary import Boundary, BoundaryCurve, BoundarySide
 from josie.plot import DefaultBackend
 from josie.plot.backend import PlotBackend
 
@@ -45,7 +46,7 @@ if TYPE_CHECKING:
 
 
 class Mesh:
-    r""" This class handles the mesh generation over a domain.
+    r"""This class handles the mesh generation over a domain.
 
     Parameters
     ----------
@@ -169,7 +170,7 @@ class Mesh:
 
         self.bcs_count = len(self.boundaries)
 
-        self.dimensionality = self.bcs_count / 2
+        self.dimensionality = Dimensionality(self.bcs_count / 2)
 
     def interpolate(
         self, num_cells_x: int, num_cells_y: int
@@ -233,7 +234,7 @@ class Mesh:
 
         # If we're doing a 1D simulation, we need to check that in the y
         # direction we have only one cell
-        if self.dimensionality == 1:
+        if self.dimensionality is Dimensionality.ONED:
             if self.num_cells_y > 1:
                 raise InvalidMesh(
                     "The bottom and top BC are `None`. That means that you're "
@@ -262,6 +263,25 @@ class Mesh:
             self._y[:, 1] = self._y[:, 1] / scale_y
 
         return self._x, self._y
+
+    def create_neighbours(self):
+        """This is a proxy method to :meth:`~MeshCellSet.create_neighbours`
+        that creates the internal connectivity for cell neighbours"""
+
+        self.cells.create_neighbours()
+
+    def update_ghosts(self, t: float):
+        """This method updates the ghost cells of the mesh with the current
+        values depending on the specified boundary condition
+
+        Parameters
+        ----------
+        t
+            The time instant to evaluate time dependent
+            :class:`BoundaryCondition`
+        """
+
+        self.cells.update_ghosts(self.boundaries, t)
 
     def generate(self):
         """Build the geometrical information and the connectivity associated

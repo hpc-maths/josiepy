@@ -24,21 +24,68 @@
 # The views and conclusions contained in the software and documentation
 # are those of the authors and should not be interpreted as representing
 # official policies, either expressed or implied, of Ruben Di Battista.
-import numpy as np
+from __future__ import annotations
 
-from josie.solver.scheme.time import TimeScheme
-from josie.solver.state import State
-from josie.mesh.cellset import MeshCellSet
+import abc
+
+from typing import TYPE_CHECKING
+
+from .scheme import Scheme
+
+if TYPE_CHECKING:
+    from josie.mesh.cellset import CellSet, MeshCellSet
+    from josie.solver.state import State
 
 
-class ExplicitEuler(TimeScheme):
-    r""" Implements the explicit euler scheme
+class SourceScheme(Scheme):
+    r"""A mixin that provides the scheme implementation for the source term
 
     .. math::
 
-        \pdeState^{k+1} = \pdeState^k +
-            \Delta t \; \vb{f}\qty(\pdeState^k,\pdeGradient^k)
+        \numSourceFull
     """
 
-    def update(self, cells: MeshCellSet, dt: float) -> State:
-        return self._fluxes * dt / cells.volumes[..., np.newaxis]
+    def accumulate(self, cells: MeshCellSet, neighs: CellSet, t: float):
+
+        # Compute fluxes computed eventually by the other terms (diffusive,
+        # nonconservative, source)
+        super().accumulate(cells, neighs, t)
+
+        # Add conservative contribution
+        self._fluxes += self.s(cells, neighs)
+
+    @abc.abstractmethod
+    def s(self, cells: MeshCellSet, neighs: CellSet) -> State:
+        r"""This is the source term implementation of the scheme. See
+        :cite:`toro_riemann_2009` for a great overview on numerical methods for
+        hyperbolic problems.
+
+        A general problem can be written in a compact way:
+
+        .. math::
+
+            \pdeFull
+
+        The source term is discretized as follows:
+
+        .. math::
+
+            \numSourceFull
+
+
+        Parameters
+        ----------
+        cells:
+            A :class:`MeshCellSet` containing the state of the mesh cells
+
+        neighs
+            A :class:`CellSet` containing data of neighbour cells corresponding
+            to the :attr:`values`
+
+        Returns
+        -------
+        s
+            The value of the source term approximated in the cell
+        """
+
+        pass
