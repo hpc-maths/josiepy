@@ -111,54 +111,6 @@ class EulerScheme(ConvectiveScheme):
 
         return U
 
-    @staticmethod
-    def compute_sigma(
-        U_L: np.ndarray, U_R: np.ndarray, c_L: np.ndarray, c_R: np.ndarray
-    ) -> np.ndarray:
-        r"""Returns the value of the :math:`\sigma`(i.e. the wave velocity) for
-        the the Rusanov scheme.
-
-        .. math::
-
-            \sigma = \max_{L, R}{\qty(\norm{\vb{u}} + c, \norm{\vb{u}} - c)}
-
-
-        Parameters
-        ----------
-        U_L
-            The value of scalar velocity for each cell. Array dimensions
-            :math:`N_x \times N_y \times 1`
-
-        U_R
-            The value of scalar velocity for each cell neighbour. Array
-            dimensions :math:`N_x \times N_y \times 1`
-
-        c_L
-            The value of sound velocity for each cell
-
-        c_R
-            The value of sound velocity for each cell neighbour
-
-        Returns
-        -------
-        sigma
-            A :math:`Nx \times Ny \times 1` containing the value of the sigma
-            per each cell
-        """
-
-        sigma_L = np.abs(U_L) + c_L[..., np.newaxis]
-
-        sigma_R = np.abs(U_R) + c_R[..., np.newaxis]
-
-        # Concatenate everything in a single array
-        sigma_array = np.concatenate((sigma_L, sigma_R), axis=-1)
-
-        # And the we found the max on the last axis (i.e. the maximum value
-        # of sigma for each cell)
-        sigma = np.max(sigma_array, axis=-1, keepdims=True)
-
-        return sigma
-
     def CFL(self, cells: MeshCellSet, CFL_value: float) -> float:
 
         values: Q = cells.values

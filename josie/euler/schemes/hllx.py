@@ -44,6 +44,65 @@ class HLL(EulerScheme):
     :cite:`toro_riemann_2009` for a detailed view on compressible schemes.
     """
 
+    @staticmethod
+    def compute_sigma(
+        U_L: np.ndarray, U_R: np.ndarray, c_L: np.ndarray, c_R: np.ndarray
+    ) -> np.ndarray:
+        r"""Returns the value of the :math:`\sigma`(i.e. the wave velocity) for
+        the the HLL and HLLC scheme.
+
+        .. math::
+
+            \sigma_L = \min{\qty(\norm{\vb{u}_L} - c_L,
+                \norm{\vb{u}_R} - c_R)}
+
+            \sigma_R = \max{\qty(\norm{\vb{u}_L} + c_L,
+                \norm{\vb{u}_R} + c_R)}
+
+
+        Parameters
+        ----------
+        U_L
+            The value of scalar velocity for each cell. Array dimensions
+            :math:`N_x \times N_y \times 1`
+
+        U_R
+            The value of scalar velocity for each cell neighbour. Array
+            dimensions :math:`N_x \times N_y \times 1`
+
+        c_L
+            The value of sound velocity for each cell
+
+        c_R
+            The value of sound velocity for each cell neighbour
+
+        Returns
+        -------
+        sigma_L
+            A :math:`Nx \times Ny \times 1` containing the value of the
+            :math:`\sigma_L` per each cell
+
+        sigma_R
+            A :math:`Nx \times Ny \times 1` containing the value of the
+            :math:`\sigma_R` per each cell
+        """
+
+        sigma_L = np.min(
+            np.concatenate(
+                (U_L - c_L[..., np.newaxis], U_R - c_R[..., np.newaxis]),
+                axis=-1,
+            )
+        )
+
+        sigma_R = np.max(
+            np.concatenate(
+                (U_L + c_L[..., np.newaxis], U_R + c_R[..., np.newaxis]),
+                axis=-1,
+            )
+        )
+
+        return sigma_L, sigma_R
+
     def F(self, cells: MeshCellSet, neighs: CellSet):
 
         values: Q = cells.values
@@ -61,10 +120,7 @@ class HLL(EulerScheme):
         c_R = Q_R[..., fields.c]
 
         # Compute the values of the wave velocities on every cell
-        sigma = self.compute_sigma(U_L, U_R, c_L, c_R)
-
-        sigma_L = -sigma
-        sigma_R = sigma
+        sigma_L, sigma_R = self.compute_sigma(U_L, U_R, c_L, c_R)
 
         F_L = np.einsum(
             "...kl,...l->...k", self.problem.F(cells), neighs.normals
@@ -98,7 +154,7 @@ class HLL(EulerScheme):
         return FS
 
 
-class HLLC(EulerScheme):
+class HLLC(HLL):
     r"""This class implements the HLLC scheme. See
     :cite:`toro_riemann_2009` for a detailed view on compressible schemes.
     """
@@ -137,12 +193,8 @@ class HLLC(EulerScheme):
         c_L = Q_L[..., fields.c]
         c_R = Q_R[..., fields.c]
 
-        # Let's retrieve the values of the sigma on every cell
-        # for current cell
-        sigma = self.compute_sigma(U_L, U_R, c_L, c_R)
-
-        sigma_L = -sigma
-        sigma_R = sigma
+        # Compute the values of the wave velocities on every cell
+        sigma_L, sigma_R = self.compute_sigma(U_L, U_R, c_L, c_R)
 
         # Compute the approximate contact discontinuity speed
         S_star = np.divide(
