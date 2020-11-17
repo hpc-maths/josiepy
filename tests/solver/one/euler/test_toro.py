@@ -34,7 +34,7 @@ def TimeScheme(request):
     yield request.param
 
 
-@pytest.fixture(params=EulerScheme.__subclasses__())
+@pytest.fixture(params=EulerScheme._all_subclasses())
 def SpaceScheme(request):
     yield request.param
 
