@@ -1,3 +1,8 @@
+""" Testing the numerical schemes on the solution provided in Toro, Eleuterio
+F. Riemann Solvers and Numerical Methods for Fluid Dynamics: A Practical
+Introduction. 3rd ed. Berlin Heidelberg: Springer-Verlag, 2009.
+https://doi.org/10.1007/b79761, page 129 """
+
 import inspect
 import numpy as np
 import pytest
@@ -50,7 +55,8 @@ riemann_states = [
         "uR": 0,
         "vR": 0,
         "pR": 0.1,
-        "CFL": 0.4,
+        "t": 0.25,
+        "CFL": 0.5,
     },
     {
         "rhoL": 1.0,
@@ -61,7 +67,8 @@ riemann_states = [
         "uR": 2.0,
         "vR": 0,
         "pR": 0.4,
-        "CFL": 0.4,
+        "t": 0.15,
+        "CFL": 0.5,
     },
     {
         "rhoL": 1.0,
@@ -72,7 +79,20 @@ riemann_states = [
         "uR": 0,
         "vR": 0,
         "pR": 0.01,
-        "CFL": 0.4,
+        "t": 0.012,
+        "CFL": 0.45,
+    },
+    {
+        "rhoL": 1.0,
+        "uL": 0,
+        "vL": 0,
+        "pL": 0.01,
+        "rhoR": 1.0,
+        "uR": 0,
+        "vR": 0,
+        "pR": 100,
+        "t": 0.035,
+        "CFL": 0.45,
     },
     {
         "rhoL": 5.99924,
@@ -83,18 +103,8 @@ riemann_states = [
         "uR": -6.19633,
         "vR": 0,
         "pR": 46.0950,
-        "CFL": 0.4,
-    },
-    {
-        "rhoL": 1.0,
-        "uL": -19.59745,
-        "vL": 0,
-        "pL": 1000,
-        "rhoR": 1.0,
-        "uR": -19.59745,
-        "vR": 0,
-        "pR": 0.01,
-        "CFL": 0.4,
+        "t": 0.035,
+        "CFL": 0.5,
     },
 ]
 
@@ -205,7 +215,7 @@ def test_toro(direction, Scheme, riemann_problem, bc_fun, plot):
     if plot:
         solver.plot()
 
-    final_time = 0.25
+    final_time = riemann_problem["t"]
     t = 0
     CFL = riemann_problem["CFL"]
 

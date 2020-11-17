@@ -190,13 +190,11 @@ class Rusanov(ConvectiveScheme, TwoPhaseScheme):
 
             alpha = alphas[phase]
 
-            # Get the velocity components
-            UV_slice = slice(fields.U, fields.V + 1)
-            UV = phase_values[..., UV_slice]
-            UV_neigh = phase_neigh_values[..., UV_slice]
-
-            U = np.linalg.norm(UV, axis=-1)
-            U_neigh = np.linalg.norm(UV_neigh, axis=-1)
+            # Get normal velocities
+            U = EulerRusanov.compute_U_norm(phase_values, neighs.normals)
+            U_neigh = EulerRusanov.compute_U_norm(
+                phase_neigh_values, neighs.normals
+            )
 
             # Speed of sound
             c = phase_values[..., fields.c]
@@ -204,16 +202,11 @@ class Rusanov(ConvectiveScheme, TwoPhaseScheme):
 
             # Let's retrieve the values of the sigma on every cell
             # for current cell
-            sigma = EulerRusanov.compute_sigma(U, c)
-            # and its neighbour
-            sigma_neigh = EulerRusanov.compute_sigma(U_neigh, c_neigh)
-
-            # Concatenate everything in a single array
-            sigma_array = np.concatenate((sigma, sigma_neigh), axis=-1)
+            sigma = EulerRusanov.compute_sigma(U, U_neigh, c, c_neigh)
 
             # And the we found the max on the last axis (i.e. the maximum value
             # of sigma for each cell)
-            sigmas.append(np.max(sigma_array, axis=-1, keepdims=True))
+            sigmas.append(sigma)
 
         # Concatenate the sigmas for both phases in a single array
         sigma_array = np.concatenate(sigmas, axis=-1)
@@ -260,7 +253,7 @@ class Rusanov(ConvectiveScheme, TwoPhaseScheme):
             U = np.linalg.norm(UV, axis=-1)
             c = phase_values[..., fields.c]
 
-            sigma = np.max(EulerRusanov.compute_sigma(U, c))
+            sigma = np.max(np.abs(U) + c[..., np.newaxis])
 
             dt = np.min((dt, CFL_value * dx / sigma))
 
