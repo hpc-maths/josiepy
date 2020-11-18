@@ -44,7 +44,7 @@ def TimeScheme(request):
 @pytest.fixture(
     params=[
         subcls
-        for subcls in TwoPhaseScheme.__subclasses__()
+        for subcls in TwoPhaseScheme._all_subclasses()
         if issubclass(subcls, NonConservativeScheme)
     ]
 )
@@ -57,7 +57,7 @@ def ToroNonConservativeScheme(request):
 @pytest.fixture(
     params=[
         subcls
-        for subcls in TwoPhaseScheme.__subclasses__()
+        for subcls in TwoPhaseScheme._all_subclasses()
         if issubclass(subcls, ConvectiveScheme)
     ]
 )

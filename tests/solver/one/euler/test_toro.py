@@ -1,3 +1,8 @@
+""" Testing the numerical schemes on the solution provided in Toro, Eleuterio
+F. Riemann Solvers and Numerical Methods for Fluid Dynamics: A Practical
+Introduction. 3rd ed. Berlin Heidelberg: Springer-Verlag, 2009.
+https://doi.org/10.1007/b79761, page 129 """
+
 import inspect
 import matplotlib.pyplot as plt
 import numpy as np
@@ -29,7 +34,7 @@ def TimeScheme(request):
     yield request.param
 
 
-@pytest.fixture(params=EulerScheme.__subclasses__())
+@pytest.fixture(params=EulerScheme._all_subclasses())
 def SpaceScheme(request):
     yield request.param
 
@@ -82,6 +87,18 @@ riemann_states = [
         "CFL": 0.45,
     },
     {
+        "rhoL": 1.0,
+        "uL": 0,
+        "vL": 0,
+        "pL": 0.01,
+        "rhoR": 1.0,
+        "uR": 0,
+        "vR": 0,
+        "pR": 100,
+        "t": 0.035,
+        "CFL": 0.45,
+    },
+    {
         "rhoL": 5.99924,
         "uL": 19.5975,
         "vL": 0,
@@ -90,18 +107,6 @@ riemann_states = [
         "uR": -6.19633,
         "vR": 0,
         "pR": 46.0950,
-        "t": 0.035,
-        "CFL": 0.5,
-    },
-    {
-        "rhoL": 1.0,
-        "uL": -19.59745,
-        "vL": 0,
-        "pL": 1000,
-        "rhoR": 1.0,
-        "uR": -19.59745,
-        "vR": 0,
-        "pR": 0.01,
         "t": 0.035,
         "CFL": 0.5,
     },
@@ -210,6 +215,9 @@ def test_toro(riemann, Scheme, plot):
 
         t += dt
         print(f"Time: {t}, dt: {dt}")
+
+    # Check that we reached the final time
+    assert t >= final_time
 
     if plot:
         _ = ArtistAnimation(fig, ims, interval=50, repeat=False)

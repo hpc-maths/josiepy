@@ -90,6 +90,13 @@ class Scheme(abc.ABC):
     def __init__(self, problem: Problem):
         self.problem = problem
 
+    @classmethod
+    def _all_subclasses(cls):
+        """A recursive class method to get all the subclasses of this class"""
+        return set(cls.__subclasses__()).union(
+            [s for c in cls.__subclasses__() for s in c._all_subclasses()]
+        )
+
     @abc.abstractmethod
     def CFL(
         self,

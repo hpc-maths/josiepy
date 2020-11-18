@@ -1,6 +1,14 @@
 josie.euler package
 ===================
 
+Subpackages
+-----------
+
+.. toctree::
+   :maxdepth: 4
+
+   josie.euler.schemes
+
 Submodules
 ----------
 
@@ -16,14 +24,6 @@ josie.euler.problem module
 --------------------------
 
 .. automodule:: josie.euler.problem
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-josie.euler.schemes module
---------------------------
-
-.. automodule:: josie.euler.schemes
    :members:
    :undoc-members:
    :show-inheritance:
