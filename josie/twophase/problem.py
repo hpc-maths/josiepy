@@ -33,7 +33,7 @@ from josie.math import Direction
 
 from .eos import TwoPhaseEOS
 from .closure import Closure
-from .state import Q, FluxQ
+from .state import Q, FluxQ, GradFields
 
 
 class TwoPhaseProblem(Problem):
@@ -75,8 +75,7 @@ class TwoPhaseProblem(Problem):
 
         But since most of the :math:`\pdeNonConservativeMultiplier` is zero,
         since we just have the terms that pre-multiply
-        :math:`\gradient{\alpha}` we just return :math:`B_{p1r} =
-        \tilde{B}_{pr} = \tilde{\vb{B}}\qty(\pdeState)` that is:
+        :math:`\gradient{\alpha}` we just return :math:`B_{p1r}` that is:
 
         .. math::
 
@@ -107,7 +106,13 @@ class TwoPhaseProblem(Problem):
         num_cells_x, num_cells_y, num_fields = cells.values.shape
 
         B = np.zeros(
-            (num_cells_x, num_cells_y, num_fields, MAX_DIMENSIONALITY)
+            (
+                num_cells_x,
+                num_cells_y,
+                num_fields,
+                len(GradFields),
+                MAX_DIMENSIONALITY,
+            )
         ).view(Q)
 
         # Compute pI
@@ -117,26 +122,26 @@ class TwoPhaseProblem(Problem):
         UI_VI = self.closure.uI(cells.values)
 
         # First component of (uI, vI) along x
-        UI = UI_VI[..., Direction.X]
+        UI = UI_VI[..., [Direction.X]]
         pIUI = np.multiply(pI, UI)
 
         # Second component of (uI, vI) along y
-        VI = UI_VI[..., Direction.Y]
+        VI = UI_VI[..., [Direction.Y]]
         pIVI = np.multiply(pI, VI)
 
         # Gradient component along x
-        B[..., Q.fields.alpha, Direction.X] = UI
-        B[..., Q.fields.arhoU1, Direction.X] = -pI
-        B[..., Q.fields.arhoE1, Direction.X] = -pIUI
-        B[..., Q.fields.arhoU2, Direction.X] = pI
-        B[..., Q.fields.arhoE2, Direction.X] = pIUI
+        B[..., [Q.fields.alpha], GradFields.alpha, Direction.X] = UI
+        B[..., [Q.fields.arhoU1], GradFields.alpha, Direction.X] = -pI
+        B[..., [Q.fields.arhoE1], GradFields.alpha, Direction.X] = -pIUI
+        B[..., [Q.fields.arhoU2], GradFields.alpha, Direction.X] = pI
+        B[..., [Q.fields.arhoE2], GradFields.alpha, Direction.X] = pIUI
 
         # Gradient component along y
-        B[..., Q.fields.alpha, Direction.Y] = VI
-        B[..., Q.fields.arhoV1, Direction.Y] = -pI
-        B[..., Q.fields.arhoE1, Direction.Y] = -pIVI
-        B[..., Q.fields.arhoV2, Direction.Y] = pI
-        B[..., Q.fields.arhoE2, Direction.Y] = pIVI
+        B[..., [Q.fields.alpha], GradFields.alpha, Direction.Y] = VI
+        B[..., [Q.fields.arhoV1], GradFields.alpha, Direction.Y] = -pI
+        B[..., [Q.fields.arhoE1], GradFields.alpha, Direction.Y] = -pIVI
+        B[..., [Q.fields.arhoV2], GradFields.alpha, Direction.Y] = pI
+        B[..., [Q.fields.arhoE2], GradFields.alpha, Direction.Y] = pIVI
 
         return B
 

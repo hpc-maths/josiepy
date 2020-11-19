@@ -140,6 +140,15 @@ class PhaseFields(IntEnum):
     c = 8
 
 
+class GradFields(IntEnum):
+    r"""Indexes used to index the gradient pre-factor
+    :math:`\pdeNonConservativeMultiplier`. Check :mod:`twophase.problem` for
+    more information on how the multiplier is reduced in size to optimize
+    the compuation"""
+
+    alpha = 0
+
+
 class PhaseQ(State):
     """ State array for one single phase """
 
@@ -159,7 +168,7 @@ class FluxQ(State):
 
 
 class Q(State):
-    r""" We create one big state that contains the actual conservative
+    r"""We create one big state that contains the actual conservative
     variables that are used in the flux together with the "auxiliary" variables
     that are instead needed, for example, to compute the speed of sound.
 
@@ -170,7 +179,7 @@ class Q(State):
     fields = Fields
 
     def get_phase(self, phase: Phases) -> PhaseQ:
-        r""" Returns the part of the state associated to a specified ``phase``
+        r"""Returns the part of the state associated to a specified ``phase``
         as an instance of :class:`~PhaseQ`
 
         .. warning::

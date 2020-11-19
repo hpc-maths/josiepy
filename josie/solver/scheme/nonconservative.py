@@ -44,8 +44,7 @@ class NonConservativeScheme(Scheme):
 
         B = self.problem.B(cells)
         G = self.G(cells, neighs)
-        BG = np.einsum("...ijk,...k->...i", B, G)
-
+        BG = np.einsum("...ijk,...jk->...i", B, G)
         self._fluxes += BG
 
     @abc.abstractmethod

@@ -95,24 +95,13 @@ class Upwind(NonConservativeScheme, TwoPhaseScheme):
     Check also :class:`~twophase.problem.TwoPhaseProblem.B`.
     """
 
-    def accumulate(self, cells: MeshCellSet, neighs: CellSet, t: float):
-
-        # Compute fluxes computed eventually by the other schemes (e.g.
-        # conservative) but not the accumulate method of NonConservativeScheme
-        # since we're overriding it
-        TwoPhaseScheme.accumulate(self, cells, neighs, t)
-
-        # Add nonconservative contribution
-        G = self.G(cells, neighs)
-        self._fluxes += G
-
     def G(self, cells: MeshCellSet, neighs: CellSet) -> np.ndarray:
 
         values = cells.values
 
         nx, ny, _ = values.shape
 
-        alpha_face = np.zeros((nx, ny))
+        alpha_face = np.zeros((nx, ny, 1))
 
         # Get vector of uI
         UI_VI = self.problem.closure.uI(values)
@@ -121,23 +110,21 @@ class Upwind(NonConservativeScheme, TwoPhaseScheme):
         UI_VI_face = 0.5 * (UI_VI + UI_VI_neigh)
 
         # Normal uI
-        U_face = np.einsum("...k,...k->...", UI_VI_face, neighs.normals)
+        U_face = np.einsum(
+            "...k,...kl->...l", UI_VI_face, neighs.normals[..., np.newaxis]
+        )
 
-        alpha = values[..., Q.fields.alpha]
-        alpha_neigh = neighs.values[..., Q.fields.alpha]
+        alpha = values[..., [Q.fields.alpha]]
+        alpha_neigh = neighs.values[..., [Q.fields.alpha]]
 
         np.copyto(alpha_face, alpha, where=U_face >= 0)
         np.copyto(alpha_face, alpha_neigh, where=U_face < 0)
 
-        alphan_face = np.einsum(
-            "...i,...ij->...ij", alpha_face, neighs.normals
-        )
+        alphan_face = np.einsum("...i,...j->...ij", alpha_face, neighs.normals)
 
-        G = np.einsum("...ij,...j->...i", self.problem.B(cells), alphan_face)
+        G = neighs.surfaces[..., np.newaxis, np.newaxis] * alphan_face
 
-        GS = neighs.surfaces[..., np.newaxis] * G
-
-        return GS
+        return G
 
 
 class Rusanov(ConvectiveScheme, TwoPhaseScheme):
