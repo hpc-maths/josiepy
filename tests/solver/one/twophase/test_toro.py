@@ -69,11 +69,11 @@ def ToroConvectiveScheme(request):
 
 class NoPI(Classical):
     def pI(self, state_array):
-        return np.zeros_like(state_array[..., state_array.fields.p1])
+        return np.zeros_like(state_array[..., [state_array.fields.p1]])
 
     def uI(self, state_array):
         uI = np.zeros_like(
-            state_array[..., state_array.fields.U1 : state_array.fields.V1 + 1]
+            state_array[..., [state_array.fields.U1, state_array.fields.V1]]
         )
         uI[..., 0] = 1
 

@@ -31,7 +31,7 @@ from .state import Q
 
 
 class Closure(metaclass=abc.ABCMeta):
-    r""" A class representing the closure relation for :math:`p_I` and
+    r"""A class representing the closure relation for :math:`p_I` and
     :math:`\vb{u}_I`. Use them as mixin with the Equation of State in order
     to provide full closure for the system
     """
@@ -83,9 +83,9 @@ class Classical(Closure):
     """
 
     def pI(self, state_array: Q) -> np.ndarray:
-        return state_array[..., Q.fields.p2]
+        return state_array[..., [Q.fields.p2]]
 
     def uI(self, state_array: Q) -> np.ndarray:
-        U1_V1 = state_array[..., Q.fields.U1 : Q.fields.V1 + 1]
+        U1_V1 = state_array[..., [Q.fields.U1, Q.fields.V1]]
 
         return U1_V1
