@@ -27,6 +27,7 @@ sphinx-rtd-theme = "*"
 sphinxcontrib-bibtex = "*"
 
 [packages]
+numpy = "*"
 
 [requires]
 python_version = "3.8"
