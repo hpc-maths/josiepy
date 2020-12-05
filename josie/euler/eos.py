@@ -48,7 +48,7 @@ class EOS(metaclass=abc.ABCMeta):
 
 
 class PerfectGas(EOS):
-    r""" This class embeds methods to compute states for the Euler problem
+    r"""This class embeds methods to compute states for the Euler problem
     using an EOS (Equation of State) for perfect gases
 
     .. math::
@@ -66,7 +66,7 @@ class PerfectGas(EOS):
         self.gamma = gamma
 
     def rhoe(self, rho: np.ndarray, p: np.ndarray):
-        """ This returns the internal energy multiplied by the density
+        """This returns the internal energy multiplied by the density
 
         Parameters
         ----------
@@ -88,7 +88,7 @@ class PerfectGas(EOS):
         return p / (self.gamma - 1)
 
     def p(self, rho: np.ndarray, e: np.ndarray):
-        """ This returns the pressure from density and internal energy
+        """This returns the pressure from density and internal energy
 
         Parameters
         ----------
@@ -109,7 +109,7 @@ class PerfectGas(EOS):
         return (self.gamma - 1) * np.multiply(rho, e)
 
     def sound_velocity(self, rho: np.ndarray, p: np.ndarray):
-        """ This returns the sound velocity from density and pressure
+        """This returns the sound velocity from density and pressure
 
         Parameters
         ----------
@@ -138,12 +138,10 @@ class StiffenedGas(PerfectGas):
 
     def rhoe(self, rho: np.ndarray, p: np.ndarray) -> np.ndarray:
 
-        # We re-use the perfect gas equation of the parent class
         return (p + self.gamma * self.p0) / (self.gamma - 1)
 
     def p(self, rho: np.ndarray, e: np.ndarray) -> np.ndarray:
 
-        # We re-use the perfect gas equation of the parent class
         return (self.gamma - 1) * np.multiply(rho, e) - self.p0 * self.gamma
 
     def sound_velocity(self, rho: np.ndarray, p: np.ndarray) -> np.ndarray:

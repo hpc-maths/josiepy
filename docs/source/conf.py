@@ -182,7 +182,7 @@ imgmath_latex_preamble = r"""
 % :: Euler ::
 
 \newcommand{\eulerState}{\qty(%
-    \rho, \rho U, \rho V, \rho E, \rho e, U, V, p, c
+    \rho, \rho u, \rho u, \rho E, \rho e, u, v, p, c
 )}
 
 % :: RK ::
