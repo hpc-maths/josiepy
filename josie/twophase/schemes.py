@@ -140,23 +140,18 @@ class Rusanov(ConvectiveScheme, TwoPhaseScheme):
 
         Parameters
         ----------
-        values
-            A :class:`np.ndarray` that has dimension :math:`N_\text{x} \times
-            N_\text{y} \times 19` containing the values for all the states in
-            all the mesh points
-        neigh_values
-            A :class:`np.ndarray` that has the same dimension of ``values``. It
-            contains the corresponding neighbour values of the state stored in
-            ``values``, i.e. the neighbour of ``values[i]`` is
-            ``neigh_values[i]``
-        normals
-            A :class:`np.ndarray` that has the dimensions :math:`N_\text{x}
-            \times N_\text{y} \times  2` containing the values of the normals
-            to the face connecting the cell to its neighbour
-        surfaces
-            A :class:`np.ndarray` that has the dimensions :math:`N_\text{x}
-            \times N_\text{y}` containing the values of the face surfaces of
-            the face connecting the cell to is neighbour
+        cells:
+            A :class:`MeshCellSet` containing the state of the mesh cells
+
+        neighs
+            A :class:`CellSet` containing data of neighbour cells corresponding
+            to the :attr:`values`
+
+        Returns
+        -------
+        F
+            The value of the numerical convective flux multiplied by the
+            surface value :math:`\numConvective`
         """
         values: Q = cells.values
 

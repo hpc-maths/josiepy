@@ -5,7 +5,6 @@ import pytest
 
 import josie.general.schemes.time as time_schemes
 
-from collections import namedtuple
 from dataclasses import dataclass
 from matplotlib.animation import FuncAnimation
 from matplotlib.gridspec import GridSpec
@@ -82,7 +81,13 @@ class NoPI(Classical):
 
 # These class are used to store the left/right state for each phase
 
-RiemannState = namedtuple("RiemannState", ["rho", "U", "V", "p"])
+
+@dataclass
+class RiemannState:
+    rho: float
+    U: float
+    V: float
+    p: float
 
 
 @dataclass

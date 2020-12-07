@@ -71,7 +71,7 @@ class Mesh:
     left
         The left :class:`Boundary`
 
-    btm
+    bottom
         The bottom :class:`Boundary`
 
     right
@@ -139,7 +139,7 @@ class Mesh:
             cells_idx=(BoundarySide.LEFT + 1, slice(1, -1)),
             ghost_cells_idx=(BoundarySide.LEFT, slice(1, -1)),
         )
-        self.btm = Boundary(
+        self.bottom = Boundary(
             side=BoundarySide.BOTTOM,
             curve=bottom,
             cells_idx=(slice(1, -1), BoundarySide.BOTTOM + 1),
@@ -164,13 +164,31 @@ class Mesh:
 
         self.boundaries = [
             boundary
-            for boundary in (self.left, self.btm, self.right, self.top)
+            for boundary in (self.left, self.bottom, self.right, self.top)
             if boundary.curve.bc is not None
         ]
 
         self.bcs_count = len(self.boundaries)
 
         self.dimensionality = Dimensionality(self.bcs_count / 2)
+
+    def copy(self):
+        """ This methods copies the :class:`Mesh` object into another """
+
+        mesh = Mesh(
+            self.left,
+            self.bottom,
+            self.right,
+            self.top,
+            self.cell_type,
+            type(self.backend),
+        )
+
+        # Copy stateful attributes
+        mesh.cells = self.cells.copy()
+        mesh.points = self.points.copy()
+
+        return mesh
 
     def interpolate(
         self, num_cells_x: int, num_cells_y: int
@@ -200,10 +218,10 @@ class Mesh:
 
         XL, YL = self.left.curve(ETAS)
         XR, YR = self.right.curve(ETAS)
-        XB, YB = self.btm.curve(XIS)
+        XB, YB = self.bottom.curve(XIS)
         XT, YT = self.top.curve(XIS)
-        XB0, YB0 = self.btm.curve(0)
-        XB1, YB1 = self.btm.curve(1)
+        XB0, YB0 = self.bottom.curve(0)
+        XB1, YB1 = self.bottom.curve(1)
         XT0, YT0 = self.top.curve(0)
         XT1, YT1 = self.top.curve(1)
 

@@ -113,19 +113,6 @@ class ConsFields(IntEnum):
     arhoE2 = 8
 
 
-class FluxFields(IntEnum):
-    alpha = 0
-    arho1 = 1
-    arhoU1 = 2
-    arhoV1 = 3
-    arhoE1 = 4
-
-    arho2 = 5
-    arhoU2 = 6
-    arhoV2 = 7
-    arhoE2 = 8
-
-
 class PhaseFields(IntEnum):
     """ Indexing fields for a substate associated to a phase """
 
@@ -159,12 +146,6 @@ class ConsQ(State):
     """ State array for conservtive part of the state of one single phase """
 
     fields = ConsFields
-
-
-class FluxQ(State):
-    """ State arry for the convective flux"""
-
-    fields = FluxFields
 
 
 class Q(State):

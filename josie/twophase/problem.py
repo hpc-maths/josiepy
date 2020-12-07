@@ -26,14 +26,16 @@
 # official policies, either expressed or implied, of Ruben Di Battista.
 import numpy as np
 
+from typing import Union
+
 from josie._dim import MAX_DIMENSIONALITY
-from josie.mesh.cellset import CellSet
 from josie.solver.problem import Problem
 from josie.math import Direction
+from josie.mesh.cellset import CellSet, MeshCellSet
 
 from .eos import TwoPhaseEOS
 from .closure import Closure
-from .state import Q, FluxQ, GradFields
+from .state import Q, ConsFields, GradFields
 
 
 class TwoPhaseProblem(Problem):
@@ -44,7 +46,7 @@ class TwoPhaseProblem(Problem):
         self.eos = eos
         self.closure = closure
 
-    def B(self, cells: CellSet):
+    def B(self, cells: Union[CellSet, MeshCellSet]):
         r""" This returns the tensor that pre-multiplies the non-conservative
         term of the problem.
 
@@ -102,8 +104,9 @@ class TwoPhaseProblem(Problem):
             to implement the :class:`~.Closure` trait in order to be able to
             return `pI` and `uI` (in addition to the :class:`~.euler.EOS`)
         """
+        values = cells.values
 
-        num_cells_x, num_cells_y, num_fields = cells.values.shape
+        num_cells_x, num_cells_y, num_fields = values.shape
 
         B = np.zeros(
             (
@@ -113,13 +116,13 @@ class TwoPhaseProblem(Problem):
                 len(GradFields),
                 MAX_DIMENSIONALITY,
             )
-        ).view(Q)
+        )
 
         # Compute pI
-        pI = self.closure.pI(cells.values)
+        pI = self.closure.pI(values)
 
         # This is the vector (uI, vI)
-        UI_VI = self.closure.uI(cells.values)
+        UI_VI = self.closure.uI(values)
 
         # First component of (uI, vI) along x
         UI = UI_VI[..., [Direction.X]]
@@ -145,16 +148,16 @@ class TwoPhaseProblem(Problem):
 
         return B
 
-    def F(self, cells: CellSet) -> np.ndarray:
+    def F(self, cells: Union[MeshCellSet, CellSet]) -> np.ndarray:
         r""" This returns the tensor representing the flux for a two-fluid model
         as described originally by :cite:`baer_two-phase_1986`
 
 
         Parameters
         ----------
-        cells.values
+        values
             A :class:`np.ndarray` that has dimension :math:`Nx \times Ny \times
-            19` containing the values for all the state variables in all the
+            19` containing the values for all the values variables in all the
             mesh points
 
         Returns
@@ -185,7 +188,9 @@ class TwoPhaseProblem(Problem):
         num_cells_x, num_cells_y, _ = values.shape
 
         # Flux tensor
-        F = np.zeros((num_cells_x, num_cells_y, 9, 2)).view(FluxQ)
+        F = np.zeros(
+            (num_cells_x, num_cells_y, len(ConsFields), MAX_DIMENSIONALITY)
+        )
         fields = values.fields
 
         alpha1 = values[..., fields.alpha]
@@ -201,7 +206,7 @@ class TwoPhaseProblem(Problem):
         arhoUU1 = np.multiply(arhoU1, U1)
         arhoUV1 = np.multiply(arhoU1, V1)
         arhoVV1 = np.multiply(arhoV1, V1)
-        arhoVU1 = np.multiply(arhoV1, U1)
+        arhoVU1 = arhoUV1  # np.multiply(arhoV1, U1)
 
         arhoU2 = values[..., fields.arhoU2]
         arhoV2 = values[..., fields.arhoV2]
@@ -214,7 +219,7 @@ class TwoPhaseProblem(Problem):
         arhoUU2 = np.multiply(arhoU2, U2)
         arhoUV2 = np.multiply(arhoU2, V2)
         arhoVV2 = np.multiply(arhoV2, V2)
-        arhoVU2 = np.multiply(arhoV2, U2)
+        arhoVU2 = arhoUV2  # np.multiply(arhoV2, U2)
 
         F[..., F.fields.arho1, Direction.X] = arhoU1
         F[..., F.fields.arho1, Direction.Y] = arhoV1

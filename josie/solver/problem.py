@@ -29,7 +29,9 @@ from __future__ import annotations
 import abc
 import numpy as np
 
-from josie.mesh.cellset import MeshCellSet
+from typing import Union
+
+from josie.mesh.cellset import CellSet, MeshCellSet
 
 from .state import State
 
@@ -51,7 +53,7 @@ class Problem(metaclass=abc.ABCMeta):
         \pdeTermList
     """
 
-    def F(self, cells: MeshCellSet) -> np.ndarray:
+    def F(self, cells: Union[CellSet, MeshCellSet]) -> np.ndarray:
         r"""The convective flux operator :math:`\pdeConvective`
 
         Parameters
@@ -68,7 +70,7 @@ class Problem(metaclass=abc.ABCMeta):
         """
         pass
 
-    def B(self, cells: MeshCellSet) -> np.ndarray:
+    def B(self, cells: Union[CellSet, MeshCellSet]) -> np.ndarray:
         r"""This returns the tensor that pre-multiplies the non-conservative
         term of the problem.
 
@@ -95,7 +97,7 @@ class Problem(metaclass=abc.ABCMeta):
         """
         pass
 
-    def D(self, cells: MeshCellSet) -> np.ndarray:
+    def D(self, cells: Union[CellSet, MeshCellSet]) -> np.ndarray:
         r"""This returns the tensor that pre-multiplies the gradient in the
         diffusive term of the problem.
 
@@ -122,7 +124,7 @@ class Problem(metaclass=abc.ABCMeta):
         """
         pass
 
-    def s(self, cells: MeshCellSet) -> State:
+    def s(self, cells: Union[CellSet, MeshCellSet], t) -> State:
         r"""This returns the values of the source terms
 
         A general problem can be written in a compact way:
@@ -138,6 +140,9 @@ class Problem(metaclass=abc.ABCMeta):
         ----------
         cells
             A :class:`MeshCellSet` that contains the cell data
+
+        t
+            Time instant
 
         Returns
         -------

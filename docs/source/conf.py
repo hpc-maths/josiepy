@@ -190,6 +190,11 @@ imgmath_latex_preamble = r"""
     \pdeState^{k+1} = \pdeState^{k} + \Delta t \sum_i^s b_i k_i
 }}
 
+% :: ODE ::
+\newcommand{\odeProblem}{\ensuremath{%
+    \dot{\pdeState} = \mathbf{f}\qty(\pdeState, t)
+}}
+
 """
 
 

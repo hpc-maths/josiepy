@@ -26,7 +26,6 @@
 # official policies, either expressed or implied, of Ruben Di Battista.
 import abc
 import os
-import pickle
 
 from typing import List
 
@@ -174,7 +173,7 @@ class MemoryWriter(Writer):
         self.data: List[Solver] = []
 
     def write(self):
-        self.data.append(pickle.loads(pickle.dumps(self.solver)))
+        self.data.append(self.solver.copy())
 
 
 class XDMFWriter(FileWriter):

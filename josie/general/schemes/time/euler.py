@@ -44,7 +44,7 @@ class ExplicitEuler(TimeScheme):
         time :math:`t = t_k`. So nothing to do.
         """
         # Do the pre_accumulate
-        self.pre_accumulate(mesh.cells)
+        self.pre_accumulate(mesh.cells, t)
 
         # Accumulate the numerical fluxes over all neighbours
         for neighs in mesh.cells.neighbours:

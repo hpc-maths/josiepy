@@ -255,7 +255,7 @@ class Scheme(abc.ABC):
 
         self._fluxes.fill(0)
 
-    def pre_accumulate(self, cells: MeshCellSet):
+    def pre_accumulate(self, cells: MeshCellSet, t: float):
         """ "
         Hook that can be used to do stuff before the accumulation around all
         the cell faces.
@@ -269,6 +269,9 @@ class Scheme(abc.ABC):
         ----------
         cells
             A :class:`MeshCellSet` containing the state of the mesh cells
+
+        t
+            Time instant
         """
         pass
 

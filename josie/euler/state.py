@@ -74,7 +74,6 @@ class ConsFields(IntEnum):
     rhoU = 1
     rhoV = 2
     rhoE = 3
-    rhoe = 4
 
 
 class AuxFields(IntEnum):

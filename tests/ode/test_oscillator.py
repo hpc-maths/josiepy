@@ -18,7 +18,7 @@ class OscillatorRHS:
         self.k = k
         self.m = m
 
-    def __call__(self, values) -> State:
+    def __call__(self, values, t) -> State:
         fields = values.fields
         source = values.copy()
 
@@ -43,14 +43,12 @@ def analytical_solution(t, Q0, omega):
     return Q_t
 
 
-def run_oscillator(
-    mesh, init_fun, Q0, TimeScheme, k, m, dt, final_time
-) -> float:
+def run_oscillator(mesh, Q0, TimeScheme, k, m, dt, final_time) -> float:
     """Testing against the analytical solution of an harmonic oscillator
     without damping"""
 
-    solver = OdeSolver(Q, TimeScheme, OscillatorRHS(k, m))
-    solver.init(init_fun)
+    solver = OdeSolver(Q0, dt, TimeScheme, OscillatorRHS(k, m))
+    writer = solver.solve(final_time)
 
     ts = []
 
@@ -62,34 +60,28 @@ def run_oscillator(
     vs_exact = []
     err_vs = []
 
-    while solver.t <= final_time:
+    for solver in writer.data:
+        t = solver.t
         values = solver.mesh.cells.values
 
+        ts.append(t)
+
         Q_exact = analytical_solution(solver.t, Q0, np.sqrt(k / m))
+
+        x = values[..., Q.fields.x].item()
         x_exact = Q_exact[..., Q.fields.x].item()
-        v_exact = Q_exact[..., Q.fields.v].item()
-
-        x = values[..., Q.fields.x].reshape(1).copy().item()
-        v = values[..., Q.fields.v].reshape(1).copy().item()
-
-        # Error in position
-        err_x = np.abs(x - x_exact)
-        err_v = np.abs(v - v_exact)
-
-        ts.append(solver.t)
-
-        err_xs.append(err_x)
-        err_vs.append(err_v)
         xs.append(x)
-        vs.append(v)
         xs_exact.append(x_exact)
+
+        v = values[..., Q.fields.v].item()
+        v_exact = Q_exact[..., Q.fields.v].item()
+        vs.append(v)
         vs_exact.append(v_exact)
 
-        solver.step(dt)
-
-        solver.t += dt
-
-        # print(f"Time: {solver.t}, dt: {dt}")
+        err_x = np.abs(x - x_exact)
+        err_v = np.abs(v - v_exact)
+        err_xs.append(err_x)
+        err_vs.append(err_v)
 
     return xs, xs_exact, err_xs, vs, vs_exact, err_vs, ts
 
@@ -99,19 +91,6 @@ def Q0():
     """ Initial state """
 
     return np.array([1, 0]).view(Q)
-
-
-@pytest.fixture()
-def init_fun(Q0):
-    """ Initial position at 1 and 0 velocity """
-
-    fields = Q.fields
-
-    def _init_fun(cells):
-        cells.values[..., fields.x] = Q0[..., fields.x]
-        cells.values[..., fields.v] = Q0[..., fields.v]
-
-    yield _init_fun
 
 
 @pytest.fixture(
@@ -124,7 +103,7 @@ def TimeScheme(request):
     yield request.param
 
 
-def test_oscillator(mesh, init_fun, Q0, TimeScheme, plot):
+def test_oscillator(mesh, Q0, TimeScheme, plot):
     """Testing against the analytical solution of an harmonic oscillator
     without damping"""
 
@@ -134,7 +113,7 @@ def test_oscillator(mesh, init_fun, Q0, TimeScheme, plot):
     final_time = 2
 
     xs, xs_exact, err_xs, vs, vs_exact, err_vs, ts = run_oscillator(
-        mesh, init_fun, Q0, TimeScheme, k, m, dt, final_time
+        mesh, Q0, TimeScheme, k, m, dt, final_time
     )
 
     # Assert the average error is less then 1e-3
@@ -180,7 +159,7 @@ def test_oscillator(mesh, init_fun, Q0, TimeScheme, plot):
         plt.show()
 
 
-def test_oscillator_order(mesh, init_fun, Q0, TimeScheme, plot):
+def test_oscillator_order(mesh, Q0, TimeScheme, plot):
     """Measure convergence order against the analytical solution of an harmonic
     oscillator without damping"""
 
@@ -192,7 +171,7 @@ def test_oscillator_order(mesh, init_fun, Q0, TimeScheme, plot):
 
     for dt in dts:
         _, _, err_xs, _, _, err_vs, ts = run_oscillator(
-            mesh, init_fun, Q0, TimeScheme, k, m, dt, final_time
+            mesh, Q0, TimeScheme, k, m, dt, final_time
         )
 
         # Compute the L2 discrete error
