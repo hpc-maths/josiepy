@@ -1,3 +1,4 @@
+import pickle
 import numpy as np
 import pytest
 
@@ -24,6 +25,13 @@ def test_list_to_enum():
 
     assert Fields.rho == 0
     assert Fields.rhoU == 1
+
+
+def test_pickling(Q):
+    restored_state = pickle.loads(pickle.dumps(Q))
+
+    assert np.array_equal(restored_state, Q)
+    assert [f for f in restored_state.fields] == [f for f in Q.fields]
 
 
 def test_get_attributes(Q):

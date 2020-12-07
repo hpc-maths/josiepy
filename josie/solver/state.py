@@ -38,6 +38,13 @@ Fields = Type[IntEnum]
 Field = IntEnum
 
 
+def unpickle_state(d, array):
+    Q = StateTemplate(*d.keys())
+    state = array.view(Q)
+
+    return state
+
+
 class State(np.ndarray):
     """:class:`State` is a subclass of :class:`numpy.ndarray`. It behaves like
     a normal :class:`numpy.ndarray` except it has additional init methods to
@@ -112,6 +119,11 @@ class State(np.ndarray):
         if isinstance(obj, State) and obj._getitem:
             return
 
+    def __reduce__(self):
+        # Let's override the pickling behaviour replacing the enum with a dict
+        enum_dict = {f.name: f.value for f in self.fields}
+        return (unpickle_state, (enum_dict, self.__array__()))
+
     @classmethod
     def list_to_enum(cls, fields: Collection[str]) -> IntEnum:
         """Convert a list of textual fields to the class:`IntEnum` that needs
@@ -134,7 +146,7 @@ class State(np.ndarray):
 
 
 def StateTemplate(*fields: str) -> Type[State]:
-    r""" A factory for a :class:`State`.
+    r"""A factory for a :class:`State`.
 
     It allows you to create at will a :class:`State` class for which you can
     access its variables (e.g. the velocity :math:`\mathbf{U}`) using the

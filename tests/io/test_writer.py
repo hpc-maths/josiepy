@@ -38,7 +38,7 @@ def test_memory(solver, strategy):
 
     writer.solve()
 
-    assert len(writer.store) == 11
+    assert len(writer.data) == 11
 
 
 def test_xdmf(solver, strategy, mesh, tmp_path, mocker):

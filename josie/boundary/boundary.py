@@ -37,6 +37,7 @@ import numpy as np
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Tuple
 
+from josie.data import NoAliasIntEnum
 from josie.geometry import MeshIndex, PointType
 from josie.math import map01to
 
@@ -45,16 +46,8 @@ if TYPE_CHECKING:
     from josie.bc import BoundaryCondition
     from josie.mesh.cellset import MeshCellSet
 
-    # This is a trick to enable mypy to evaluate the Enum as a standard
-    # library Enum for type checking but we use `aenum` in the running code
-    from enum import IntEnum  # pragma: no cover
 
-    NoAlias = object()  # pragma: no cover
-else:
-    from aenum import IntEnum, NoAlias
-
-
-class BoundarySide(IntEnum, settings=NoAlias):
+class BoundarySide(NoAliasIntEnum):
     LEFT = 0
     RIGHT = -1
     TOP = -1

@@ -35,18 +35,11 @@ from typing import Callable, Optional, Tuple, TYPE_CHECKING, Union
 from josie.solver.state import Field, State
 
 from .boundary import Boundary, BoundaryCurve
+from .data import NoAliasEnum
 from .math import Direction
 
 if TYPE_CHECKING:
     from josie.mesh.cellset import CellSet, MeshCellSet
-
-    # This is a trick to enable mypy to evaluate the Enum as a standard
-    # library Enum for type checking but we use `aenum` in the running code
-    from enum import Enum  # pragma: no cover
-
-    NoAlias = object()  # pragma: no cover
-else:
-    from aenum import Enum, NoAlias
 
 
 class BoundaryCondition:
@@ -302,7 +295,7 @@ class NeumannDirichlet(ScalarBC):
         return ghost_values
 
 
-class Side(Enum, settings=NoAlias):
+class Side(NoAliasEnum):
     """A Enum encapsulating the 4 indexing possibilities of a :class:`Periodic`
     :class:`ScalarBC`"""
 
