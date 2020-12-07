@@ -7,6 +7,8 @@ from josie.solver.state import StateTemplate
 @pytest.fixture
 def solver(mesh, mocker):
     solver = mocker.Mock()
+    # Allow pickling
+    solver.__reduce__ = lambda self: (mocker.Mock, ())
     solver.t = 0
     solver.mesh = mesh
     solver.mesh.cells._values = mocker.MagicMock()

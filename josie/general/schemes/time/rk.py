@@ -27,7 +27,6 @@
 """ Classes associated to the implementation of Runge-Kutta time schemes """
 from __future__ import annotations
 
-import copy
 import numpy as np
 
 from dataclasses import dataclass
@@ -197,7 +196,7 @@ class RK(TimeScheme):
         a_s = self.butcher.a_s[step : 2 * step + 1]
 
         t += c * dt
-        step_cells = copy.deepcopy(mesh.cells)
+        step_cells = mesh.cells.copy()
         step_cells.values -= dt * np.einsum(
             "...i,...j->...", a_s, self._ks[..., :step]
         )

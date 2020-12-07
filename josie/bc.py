@@ -27,7 +27,6 @@
 from __future__ import annotations
 
 import abc
-import copy
 import numpy as np
 
 from typing import Callable, Optional, Tuple, TYPE_CHECKING, Union
@@ -334,9 +333,9 @@ class Periodic(BoundaryCondition):
 
     def __call__(self, cells: MeshCellSet, boundary: Boundary, t: float):
 
-        cells._values[boundary.ghost_cells_idx] = copy.deepcopy(
-            cells.values[self._side.value]
-        )
+        cells._values[boundary.ghost_cells_idx] = cells.values[
+            self._side.value
+        ].copy()
 
 
 def make_periodic(
