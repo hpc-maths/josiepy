@@ -25,6 +25,7 @@ sphinx-autodoc-typehints = "*"
 sphinx-markdown-tables = "*"
 sphinx-rtd-theme = "*"
 sphinxcontrib-bibtex = "*"
+pytest-profiling = "*"
 
 [packages]
 numpy = "*"

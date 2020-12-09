@@ -63,10 +63,21 @@ class CellSet:
 
         return CellSet(
             volumes=self.volumes[key],
-            surfaces=self.volumes[key],
+            surfaces=self.surfaces[key],
             normals=self.normals[key],
             centroids=self.centroids[key],
             values=self.values[key],
+        )
+
+    def copy(self) -> CellSet:
+        """ Implement a fast copy to avoid using :mod:`copy.deepcopy` """
+
+        return CellSet(
+            volumes=self.volumes.copy(),
+            surfaces=self.surfaces.copy(),
+            normals=self.normals.copy(),
+            centroids=self.centroids.copy(),
+            values=self.values.copy(),
         )
 
 
@@ -178,6 +189,23 @@ class MeshCellSet(CellSet):
             centroids=self._centroids[key],
             values=self._values[key],
         )
+
+    def copy(self) -> MeshCellSet:
+        """ Implement a fast copy to avoid using :mod:`copy.deepcopy` """
+        cells = MeshCellSet(
+            centroids=self._centroids.copy(),
+            volumes=self._volumes.copy(),
+            surfaces=self._surfaces.copy(),
+            normals=self._normals.copy(),
+            dimensionality=self.dimensionality,
+        )
+
+        cells.neighbours = self.neighbours
+
+        if self._values is not None:
+            cells._values = self._values.copy()
+
+        return cells
 
     def create_neighbours(self):
         directions = []

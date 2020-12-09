@@ -7,6 +7,8 @@ from josie.solver.state import StateTemplate
 @pytest.fixture
 def solver(mesh, mocker):
     solver = mocker.Mock()
+    # Allow pickling
+    solver.__reduce__ = lambda self: (mocker.Mock, ())
     solver.t = 0
     solver.mesh = mesh
     solver.mesh.cells._values = mocker.MagicMock()
@@ -38,7 +40,7 @@ def test_memory(solver, strategy):
 
     writer.solve()
 
-    assert len(writer.store) == 11
+    assert len(writer.data) == 11
 
 
 def test_xdmf(solver, strategy, mesh, tmp_path, mocker):

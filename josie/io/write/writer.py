@@ -25,15 +25,14 @@
 # are those of the authors and should not be interpreted as representing
 # official policies, either expressed or implied, of Ruben Di Battista.
 import abc
-import copy
 import os
+import pickle
 
 from typing import List
 
 from meshio.xdmf import TimeSeriesWriter
 
 from josie.solver.solver import Solver
-from josie.data import StateElement
 
 from .strategy import NoopStrategy, Strategy
 
@@ -148,8 +147,8 @@ class FileWriter(Writer):
 
 
 class MemoryWriter(Writer):
-    """This class provides serialization of simulation data into a
-    list of :class:`~.StateElement`
+    """This class provides serialization of simulation data into :class:`State`
+    with an additional field storing time
 
     Attributes
     ----------
@@ -172,20 +171,10 @@ class MemoryWriter(Writer):
     ):
         super().__init__(strategy, solver, final_time, CFL)
 
-        self.store: List[StateElement] = []
+        self.data: List[Solver] = []
 
     def write(self):
-        data = {}
-
-        # TODO: If mesh becomes "dynamic", this probably needs to be deepcopied
-        data["mesh"] = self.solver.mesh
-
-        for field in self.solver.Q.fields:
-            data[field.name] = copy.deepcopy(
-                self.solver.mesh.cells.values[..., field].ravel()
-            )
-
-        self.store.append(StateElement(time=self.solver.t, data=data))
+        self.data.append(pickle.loads(pickle.dumps(self.solver)))
 
 
 class XDMFWriter(FileWriter):
