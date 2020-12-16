@@ -221,22 +221,22 @@ class TwoPhaseProblem(Problem):
         arhoVV2 = np.multiply(arhoV2, V2)
         arhoVU2 = arhoUV2  # np.multiply(arhoV2, U2)
 
-        F[..., F.fields.arho1, Direction.X] = arhoU1
-        F[..., F.fields.arho1, Direction.Y] = arhoV1
-        F[..., F.fields.arhoU1, Direction.X] = arhoUU1 + ap1
-        F[..., F.fields.arhoU1, Direction.Y] = arhoUV1
-        F[..., F.fields.arhoV1, Direction.X] = arhoVU1
-        F[..., F.fields.arhoV1, Direction.Y] = arhoVV1 + ap1
-        F[..., F.fields.arhoE1, Direction.X] = np.multiply(arhoE1 + ap1, U1)
-        F[..., F.fields.arhoE1, Direction.Y] = np.multiply(arhoE1 + ap1, V1)
+        F[..., ConsFields.arho1, Direction.X] = arhoU1
+        F[..., ConsFields.arho1, Direction.Y] = arhoV1
+        F[..., ConsFields.arhoU1, Direction.X] = arhoUU1 + ap1
+        F[..., ConsFields.arhoU1, Direction.Y] = arhoUV1
+        F[..., ConsFields.arhoV1, Direction.X] = arhoVU1
+        F[..., ConsFields.arhoV1, Direction.Y] = arhoVV1 + ap1
+        F[..., ConsFields.arhoE1, Direction.X] = np.multiply(arhoE1 + ap1, U1)
+        F[..., ConsFields.arhoE1, Direction.Y] = np.multiply(arhoE1 + ap1, V1)
 
-        F[..., F.fields.arho2, Direction.X] = arhoU2
-        F[..., F.fields.arho2, Direction.Y] = arhoV2
-        F[..., F.fields.arhoU2, Direction.X] = arhoUU2 + ap2
-        F[..., F.fields.arhoU2, Direction.Y] = arhoUV2
-        F[..., F.fields.arhoV2, Direction.X] = arhoVU2
-        F[..., F.fields.arhoV2, Direction.Y] = arhoVV2 + ap2
-        F[..., F.fields.arhoE2, Direction.X] = np.multiply(arhoE2 + ap2, U2)
-        F[..., F.fields.arhoE2, Direction.Y] = np.multiply(arhoE2 + ap2, V2)
+        F[..., ConsFields.arho2, Direction.X] = arhoU2
+        F[..., ConsFields.arho2, Direction.Y] = arhoV2
+        F[..., ConsFields.arhoU2, Direction.X] = arhoUU2 + ap2
+        F[..., ConsFields.arhoU2, Direction.Y] = arhoUV2
+        F[..., ConsFields.arhoV2, Direction.X] = arhoVU2
+        F[..., ConsFields.arhoV2, Direction.Y] = arhoVV2 + ap2
+        F[..., ConsFields.arhoE2, Direction.X] = np.multiply(arhoE2 + ap2, U2)
+        F[..., ConsFields.arhoE2, Direction.Y] = np.multiply(arhoE2 + ap2, V2)
 
         return F
