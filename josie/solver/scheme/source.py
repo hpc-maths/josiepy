@@ -52,10 +52,10 @@ class SourceScheme(Scheme):
         super().accumulate(cells, neighs, t)
 
         # Add conservative contribution
-        self._fluxes += self.s(cells, neighs)
+        self._fluxes += self.s(cells, neighs, t)
 
     @abc.abstractmethod
-    def s(self, cells: MeshCellSet, neighs: CellSet) -> State:
+    def s(self, cells: MeshCellSet, neighs: CellSet, t: float) -> State:
         r"""This is the source term implementation of the scheme. See
         :cite:`toro_riemann_2009` for a great overview on numerical methods for
         hyperbolic problems.
@@ -81,6 +81,9 @@ class SourceScheme(Scheme):
         neighs
             A :class:`CellSet` containing data of neighbour cells corresponding
             to the :attr:`values`
+
+        t
+            Time instant
 
         Returns
         -------

@@ -50,12 +50,6 @@ if TYPE_CHECKING:
 class Solver:
     r"""This class is used to solve a problem governed by PDEs.
 
-    The internal state of the mesh is stored in :attr:`values`, while the
-    values of the ghost cells (used to apply the
-    :class:`BoundaryCondition`) are stored respectively in
-    :attr:`left_ghost`, :attr:`btm_ghost`, :attr:`right_ghost`,
-    :attr:`top_ghost`. They're all numpy arrays or views to numpy arrays.
-
     Parameters
     ----------
     mesh
@@ -115,6 +109,14 @@ class Solver:
 
         # Initialize the scheme datastructures (notably the fluxes)
         self.scheme.post_init(self.mesh.cells)
+
+    def copy(self) -> Solver:
+        """ This methods copies the :class:`Solver` object into another """
+
+        solver = Solver(self.mesh.copy(), self.Q, self.scheme)
+        solver.t = self.t
+
+        return solver
 
     def step(self, dt: float):
         """This method advances one step in time using the

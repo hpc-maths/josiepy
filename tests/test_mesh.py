@@ -11,7 +11,7 @@ def test_interpolate(mesh, plot):
     xl, yl = mesh.left.curve(xis)
     xr, yr = mesh.right.curve(xis)
     xt, yt = mesh.top.curve(xis)
-    xb, yb = mesh.btm.curve(xis)
+    xb, yb = mesh.bottom.curve(xis)
 
     assert np.allclose(x[0, :], xl) and np.allclose(y[0, :], yl)
     assert np.allclose(x[-1, :], xr) and np.allclose(y[0, :], yr)
@@ -21,7 +21,7 @@ def test_interpolate(mesh, plot):
     plt.figure()
     plt.plot(x, y, "k.")
     mesh.left.curve.plot()
-    mesh.btm.curve.plot()
+    mesh.bottom.curve.plot()
     mesh.right.curve.plot()
     mesh.top.curve.plot()
     plt.axis("equal")

@@ -102,7 +102,7 @@ class ButcherTableau:
         of storage is :math:`b_1, b_2, b_3, b_4 \ldots`
     c_s
         The :math:`c_s` coefficients stored in a :class:`np.ndarray`. The order
-        of storage is :math:`c_1, c_2, c_3` \ldots`
+        of storage is :math:`c_1, c_2, c_3 \ldots`
     """
 
     a_s: np.ndarray
@@ -202,7 +202,7 @@ class RK(TimeScheme):
         )
         step_cells.update_ghosts(mesh.boundaries, t)
 
-        self.pre_accumulate(step_cells)
+        self.pre_accumulate(step_cells, t)
 
         for neighs in step_cells.neighbours:
             self.accumulate(step_cells, neighs, t)

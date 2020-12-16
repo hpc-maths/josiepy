@@ -29,9 +29,10 @@ We create one big state that contains the actual conservative variables that
 are used in the flux together with the "auxiliary" variables that are instead
 needed, for example, to compute the speed of sound.
 
-.. math:
+.. math::
 
     \eulerState
+
 
 * ``rho``: density :math:`\rho`
 * | ``rhoU``: component along :math:`x` of the velocity :math:`\vb{u}`,
@@ -73,7 +74,6 @@ class ConsFields(IntEnum):
     rhoU = 1
     rhoV = 2
     rhoE = 3
-    rhoe = 4
 
 
 class AuxFields(IntEnum):
@@ -101,7 +101,7 @@ class AuxQ(State):
 
 
 class Q(State):
-    r""" The class representing the state variables of the Euler system
+    r"""The class representing the state variables of the Euler system
 
     .. math::
 

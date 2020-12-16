@@ -106,7 +106,7 @@ class LeastSquareGradient(DiffusiveScheme):
             # ... and weight (keeping shape)
             self._w[..., i, np.newaxis] = w
 
-    def pre_accumulate(self, cells: MeshCellSet):
+    def pre_accumulate(self, cells: MeshCellSet, t: float):
 
         for i, neigh in enumerate(cells.neighbours):
             r = self._r[..., i, :]

@@ -24,15 +24,18 @@
 # The views and conclusions contained in the software and documentation
 # are those of the authors and should not be interpreted as representing
 # official policies, either expressed or implied, of Ruben Di Battista.
+from __future__ import annotations
+
 import numpy as np
 
-from typing import Union
 
+from josie._dim import MAX_DIMENSIONALITY
+from josie.math import Direction
+from josie.mesh.cellset import CellSet
 from josie.solver.problem import Problem
-from josie.mesh.cellset import CellSet, MeshCellSet
 
 from .eos import EOS
-from .state import Q
+from .state import ConsFields, Q
 
 
 class EulerProblem(Problem):
@@ -47,7 +50,7 @@ class EulerProblem(Problem):
     def __init__(self, eos: EOS):
         self.eos = eos
 
-    def F(self, cells: Union[MeshCellSet, CellSet]) -> np.ndarray:
+    def F(self, cells: CellSet) -> np.ndarray:
         r""" This returns the tensor representing the flux for an Euler model
 
         A general problem can be written in a compact way:
@@ -83,31 +86,35 @@ class EulerProblem(Problem):
                     (\rho E + p)U & (\rho E + p)V
                 \end{bmatrix}
         """
+        values: Q = cells.values
+        fields = values.fields
 
-        num_cells_x, num_cells_y, _ = cells.values.shape
+        num_cells_x, num_cells_y, _ = values.shape
 
         # Flux tensor
-        F = np.empty((num_cells_x, num_cells_y, 4, 2))
+        F = np.empty(
+            (num_cells_x, num_cells_y, len(ConsFields), MAX_DIMENSIONALITY)
+        )
 
-        rhoU = cells.values[..., Q.fields.rhoU]
-        rhoV = cells.values[..., Q.fields.rhoV]
-        rhoE = cells.values[..., Q.fields.rhoE]
-        U = cells.values[..., Q.fields.U]
-        V = cells.values[..., Q.fields.V]
-        p = cells.values[..., Q.fields.p]
+        rhoU = values[..., fields.rhoU]
+        rhoV = values[..., fields.rhoV]
+        rhoE = values[..., fields.rhoE]
+        U = values[..., fields.U]
+        V = values[..., fields.V]
+        p = values[..., fields.p]
 
         rhoUU = np.multiply(rhoU, U)
         rhoUV = np.multiply(rhoU, V)
         rhoVV = np.multiply(rhoV, V)
-        rhoVU = np.multiply(rhoV, U)
+        rhoVU = rhoUV  # np.multiply(rhoV, U)
 
-        F[..., 0, 0] = rhoU
-        F[..., 0, 1] = rhoV
-        F[..., 1, 0] = rhoUU + p
-        F[..., 1, 1] = rhoUV
-        F[..., 2, 0] = rhoVU
-        F[..., 2, 1] = rhoVV + p
-        F[..., 3, 0] = np.multiply(rhoE + p, U)
-        F[..., 3, 1] = np.multiply(rhoE + p, V)
+        F[..., fields.rho, Direction.X] = rhoU
+        F[..., fields.rho, Direction.Y] = rhoV
+        F[..., fields.rhoU, Direction.X] = rhoUU + p
+        F[..., fields.rhoU, Direction.Y] = rhoUV
+        F[..., fields.rhoV, Direction.X] = rhoVU
+        F[..., fields.rhoV, Direction.Y] = rhoVV + p
+        F[..., fields.rhoE, Direction.X] = np.multiply(rhoE + p, U)
+        F[..., fields.rhoE, Direction.Y] = np.multiply(rhoE + p, V)
 
         return F

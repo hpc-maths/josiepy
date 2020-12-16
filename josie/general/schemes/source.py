@@ -46,7 +46,7 @@ class ConstantSource(SourceScheme):
 
     """
 
-    def pre_accumulate(self, cells: MeshCellSet):
+    def pre_accumulate(self, cells: MeshCellSet, t: float):
         """
         We add the source term flux here since we just need cell info and not
         neighbours info
@@ -55,11 +55,14 @@ class ConstantSource(SourceScheme):
         ----------
         cells
             A :class:`MeshCellSet` containing the state of the mesh cells
+
+        t
+            The current time instant
         """
 
-        super().pre_accumulate(cells)
+        super().pre_accumulate(cells, t)
 
-        self._fluxes += self.volume_s(cells)
+        self._fluxes += self.volume_s(cells, t)
 
     def accumulate(
         self, cells: MeshCellSet, neighs: CellSet, t: float
@@ -70,12 +73,12 @@ class ConstantSource(SourceScheme):
 
         return np.zeros_like(cells.values)
 
-    def volume_s(self, cells: MeshCellSet) -> State:
+    def volume_s(self, cells: MeshCellSet, t: float) -> State:
         """The source flux computed only for the cells, without taking into
         consideration the neighbours since they're not needed
         """
-        return self.problem.s(cells) * cells.volumes
+        return self.problem.s(cells, t) * cells.volumes
 
-    def s(self, cells: MeshCellSet, neighs: CellSet) -> State:
+    def s(self, cells: MeshCellSet, neighs: CellSet, t: float) -> State:
         """ Use :meth:`volume_s` instead """
         raise NotImplementedError
