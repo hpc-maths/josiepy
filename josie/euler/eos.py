@@ -81,7 +81,7 @@ class PerfectGas(EOS):
         Returns
         -------
         rhoe
-            A :class`np.ndarray` containing the values of the internal energy
+            A :class:`np.ndarray` containing the values of the internal energy
             multiplied by the density
         """
 
@@ -103,7 +103,7 @@ class PerfectGas(EOS):
         Returns
         -------
         p
-            A :class`np.ndarray  containing the values of the pressure
+            A :class:`np.ndarray  containing the values of the pressure
             multiplied by the density
         """
         return (self.gamma - 1) * np.multiply(rho, e)
@@ -124,7 +124,7 @@ class PerfectGas(EOS):
         Returns
         -------
         c
-            A :class`np.ndarray` containing the values of the sound velocity
+            A :class:`np.ndarray` containing the values of the sound velocity
             multiplied by the density
         """
 

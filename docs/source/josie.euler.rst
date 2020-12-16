@@ -20,6 +20,14 @@ josie.euler.eos module
    :undoc-members:
    :show-inheritance:
 
+josie.euler.exact module
+------------------------
+
+.. automodule:: josie.euler.exact
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 josie.euler.problem module
 --------------------------
 
