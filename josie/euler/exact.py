@@ -169,7 +169,7 @@ class Exact:
 
         return rho_star_k
 
-    def shock(self, p: float, Q_k: Q, wave: Wave):
+    def shock(self, p: float, Q_k: Q, wave: Wave) -> float:
         """This function returns the after-shock velocity
 
         Parameters
@@ -312,7 +312,7 @@ class Exact:
 
         return rho[-1]
 
-    def rarefaction(self, p: float, Q_k: Q, wave: Wave):
+    def rarefaction(self, p: float, Q_k: Q, wave: Wave) -> float:
         r"""Non linear function for the rarefaction
 
         Parameters
