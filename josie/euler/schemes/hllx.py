@@ -222,6 +222,8 @@ class HLLC(HLL):
         Q_star_R = np.empty_like(Qc_R)
         Q_star_L = np.empty_like(Qc_L)
 
+        # FIXME: This can be avoided using direct flux expressions, Toro
+        # p325, eq 10.41
         U_star_L = UV_L + np.einsum(
             "...k,...l->...kl", (S_star - U_L), neighs.normals
         )
