@@ -362,7 +362,7 @@ def riemann_states(
                         rho=0.125,
                         U=0,
                         V=0,
-                        p=0.0,
+                        p=0.1,
                     ),
                 ),
             ),
@@ -610,7 +610,7 @@ def test_toro(riemann_states, request, plot, write):
         bottom.bc = None
 
         mesh = Mesh(left, bottom, right, top, SimpleCell)
-        mesh.interpolate(500, 1)
+        mesh.interpolate(100, 1)
         mesh.generate()
 
         def init_fun(cells: MeshCellSet):
