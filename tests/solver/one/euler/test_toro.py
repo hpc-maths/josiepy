@@ -159,7 +159,7 @@ def riemann2Q(state, eos):
     return Q(rho, rho * U, rho * V, rho * E, rhoe, U, V, p, c)
 
 
-@pytest.mark.parametrize("riemann", riemann_states)
+@pytest.mark.parametrize("riemann", sorted(riemann_states, key=id))
 def test_toro(riemann, Scheme, plot, request):
     left = Line([0, 0], [0, 1])
     bottom = Line([0, 0], [1, 0])

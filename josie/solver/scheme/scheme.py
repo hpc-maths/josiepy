@@ -27,13 +27,13 @@
 from __future__ import annotations
 
 import abc
-
 import numpy as np
 
 from typing import TYPE_CHECKING
 
 from josie.solver.problem import Problem
 from josie.solver.state import State
+
 
 if TYPE_CHECKING:
     from josie.mesh.cellset import CellSet, MeshCellSet
@@ -93,8 +93,11 @@ class Scheme(abc.ABC):
     @classmethod
     def _all_subclasses(cls):
         """A recursive class method to get all the subclasses of this class"""
-        return set(cls.__subclasses__()).union(
-            [s for c in cls.__subclasses__() for s in c._all_subclasses()]
+        return sorted(
+            set(cls.__subclasses__()).union(
+                [s for c in cls.__subclasses__() for s in c._all_subclasses()]
+            ),
+            key=id,
         )
 
     @abc.abstractmethod
