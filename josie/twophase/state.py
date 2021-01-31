@@ -181,7 +181,7 @@ class Q(State):
             of the system associated to the requested phase
         """
 
-        return self[..., phase : phase + 9].view(PhaseQ)
+        return self[..., phase : phase + len(PhaseFields)].view(PhaseQ)
 
     def set_phase(self, phase: Phases, values: PhaseQ):
         """Sets the part of the system associated to the specified ``phase``
@@ -197,7 +197,7 @@ class Q(State):
             The corresponding values to update the state with
         """
 
-        self[..., phase : phase + 9] = values
+        self[..., phase : phase + len(PhaseFields)] = values
 
     def get_conservative(self) -> ConsQ:
         """ Returns the conservative part of the state """
