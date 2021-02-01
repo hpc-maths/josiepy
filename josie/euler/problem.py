@@ -86,7 +86,7 @@ class EulerProblem(Problem):
                     (\rho E + p)U & (\rho E + p)V
                 \end{bmatrix}
         """
-        values: Q = cells.values
+        values: Q = cells.values.view(Q)
         fields = values.fields
 
         num_cells_x, num_cells_y, _ = values.shape

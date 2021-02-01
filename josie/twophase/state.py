@@ -30,7 +30,7 @@ import numpy as np
 from enum import IntEnum
 from typing import Any, Dict
 
-from josie.solver.state import State
+from josie.solver.state import Fields, FluidFields, FluidState, State
 
 
 class PhasePair:
@@ -76,7 +76,7 @@ class Phases(IntEnum):
     PHASE2 = 10
 
 
-class Fields(IntEnum):
+class TwoPhaseFields(Fields):
     alpha = 0
 
     arho1 = 1
@@ -100,7 +100,7 @@ class Fields(IntEnum):
     c2 = 18
 
 
-class ConsFields(IntEnum):
+class ConsFields(Fields):
     alpha = 0
     arho1 = 1
     arhoU1 = 2
@@ -113,7 +113,7 @@ class ConsFields(IntEnum):
     arhoE2 = 8
 
 
-class PhaseFields(IntEnum):
+class PhaseFields(FluidFields):
     """ Indexing fields for a substate associated to a phase """
 
     arho = 0
@@ -127,7 +127,7 @@ class PhaseFields(IntEnum):
     c = 8
 
 
-class GradFields(IntEnum):
+class GradFields(Fields):
     r"""Indexes used to index the gradient pre-factor
     :math:`\pdeNonConservativeMultiplier`. Check :mod:`twophase.problem` for
     more information on how the multiplier is reduced in size to optimize
@@ -136,7 +136,7 @@ class GradFields(IntEnum):
     alpha = 0
 
 
-class PhaseQ(State):
+class PhaseQ(FluidState):
     """ State array for one single phase """
 
     fields = PhaseFields
@@ -157,7 +157,7 @@ class Q(State):
     two Euler states together with the state associated to the volume fraction
     :math:`\alpha`"""
 
-    fields = Fields
+    fields = TwoPhaseFields
 
     def get_phase(self, phase: Phases) -> PhaseQ:
         r"""Returns the part of the state associated to a specified ``phase``

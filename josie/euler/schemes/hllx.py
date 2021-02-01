@@ -28,7 +28,7 @@ from __future__ import annotations
 
 import numpy as np
 
-from typing import TYPE_CHECKING
+from typing import Tuple, TYPE_CHECKING
 
 from josie.math import Direction
 from josie.euler.state import Q
@@ -47,7 +47,7 @@ class HLL(EulerScheme):
     @staticmethod
     def compute_sigma(
         U_L: np.ndarray, U_R: np.ndarray, c_L: np.ndarray, c_R: np.ndarray
-    ) -> np.ndarray:
+    ) -> Tuple[np.ndarray, np.ndarray]:
         r"""Returns the value of the :math:`\sigma`(i.e. the wave velocity) for
         the the HLL and HLLC scheme.
 
@@ -87,14 +87,14 @@ class HLL(EulerScheme):
             :math:`\sigma_R` per each cell
         """
 
-        sigma_L = np.min(
+        sigma_L: np.ndarray = np.min(
             np.concatenate(
                 (U_L - c_L[..., np.newaxis], U_R - c_R[..., np.newaxis]),
                 axis=-1,
             )
         )
 
-        sigma_R = np.max(
+        sigma_R: np.ndarray = np.max(
             np.concatenate(
                 (U_L + c_L[..., np.newaxis], U_R + c_R[..., np.newaxis]),
                 axis=-1,
@@ -105,10 +105,10 @@ class HLL(EulerScheme):
 
     def F(self, cells: MeshCellSet, neighs: CellSet):
 
-        values: Q = cells.values
+        values: Q = cells.values.view(Q)
 
         FS = np.zeros_like(values).view(Q)
-        Q_L, Q_R = values, neighs.values
+        Q_L, Q_R = values, neighs.values.view(Q)
         fields = values.fields
 
         # Get normal velocities
@@ -131,8 +131,8 @@ class HLL(EulerScheme):
 
         # First four variables of the total state are the conservative
         # variables (rho, rhoU, rhoV, rhoE)
-        Qc_L = values.get_conservative()
-        Qc_R = neighs.values.get_conservative()
+        Qc_L = Q_L.get_conservative()
+        Qc_R = Q_R.get_conservative()
 
         F = np.zeros_like(F_L)
 
@@ -161,12 +161,12 @@ class HLLC(HLL):
 
     def F(self, cells: MeshCellSet, neighs: CellSet):
 
-        values: Q = cells.values
+        values: Q = cells.values.view(Q)
 
         FS = np.zeros_like(values).view(Q)
         F = np.zeros_like(values.get_conservative())
         fields = Q.fields
-        Q_L, Q_R = values, neighs.values
+        Q_L, Q_R = values, neighs.values.view(Q)
 
         # Get density
         rho_L = Q_L[..., np.newaxis, fields.rho]

@@ -104,7 +104,7 @@ class TwoPhaseProblem(Problem):
             to implement the :class:`~.Closure` trait in order to be able to
             return `pI` and `uI` (in addition to the :class:`~.euler.EOS`)
         """
-        values = cells.values
+        values = cells.values.view(Q)
 
         num_cells_x, num_cells_y, num_fields = values.shape
 
@@ -184,7 +184,7 @@ class TwoPhaseProblem(Problem):
                     \alpha_2(\rho_2 E_2 + p_2)u_2 & \alpha_2 (\rho_2 E + p)v_2
                 \end{bmatrix}
         """
-        values: Q = cells.values
+        values: Q = cells.values.view(Q)
         num_cells_x, num_cells_y, _ = values.shape
 
         # Flux tensor

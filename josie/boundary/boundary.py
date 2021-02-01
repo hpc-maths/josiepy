@@ -35,7 +35,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Tuple
+from typing import TYPE_CHECKING
 
 from josie.data import NoAliasIntEnum
 from josie.geometry import MeshIndex, PointType
@@ -98,8 +98,8 @@ class Boundary:
 
     side: BoundarySide
     curve: BoundaryCurve
-    cells_idx: Tuple[MeshIndex, ...]
-    ghost_cells_idx: Tuple[MeshIndex, ...]
+    cells_idx: MeshIndex
+    ghost_cells_idx: MeshIndex
 
     def bc(self, cells: MeshCellSet, t: float):
         """ Proxy method to :meth:`BoundaryCurve.bc` """

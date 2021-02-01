@@ -34,8 +34,9 @@ from typing import Collection, Type, TYPE_CHECKING
 if TYPE_CHECKING:
     from josie.mesh import Mesh
 
-Fields = Type[IntEnum]
-Field = IntEnum
+
+class Fields(IntEnum):
+    pass
 
 
 def unpickle_state(d, array):
@@ -85,7 +86,7 @@ class State(np.ndarray):
     >>> assert np.array_equal(state[..., state.fields.rhoU],state[..., 1])
     """
 
-    fields: Fields
+    fields: Type[Fields]
     _FIELDS_ENUM_NAME = "FieldsEnum"
 
     def __new__(cls, *args, **kwargs):
@@ -102,7 +103,7 @@ class State(np.ndarray):
         if isinstance(args[0], (int, float)):
             dtype = float
         else:
-            dtype = np.object
+            dtype = object
 
         arr: State = np.asarray(list(args), dtype=dtype).view(cls)
 
@@ -143,6 +144,20 @@ class State(np.ndarray):
         state_size = len(cls.fields)
 
         return np.empty((nx + 2, ny + 2, state_size)).view(cls)
+
+
+class FluidFields(Fields):
+    U = 0
+    V = 1
+    # W = auto()
+
+
+class FluidState(State):
+    """A class used for type checking to indicate a state for a fluid dynamics
+    problem, i.e. a state whose fields are :class:`FluidFields`, that is they
+    have velocity components"""
+
+    fields: Type[FluidFields]
 
 
 def StateTemplate(*fields: str) -> Type[State]:

@@ -3,7 +3,7 @@ import numpy as np
 
 from dataclasses import dataclass
 from enum import Enum, IntEnum
-from typing import TYPE_CHECKING, Iterable, List, Tuple
+from typing import TYPE_CHECKING, Iterable, List
 
 from josie.geometry import MeshIndex
 
@@ -58,7 +58,7 @@ class CellSet:
     centroids: np.ndarray
     values: State
 
-    def __getitem__(self, key: Tuple[MeshIndex]) -> CellSet:
+    def __getitem__(self, key: MeshIndex) -> CellSet:
         """ Slice the :class:`CellSet` as a whole """
 
         return CellSet(
@@ -96,7 +96,7 @@ class MeshCellSetIndex:
         The :class:`NormalDirection` to index the face-related data structures
     """
 
-    data_index: Tuple[MeshIndex, ...]
+    data_index: MeshIndex
     normal_direction: NormalDirection
 
 
@@ -177,7 +177,7 @@ class MeshCellSet(CellSet):
         self._normals = normals
         self.dimensionality = dimensionality
 
-    def __getitem__(self, key: Tuple[MeshIndex, ...]) -> CellSet:
+    def __getitem__(self, key: MeshIndex) -> CellSet:
         """For :class:`MeshCellSet`, differently from :class:`CellSet`, we
         index on the internal data structures (i.e. the ones that contain also
         the ghost cells"""
@@ -240,7 +240,7 @@ class MeshCellSet(CellSet):
             )
 
     @property  # type: ignore
-    def volumes(self) -> np.ndarray:
+    def volumes(self) -> np.ndarray:  # type: ignore
         return self._volumes[1:-1, 1:-1]
 
     @volumes.setter
@@ -248,7 +248,7 @@ class MeshCellSet(CellSet):
         self._volumes[1:-1, 1:-1] = value
 
     @property  # type: ignore
-    def surfaces(self) -> np.ndarray:
+    def surfaces(self) -> np.ndarray:  # type: ignore
         return self._surfaces[1:-1, 1:-1]
 
     @surfaces.setter
@@ -256,7 +256,7 @@ class MeshCellSet(CellSet):
         self._surfaces[1:-1, 1:-1] = value
 
     @property  # type: ignore
-    def normals(self) -> np.ndarray:
+    def normals(self) -> np.ndarray:  # type: ignore
         return self._normals[1:-1, 1:-1]
 
     @normals.setter
@@ -264,7 +264,7 @@ class MeshCellSet(CellSet):
         self._normals[1:-1, 1:-1] = value
 
     @property  # type: ignore
-    def centroids(self) -> np.ndarray:
+    def centroids(self) -> np.ndarray:  # type: ignore
         return self._centroids[1:-1, 1:-1]
 
     @centroids.setter

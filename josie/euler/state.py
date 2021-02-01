@@ -48,12 +48,10 @@ needed, for example, to compute the speed of sound.
 """
 from __future__ import annotations
 
-from enum import IntEnum
-
-from josie.solver.state import State
+from josie.solver.state import Fields, FluidFields, FluidState, State
 
 
-class Fields(IntEnum):
+class EulerFields(FluidFields):
     """ Indexing enum for the state variables of the problem """
 
     rho = 0
@@ -67,7 +65,7 @@ class Fields(IntEnum):
     c = 8
 
 
-class ConsFields(IntEnum):
+class ConsFields(Fields):
     """ Indexing enum for the conservative state variables of the problem """
 
     rho = 0
@@ -76,7 +74,7 @@ class ConsFields(IntEnum):
     rhoE = 3
 
 
-class AuxFields(IntEnum):
+class AuxFields(Fields):
     """ Indexing enum for the auxiliary state variables of the problem """
 
     rhoe = 0
@@ -100,7 +98,7 @@ class AuxQ(State):
     fields = AuxFields
 
 
-class Q(State):
+class Q(FluidState):
     r"""The class representing the state variables of the Euler system
 
     .. math::
@@ -108,24 +106,24 @@ class Q(State):
         \eulerState
 
     """
-    fields = Fields
+    fields = EulerFields
 
     def get_conservative(self) -> ConsQ:
         """ Returns the conservative part of the state """
 
-        return self[..., Fields.rho : Fields.rhoE + 1].view(ConsQ)
+        return self[..., self.fields.rho : self.fields.rhoE + 1].view(ConsQ)
 
     def set_conservative(self, values: ConsQ):
         """ Sets the conservative part of the state """
 
-        self[..., Fields.rho : Fields.rhoE + 1] = values
+        self[..., self.fields.rho : self.fields.rhoE + 1] = values
 
     def get_auxiliary(self) -> AuxQ:
         """ Returns the auxiliary part of the state """
 
-        return self[..., Fields.rhoe : Fields.c + 1].view(AuxQ)
+        return self[..., self.fields.rhoe : self.fields.c + 1].view(AuxQ)
 
     def set_auxiliary(self, values: AuxQ):
         """ Sets the auxiliary part of the state """
 
-        self[..., Fields.rhoe : Fields.c + 1] = values
+        self[..., self.fields.rhoe : self.fields.c + 1] = values

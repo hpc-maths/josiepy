@@ -53,7 +53,7 @@ class TwoPhaseScheme(Scheme):
         the values of the non-conservative (auxiliary) variables using the
         :class:`~.EOS`
         """
-        values: Q = cells.values
+        values: Q = cells.values.view(Q)
 
         alpha = values[..., values.fields.alpha]
 
@@ -97,7 +97,7 @@ class Upwind(NonConservativeScheme, TwoPhaseScheme):
 
     def G(self, cells: MeshCellSet, neighs: CellSet) -> np.ndarray:
 
-        values = cells.values
+        values: Q = cells.values.view(Q)
 
         nx, ny, _ = values.shape
 
@@ -105,7 +105,7 @@ class Upwind(NonConservativeScheme, TwoPhaseScheme):
 
         # Get vector of uI
         UI_VI = self.problem.closure.uI(values)
-        UI_VI_neigh = self.problem.closure.uI(neighs.values)
+        UI_VI_neigh = self.problem.closure.uI(neighs.values.view(Q))
 
         UI_VI_face = 0.5 * (UI_VI + UI_VI_neigh)
 
@@ -153,7 +153,7 @@ class Rusanov(ConvectiveScheme, TwoPhaseScheme):
             The value of the numerical convective flux multiplied by the
             surface value :math:`\numConvective`
         """
-        values: Q = cells.values
+        values: Q = cells.values.view(Q)
 
         FS = np.zeros_like(values).view(Q)
 
@@ -166,7 +166,7 @@ class Rusanov(ConvectiveScheme, TwoPhaseScheme):
 
         for phase in Phases:
             phase_values = values.get_phase(phase)
-            phase_neigh_values = neighs.values.get_phase(phase)
+            phase_neigh_values = neighs.values.view(Q).get_phase(phase)
 
             fields = phase_values.fields
 
@@ -203,7 +203,7 @@ class Rusanov(ConvectiveScheme, TwoPhaseScheme):
         DeltaF = np.einsum("...kl,...l->...k", DeltaF, neighs.normals)
 
         values_cons = values.get_conservative()
-        neigh_values_cons = neighs.values.get_conservative()
+        neigh_values_cons = neighs.values.view(Q).get_conservative()
 
         DeltaQ = 0.5 * sigma * (neigh_values_cons - values_cons)
 
@@ -224,7 +224,7 @@ class Rusanov(ConvectiveScheme, TwoPhaseScheme):
         alpha = cells.values[..., Q.fields.alpha]
         alphas = PhasePair(alpha, 1 - alpha)
         for phase in Phases:
-            phase_values = cells.values.get_phase(phase)
+            phase_values = cells.values.view(Q).get_phase(phase)
             fields = phase_values.fields
             alpha = alphas[phase]
 

@@ -30,20 +30,26 @@
 import abc
 import numpy as np
 
+from typing import Union
+
+ArrayAndScalar = Union[np.ndarray, float]
+
 
 class EOS(metaclass=abc.ABCMeta):
     """ An Abstract Base Class representing an EOS for an Euler System """
 
     @abc.abstractmethod
-    def rhoe(self, rho: np.ndarray, p: np.ndarray) -> np.ndarray:
+    def rhoe(self, rho: ArrayAndScalar, p: ArrayAndScalar) -> ArrayAndScalar:
         raise NotImplementedError
 
     @abc.abstractmethod
-    def p(self, rho: np.ndarray, e: np.ndarray) -> np.ndarray:
+    def p(self, rho: ArrayAndScalar, e: ArrayAndScalar) -> ArrayAndScalar:
         raise NotImplementedError
 
     @abc.abstractmethod
-    def sound_velocity(self, rho: np.ndarray, p: np.ndarray) -> np.ndarray:
+    def sound_velocity(
+        self, rho: ArrayAndScalar, p: ArrayAndScalar
+    ) -> ArrayAndScalar:
         raise NotImplementedError
 
 
@@ -65,67 +71,67 @@ class PerfectGas(EOS):
     def __init__(self, gamma: float = 1.4):
         self.gamma = gamma
 
-    def rhoe(self, rho: np.ndarray, p: np.ndarray):
+    def rhoe(self, rho: ArrayAndScalar, p: ArrayAndScalar):
         """This returns the internal energy multiplied by the density
 
         Parameters
         ----------
         rho
-            A :class:`np.ndarray` containing the values of the density on the
-            mesh cells
+            A :class:`ArrayAndScalar` containing the values of the density on
+            the mesh cells
 
         p
-            A :class:`np.ndarray` containing the values of the pressure on the
-            mesh cells
+            A :class:`ArrayAndScalar` containing the values of the pressure on
+            the mesh cells
 
         Returns
         -------
         rhoe
-            A :class:`np.ndarray` containing the values of the internal energy
-            multiplied by the density
+            A :class:`ArrayAndScalar` containing the values of the internal
+            energy multiplied by the density
         """
 
         return p / (self.gamma - 1)
 
-    def p(self, rho: np.ndarray, e: np.ndarray):
+    def p(self, rho: ArrayAndScalar, e: ArrayAndScalar):
         """This returns the pressure from density and internal energy
 
         Parameters
         ----------
         rho
-            A :class:`np.ndarray` containing the values of the density on the
-            mesh cells
+            A :class:`ArrayAndScalar` containing the values of the density on
+            the mesh cells
 
         e
-            A :class:`np.ndarray` containing the values of the internal energy
-            on the mesh cells
+            A :class:`ArrayAndScalar` containing the values of the internal
+            energy on the mesh cells
 
         Returns
         -------
         p
-            A :class:`np.ndarray  containing the values of the pressure
+            A :class:`ArrayAndScalar  containing the values of the pressure
             multiplied by the density
         """
         return (self.gamma - 1) * np.multiply(rho, e)
 
-    def sound_velocity(self, rho: np.ndarray, p: np.ndarray):
+    def sound_velocity(self, rho: ArrayAndScalar, p: ArrayAndScalar):
         """This returns the sound velocity from density and pressure
 
         Parameters
         ----------
         rho
-            A :class:`np.ndarray` containing the values of the density on the
-            mesh cells
+            A :class:`ArrayAndScalar` containing the values of the density on
+            the mesh cells
 
         p
-            A :class:`np.ndarray` containing the values of the pressure
+            A :class:`ArrayAndScalar` containing the values of the pressure
             on the mesh cells
 
         Returns
         -------
         c
-            A :class:`np.ndarray` containing the values of the sound velocity
-            multiplied by the density
+            A :class:`ArrayAndScalar` containing the values of the sound
+            velocity multiplied by the density
         """
 
         return np.sqrt(self.gamma * np.divide(p, rho))
@@ -136,13 +142,15 @@ class StiffenedGas(PerfectGas):
         self.gamma = gamma
         self.p0 = p0
 
-    def rhoe(self, rho: np.ndarray, p: np.ndarray) -> np.ndarray:
+    def rhoe(self, rho: ArrayAndScalar, p: ArrayAndScalar) -> ArrayAndScalar:
 
         return (p + self.gamma * self.p0) / (self.gamma - 1)
 
-    def p(self, rho: np.ndarray, e: np.ndarray) -> np.ndarray:
+    def p(self, rho: ArrayAndScalar, e: ArrayAndScalar) -> ArrayAndScalar:
 
         return (self.gamma - 1) * np.multiply(rho, e) - self.p0 * self.gamma
 
-    def sound_velocity(self, rho: np.ndarray, p: np.ndarray) -> np.ndarray:
+    def sound_velocity(
+        self, rho: ArrayAndScalar, p: ArrayAndScalar
+    ) -> ArrayAndScalar:
         return np.sqrt(self.gamma * np.divide((p + self.p0), rho))

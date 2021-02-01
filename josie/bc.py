@@ -31,7 +31,7 @@ import numpy as np
 
 from typing import Callable, Optional, Tuple, TYPE_CHECKING, Union
 
-from josie.solver.state import Field, State
+from josie.solver.state import Fields, State
 
 from .boundary import Boundary, BoundaryCurve
 from .data import NoAliasEnum
@@ -99,7 +99,7 @@ class ScalarBC(abc.ABC):
         self,
         cells: CellSet,
         ghost_cells: Optional[np.ndarray],
-        field: Field,
+        field: Fields,
         t: float,
     ) -> np.ndarray:
         """
@@ -173,7 +173,7 @@ class Dirichlet(ScalarBC):
         self,
         cells: CellSet,
         ghost_cells: Optional[np.ndarray],  # Not used in BC
-        field: Field,
+        field: Fields,
         t: float,
     ) -> np.ndarray:
 
@@ -212,7 +212,7 @@ class Neumann(Dirichlet):
         self,
         cells: CellSet,
         ghost_cells: Optional[np.ndarray],  # Not used in BC
-        field: Field,
+        field: Fields,
         t: float,
     ) -> np.ndarray:
         return cells.values[..., field] - self._value
@@ -276,7 +276,7 @@ class NeumannDirichlet(ScalarBC):
         self,
         cells: CellSet,
         ghost_cells: Optional[np.ndarray],  # Not used in BC
-        field: Field,
+        field: Fields,
         t: float,
     ) -> np.ndarray:
 

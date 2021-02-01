@@ -40,7 +40,7 @@ def test_linear_index(mocker, mesh, Q):
             [15, 16, 17, 18, 19],
             [20, 21, 22, 23, 24],
         ],
-        dtype=np.float,
+        dtype=float,
     )
 
     def init_fun(solver: Solver):

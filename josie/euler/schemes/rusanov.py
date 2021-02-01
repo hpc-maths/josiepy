@@ -102,8 +102,8 @@ class Rusanov(EulerScheme):
 
     def F(self, cells: MeshCellSet, neighs: CellSet):
 
-        Q_L: Q = cells.values
-        Q_R: Q = neighs.values
+        Q_L: Q = cells.values.view(Q)
+        Q_R: Q = neighs.values.view(Q)
 
         fields = Q.fields
 

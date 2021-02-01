@@ -36,7 +36,7 @@ from scipy.interpolate import interp1d
 
 from josie.euler.eos import EOS
 from josie.euler.state import Q
-from josie.solver.state import State
+from josie.solver.state import Fields, State
 
 
 class Wave(IntEnum):
@@ -49,7 +49,7 @@ class WaveType(Enum):
     RAREFACTION = auto()
 
 
-class RarefactionFields(IntEnum):
+class RarefactionFields(Fields):
     U = 0
     rho = 1
 
