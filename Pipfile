@@ -28,7 +28,7 @@ sphinxcontrib-bibtex = "*"
 pytest-profiling = "*"
 
 [packages]
-numpy = "*"
+numpy = "<1.20"
 
 [requires]
 python_version = "3.8"
