@@ -28,15 +28,12 @@ from __future__ import annotations
 
 import numpy as np
 
-from enum import IntEnum
 from typing import Collection, Type, TYPE_CHECKING
+
+from .fields import Fields
 
 if TYPE_CHECKING:
     from josie.mesh import Mesh
-
-
-class Fields(IntEnum):
-    pass
 
 
 def unpickle_state(d, array):
@@ -126,11 +123,11 @@ class State(np.ndarray):
         return (unpickle_state, (enum_dict, self.__array__()))
 
     @classmethod
-    def list_to_enum(cls, fields: Collection[str]) -> IntEnum:
+    def list_to_enum(cls, fields: Collection[str]) -> Fields:
         """Convert a list of textual fields to the class:`IntEnum` that needs
         to be stored in this class :attr:`fields`"""
 
-        return IntEnum(  # type: ignore
+        return Fields(  # type: ignore
             cls._FIELDS_ENUM_NAME, dict(zip(fields, range(len(fields))))
         )  # type: ignore
 
@@ -191,7 +188,7 @@ def StateTemplate(*fields: str) -> Type[State]:
     """
     # Dynamically create a class of type "State" (actually a subclass)
     # with the right :attr:`fields`
-    enum_fields: IntEnum = State.list_to_enum(fields)
-    state_cls = type("DerivedState", (State,), {"fields": enum_fields})  # type: ignore # noqa: E501
+    state_fields: Fields = State.list_to_enum(fields)
+    state_cls = type("DerivedState", (State,), {"fields": state_fields})  # type: ignore # noqa: E501
 
     return state_cls
