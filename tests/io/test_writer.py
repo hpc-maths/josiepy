@@ -1,7 +1,7 @@
 import pytest
 
 from josie.io.write.writer import MemoryWriter, NoopWriter, XDMFWriter
-from josie.solver.state import StateTemplate
+from josie.state import StateTemplate
 
 
 @pytest.fixture

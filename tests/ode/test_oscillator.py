@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 import josie.general.schemes.time as time_schemes
 
 from josie.ode import OdeSolver
-from josie.solver.state import State, StateTemplate
+from josie.state import State, StateTemplate
 
 Q = StateTemplate("x", "v")
 

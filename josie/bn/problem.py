@@ -29,7 +29,7 @@ import numpy as np
 from typing import Union
 
 from josie._dim import MAX_DIMENSIONALITY
-from josie.solver.problem import Problem
+from josie.problem import Problem
 from josie.math import Direction
 from josie.mesh.cellset import CellSet, MeshCellSet
 

@@ -27,7 +27,7 @@
 
 import abc
 
-from josie.solver.solver import Solver
+from josie.solver import Solver
 
 
 class Strategy(abc.ABC):

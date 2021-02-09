@@ -33,7 +33,7 @@ from typing import Union
 
 from josie.mesh.cellset import CellSet, MeshCellSet
 
-from .state import State
+from josie.state import State
 
 
 class Problem(metaclass=abc.ABCMeta):

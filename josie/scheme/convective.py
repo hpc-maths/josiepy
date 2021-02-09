@@ -30,11 +30,12 @@ import abc
 
 from typing import TYPE_CHECKING
 
+from .scheme import Scheme
+
+
 if TYPE_CHECKING:
     from josie.mesh.cellset import CellSet, MeshCellSet
-    from josie.solver.state import State
-
-from .scheme import Scheme
+    from josie.state import State
 
 
 class ConvectiveScheme(Scheme):

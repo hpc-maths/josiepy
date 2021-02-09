@@ -31,7 +31,7 @@ from typing import List
 
 from meshio.xdmf import TimeSeriesWriter
 
-from josie.solver.solver import Solver
+from josie.solver import Solver
 
 from .strategy import NoopStrategy, Strategy
 

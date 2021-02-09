@@ -25,9 +25,9 @@
 # are those of the authors and should not be interpreted as representing
 # official policies, either expressed or implied, of Ruben Di Battista.
 #
+import abc
 import sys
 
-from abc import ABCMeta
 from typing import Optional
 
 from aenum import (
@@ -53,7 +53,7 @@ class Field(int):
         return obj
 
 
-class FieldsMeta(ABCMeta):
+class FieldsMeta(abc.ABCMeta):
     """This metaclass reproduces in a simpler form the behaviour of
     :class:`Enum`.  It tracks all the defined attributes of a class, it
     precomputes the number of fields and replaces the fields that have no int
@@ -114,3 +114,10 @@ class FieldsMeta(ABCMeta):
 
 class Fields(metaclass=FieldsMeta):
     pass
+
+
+class FluidFields(Fields):
+    """ Indexing fields for fluid systems """
+
+    U: int
+    V: int

@@ -27,7 +27,7 @@
 import abc
 
 from josie.mesh import Mesh
-from josie.solver.problem import Problem
+from josie.problem import Problem
 
 from .scheme import Scheme
 

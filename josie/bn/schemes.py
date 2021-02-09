@@ -29,9 +29,9 @@ import numpy as np
 
 from josie.mesh.cellset import CellSet, MeshCellSet
 from josie.euler.schemes import Rusanov as EulerRusanov
-from josie.solver.scheme import Scheme
-from josie.solver.scheme.nonconservative import NonConservativeScheme
-from josie.solver.scheme.convective import ConvectiveScheme
+from josie.scheme import Scheme
+from josie.scheme.nonconservative import NonConservativeScheme
+from josie.scheme.convective import ConvectiveScheme
 
 from .closure import Closure
 from .eos import TwoPhaseEOS

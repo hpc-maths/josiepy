@@ -31,7 +31,7 @@ import numpy as np
 
 from typing import Callable, Optional, Tuple, TYPE_CHECKING, Union
 
-from josie.solver.state import Fields, State
+from josie.state import Fields, State
 
 from .boundary import Boundary, BoundaryCurve
 from .data import NoAliasEnum

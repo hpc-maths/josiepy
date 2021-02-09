@@ -4,7 +4,7 @@ this:https://en.wikipedia.org/wiki/Runge%E2%80%93Kutta_methods#Explicit_Runge%E2
 import numpy as np
 
 from josie.ode import OdeSolver
-from josie.solver.state import StateTemplate
+from josie.state import StateTemplate
 from josie.general.schemes.time import RK2
 
 Q = StateTemplate("y")

@@ -2,7 +2,7 @@ import pickle
 import numpy as np
 import pytest
 
-from josie.solver.state import State, StateTemplate
+from josie.state import State, StateTemplate
 
 
 @pytest.fixture

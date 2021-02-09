@@ -37,9 +37,9 @@ from josie.mesh import Mesh
 from josie.mesh.cell import SimpleCell
 from josie.mesh.cellset import CellSet, MeshCellSet
 from josie.solver import Solver
-from josie.solver.problem import Problem
-from josie.solver.state import State
-from josie.solver.scheme.time import TimeScheme
+from josie.problem import Problem
+from josie.state import State
+from josie.scheme.time import TimeScheme
 
 
 class OdeProblem(Problem):

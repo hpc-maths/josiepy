@@ -39,8 +39,8 @@ from typing import (
 
 from josie.mesh.cellset import CellSet, MeshCellSet
 
-from .state import State
-from .scheme import Scheme
+from josie.state import State
+from josie.scheme import Scheme
 
 
 if TYPE_CHECKING:

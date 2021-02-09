@@ -9,7 +9,7 @@ from josie.geometry import MeshIndex
 
 if TYPE_CHECKING:
     from josie.boundary import Boundary
-    from josie.solver.state import State
+    from josie.state import State
 
 
 class NormalDirection(IntEnum):

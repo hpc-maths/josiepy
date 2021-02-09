@@ -29,11 +29,11 @@ from __future__ import annotations
 import numpy as np
 
 from typing import TYPE_CHECKING
-from josie.solver.scheme.source import SourceScheme
+from josie.scheme.source import SourceScheme
 
 if TYPE_CHECKING:
     from josie.mesh.cellset import CellSet, MeshCellSet
-    from josie.solver.state import State
+    from josie.state import State
 
 
 class ConstantSource(SourceScheme):

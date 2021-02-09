@@ -18,14 +18,14 @@ from josie.boundary import Line
 from josie.mesh import Mesh
 from josie.mesh.cell import SimpleCell
 from josie.mesh.cellset import MeshCellSet
-from josie.solver.scheme import Scheme
-from josie.solver.scheme.convective import ConvectiveScheme
-from josie.solver.scheme.nonconservative import NonConservativeScheme
-from josie.twophase.closure import Classical
-from josie.twophase.eos import TwoPhaseEOS
-from josie.twophase.schemes import TwoPhaseScheme
-from josie.twophase.solver import TwoPhaseSolver
-from josie.twophase.state import PhasePair, Q
+from josie.scheme import Scheme
+from josie.scheme.convective import ConvectiveScheme
+from josie.scheme.nonconservative import NonConservativeScheme
+from josie.bn.closure import Classical
+from josie.bn.eos import TwoPhaseEOS
+from josie.bn.schemes import TwoPhaseScheme
+from josie.bn.solver import TwoPhaseSolver
+from josie.bn.state import PhasePair, Q
 
 
 @pytest.fixture(

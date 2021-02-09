@@ -1,8 +1,8 @@
 import numpy as np
 import pytest
 
-from josie.solver.state import StateTemplate
-from josie.solver.solver import Solver
+from josie.state import StateTemplate
+from josie.solver import Solver
 from josie.mesh.cellset import MeshCellSet
 
 

@@ -36,7 +36,7 @@ from scipy.interpolate import interp1d
 
 from josie.euler.eos import EOS
 from josie.euler.state import Q
-from josie.solver.state import Fields, State
+from josie.state import Fields, State
 
 
 class Wave(IntEnum):

@@ -28,7 +28,7 @@ import numpy as np
 
 
 from josie.mesh.cellset import MeshCellSet
-from josie.solver.scheme.diffusive import DiffusiveScheme
+from josie.scheme.diffusive import DiffusiveScheme
 
 
 class LeastSquareGradient(DiffusiveScheme):

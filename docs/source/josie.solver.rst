@@ -28,14 +28,6 @@ josie.solver.solver module
    :undoc-members:
    :show-inheritance:
 
-josie.solver.state module
--------------------------
-
-.. automodule:: josie.solver.state
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 Module contents
 ---------------
 

@@ -44,6 +44,14 @@ josie.exceptions module
    :undoc-members:
    :show-inheritance:
 
+josie.fields module
+-------------------
+
+.. automodule:: josie.fields
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 josie.geometry module
 ---------------------
 
@@ -73,6 +81,14 @@ josie.ode module
 ----------------
 
 .. automodule:: josie.ode
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+josie.state module
+------------------
+
+.. automodule:: josie.state
    :members:
    :undoc-members:
    :show-inheritance:

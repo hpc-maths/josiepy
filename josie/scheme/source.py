@@ -34,7 +34,7 @@ from .scheme import Scheme
 
 if TYPE_CHECKING:
     from josie.mesh.cellset import CellSet, MeshCellSet
-    from josie.solver.state import State
+    from josie.state import State
 
 
 class SourceScheme(Scheme):

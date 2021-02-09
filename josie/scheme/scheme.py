@@ -31,8 +31,8 @@ import numpy as np
 
 from typing import TYPE_CHECKING
 
-from josie.solver.problem import Problem
-from josie.solver.state import State
+from josie.problem import Problem
+from josie.state import State
 
 
 if TYPE_CHECKING:

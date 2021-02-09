@@ -35,10 +35,10 @@ from typing import TYPE_CHECKING
 
 from josie.mesh import Mesh
 from josie.mesh.cellset import MeshCellSet
-from josie.solver.scheme.time import TimeScheme
+from josie.scheme.time import TimeScheme
 
 if TYPE_CHECKING:
-    from josie.solver.problem import Problem
+    from josie.problem import Problem
 
 
 @dataclass

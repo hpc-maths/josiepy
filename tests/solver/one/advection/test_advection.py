@@ -9,10 +9,10 @@ from .adv1d import main as main_1d
 
 import josie.general.schemes.time as time_schemes
 from josie.mesh.cellset import MeshCellSet, CellSet
-from josie.solver.state import State
-from josie.solver.solver import Solver
-from josie.solver.problem import Problem
-from josie.solver.scheme.convective import ConvectiveScheme
+from josie.state import State
+from josie.solver import Solver
+from josie.problem import Problem
+from josie.scheme.convective import ConvectiveScheme
 
 # Advection velocity in x-direction
 V = np.array([1.0, 0.0])

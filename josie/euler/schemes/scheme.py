@@ -32,13 +32,13 @@ from typing import TYPE_CHECKING
 
 from josie.euler.problem import EulerProblem
 from josie.euler.state import Q
-from josie.solver.scheme import ConvectiveScheme
+from josie.scheme import ConvectiveScheme
 
 
 if TYPE_CHECKING:
     from josie.euler.eos import EOS
     from josie.mesh.cellset import MeshCellSet
-    from josie.solver.state import FluidState
+    from josie.state import FluidState
 
 
 class EulerScheme(ConvectiveScheme):

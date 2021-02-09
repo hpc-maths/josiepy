@@ -30,7 +30,7 @@ import numpy as np
 
 from typing import Collection, Type, TYPE_CHECKING
 
-from .fields import Fields
+from josie.fields import Fields, FluidFields
 
 if TYPE_CHECKING:
     from josie.mesh import Mesh
@@ -141,12 +141,6 @@ class State(np.ndarray):
         state_size = len(cls.fields)
 
         return np.empty((nx + 2, ny + 2, state_size)).view(cls)
-
-
-class FluidFields(Fields):
-    U = 0
-    V = 1
-    # W = auto()
 
 
 class FluidState(State):

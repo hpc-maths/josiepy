@@ -1,6 +1,6 @@
 import pytest
 
-from josie.solver.fields import Fields
+from josie.fields import Fields
 
 
 @pytest.fixture
