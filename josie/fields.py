@@ -123,8 +123,3 @@ class Fields(metaclass=FieldsMeta):
     pass
 
 
-class FluidFields(Fields):
-    """ Indexing fields for fluid systems """
-
-    U: int
-    V: int

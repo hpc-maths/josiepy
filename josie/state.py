@@ -30,7 +30,7 @@ import numpy as np
 
 from typing import Collection, Type, TYPE_CHECKING
 
-from josie.fields import Fields, FluidFields
+from josie.fields import Fields
 
 if TYPE_CHECKING:
     from josie.mesh import Mesh
@@ -141,43 +141,6 @@ class State(np.ndarray):
         state_size = len(cls.fields)
 
         return np.empty((nx + 2, ny + 2, state_size)).view(cls)
-
-
-class FluidState(State):
-    """A class used for type checking to indicate a state for a fluid dynamics
-    problem, i.e. a state whose fields are :class:`FluidFields`, that is they
-    have velocity components. This class also allows to retrieve the
-    conservative part of the state
-
-    Attributes
-    ----------
-    fields
-        The indexing :class:`FluidFields` for all the variables
-
-    cons_state
-        An associated :class:`State` that wraps the conservative subset of
-        fields
-    """
-
-    fields: Type[FluidFields]
-    cons_state: Type[State]
-
-    def __init_subclass__(cls):
-        super.__init_subclass__()
-        cls._cons_fields = np.array(
-            [
-                field
-                for field in cls.fields
-                if field.name in cls.cons_state.fields.names()
-            ]
-        )
-
-    def get_conservative(self) -> State:
-        """ Returns the conservative part of the state """
-        return self[..., self._cons_fields]
-
-    def set_conservative(self, values: State):
-        self[..., self._cons_fields] = values
 
 
 def StateTemplate(*fields: str) -> Type[State]:

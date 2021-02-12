@@ -30,8 +30,10 @@ import numpy as np
 from enum import IntEnum
 from typing import Any, Dict
 
-from josie.state import Fields, FluidState, State
-from josie.fields import FluidFields
+from josie.fluid.fields import FluidFields
+from josie.fluid.state import FluidState
+
+from josie.state import Fields, State
 
 
 class PhasePair:

@@ -48,9 +48,9 @@ needed, for example, to compute the speed of sound.
 """
 from __future__ import annotations
 
-from josie.state import Fields, FluidState, State
-
-from josie.fields import FluidFields
+from josie.fluid.state import FluidState
+from josie.fluid.fields import FluidFields
+from josie.state import Fields, State
 
 
 class EulerFields(FluidFields):

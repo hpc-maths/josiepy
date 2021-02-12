@@ -38,7 +38,7 @@ from josie.scheme import ConvectiveScheme
 if TYPE_CHECKING:
     from josie.euler.eos import EOS
     from josie.mesh.cellset import MeshCellSet
-    from josie.state import FluidState
+    from josie.fluid.state import FluidState
 
 
 class EulerScheme(ConvectiveScheme):
