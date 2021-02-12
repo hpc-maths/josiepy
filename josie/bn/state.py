@@ -25,61 +25,18 @@
 # official policies, either expressed or implied, of Ruben Di Battista.
 from __future__ import annotations
 
-import numpy as np
-
-from enum import IntEnum
-from typing import Any, Dict
-
 from josie.fluid.fields import FluidFields
-from josie.fluid.state import FluidState
+from josie.twofluid.state import (
+    TwoFluidState,
+    Phases,
+    PhaseState,
+    PhaseConsState,
+)
 
-from josie.state import Fields, State
-
-
-class PhasePair:
-    """A tuple of objects that are indexable by :class:`Phases`."""
-
-    def __init__(self, phase1: Any, phase2: Any):
-        self._data: Dict[Phases, int] = {
-            Phases.PHASE1: phase1,
-            Phases.PHASE2: phase2,
-        }
-
-    def __getitem__(self, phase: Phases):
-        return self._data[phase]
-
-    def __iter__(self):
-        return iter(self._data)
-
-    def keys(self):
-        return self._data.keys()
-
-    def items(self):
-        return self._data.items()
-
-    def values(self):
-        return self._data.values()
-
-    @property
-    def phase1(self) -> Any:
-        return self._data[Phases.PHASE1]
-
-    @property
-    def phase2(self) -> Any:
-        return self._data[Phases.PHASE2]
+from josie.state import Fields
 
 
-class Phases(IntEnum):
-    """A phase indicator :class:`IntEnum`. It gives the index within the
-    :class:`Q` array where that phase state variables begin
-
-    """
-
-    PHASE1 = 1
-    PHASE2 = 10
-
-
-class TwoPhaseFields(Fields):
+class BaerFields(Fields):
     alpha = 0
 
     arho1 = 1
@@ -103,7 +60,9 @@ class TwoPhaseFields(Fields):
     c2 = 18
 
 
-class ConsFields(Fields):
+class BaerConsFields(Fields):
+    """ Indexing fields for the consevative part of the full state """
+
     alpha = 0
     arho1 = 1
     arhoU1 = 2
@@ -116,7 +75,7 @@ class ConsFields(Fields):
     arhoE2 = 8
 
 
-class PhaseFields(FluidFields):
+class BaerPhaseFields(FluidFields):
     """ Indexing fields for a substate associated to a phase """
 
     arho = 0
@@ -130,7 +89,21 @@ class PhaseFields(FluidFields):
     c = 8
 
 
-class GradFields(Fields):
+class BaerPhaseState(PhaseState):
+    """ State array for one single phase """
+
+    fields = BaerPhaseFields
+    full_state_fields = BaerFields
+
+
+class BaerPhaseConsState(PhaseConsState):
+    """ State array for conservative part of the state of one single phase """
+
+    fields = BaerConsFields
+    full_state_fields = BaerFields
+
+
+class BaerGradFields(Fields):
     r"""Indexes used to index the gradient pre-factor
     :math:`\pdeNonConservativeMultiplier`. Check :mod:`twophase.problem` for
     more information on how the multiplier is reduced in size to optimize
@@ -139,19 +112,7 @@ class GradFields(Fields):
     alpha = 0
 
 
-class PhaseQ(FluidState):
-    """ State array for one single phase """
-
-    fields = PhaseFields
-
-
-class ConsQ(State):
-    """ State array for conservtive part of the state of one single phase """
-
-    fields = ConsFields
-
-
-class Q(State):
+class Q(TwoFluidState):
     r"""We create one big state that contains the actual conservative
     variables that are used in the flux together with the "auxiliary" variables
     that are instead needed, for example, to compute the speed of sound.
@@ -160,81 +121,12 @@ class Q(State):
     two Euler states together with the state associated to the volume fraction
     :math:`\alpha`"""
 
-    fields = TwoPhaseFields
+    fields = BaerFields
+    cons_state = BaerPhaseConsState
+    phase_state = BaerPhaseState
 
-    def get_phase(self, phase: Phases) -> PhaseQ:
-        r"""Returns the part of the state associated to a specified ``phase``
-        as an instance of :class:`~PhaseQ`
+    def get_conservative(self) -> BaerPhaseConsState:
+        return super().get_conservative().view(BaerPhaseConsState)
 
-        .. warning::
-
-            This does not return the first variable of the state, i.e.
-            :math:`\alpha`
-
-        Parameters
-        ---------
-        phase
-            A :class:`Phases` instance identifying the requested phase
-            partition of the state
-
-        Returns
-        ------
-        state
-            A :class:`~euler.state.Q` instance corresponding to the partition
-            of the system associated to the requested phase
-        """
-
-        return self[..., phase : phase + len(PhaseFields)].view(PhaseQ)
-
-    def set_phase(self, phase: Phases, values: PhaseQ):
-        """Sets the part of the system associated to the specified ``phase``
-        with the provided `values`
-
-        Parameters
-        ---------
-        phase
-            A :class:`Phases` instance identifying the phase
-            partition of the state for which the values need to be set
-
-        values
-            The corresponding values to update the state with
-        """
-
-        self[..., phase : phase + len(PhaseFields)] = values
-
-    def get_conservative(self) -> ConsQ:
-        """ Returns the conservative part of the state """
-        fields = self.fields
-        indices = np.array(
-            [
-                fields.alpha,
-                fields.arho1,
-                fields.arhoU1,
-                fields.arhoV1,
-                fields.arhoE1,
-                fields.arho2,
-                fields.arhoU2,
-                fields.arhoV2,
-                fields.arhoE2,
-            ]
-        )
-
-        return self[..., indices].view(ConsQ)
-
-    def set_conservative(self, values: ConsQ):
-        fields = self.fields
-        indices = np.array(
-            [
-                fields.alpha,
-                fields.arho1,
-                fields.arhoU1,
-                fields.arhoV1,
-                fields.arhoE1,
-                fields.arho2,
-                fields.arhoU2,
-                fields.arhoV2,
-                fields.arhoE2,
-            ]
-        )
-
-        self[..., indices] = values
+    def get_phase(self, phase: Phases) -> BaerPhaseState:
+        return super().get_phase(phase).view(BaerPhaseState)

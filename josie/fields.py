@@ -59,6 +59,9 @@ class FieldsMeta(type):
     value with the corresponding int
     """
 
+    _field_values: List[Field]
+    _field_names: List[str]
+
     def __new__(cls, name, bases, clsdict):
         fields = dict(
             [
@@ -78,14 +81,14 @@ class FieldsMeta(type):
         fields_cls = super().__new__(cls, name, bases, fields)
 
         # Internal data
-        fields_cls._fields_values = [f for f in fields.values()]
+        fields_cls._field_values = [f for f in fields.values()]
         fields_cls._field_names = [f.name for f in fields.values()]
         fields_cls._len = len(fields)
 
         return fields_cls
 
     def __iter__(cls):
-        return iter(cls._fields_values)
+        return iter(cls._field_values)
 
     def __call__(
         cls,
@@ -121,5 +124,3 @@ class FieldsMeta(type):
 
 class Fields(metaclass=FieldsMeta):
     pass
-
-

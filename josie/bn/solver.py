@@ -29,8 +29,8 @@ from __future__ import annotations
 from josie.solver import Solver
 from josie.mesh import Mesh
 
-from .state import Q
 from .schemes import TwoPhaseScheme
+from .state import Q
 
 
 class TwoPhaseSolver(Solver):

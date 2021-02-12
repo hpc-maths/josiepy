@@ -110,5 +110,3 @@ def test_multidimensional_numpy_behaviour():
     assert np.all(Z == np.array([0, 0, 1]))
     assert np.all(X - Y == np.array([1, -1, 0]))
     assert np.all(np.einsum("ij,ij->i", X, Y) == 0)
-
-

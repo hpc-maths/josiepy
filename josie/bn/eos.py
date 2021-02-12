@@ -26,11 +26,11 @@
 # official policies, either expressed or implied, of Ruben Di Battista.
 
 from josie.euler.eos import EOS as SinglePhaseEOS
-from .state import PhasePair
+from josie.twofluid.state import PhasePair
 
 
 class TwoPhaseEOS(PhasePair):
-    """ An Abstract Base Class representing en EOS for a twophase system.  In
+    """An Abstract Base Class representing en EOS for a twophase system.  In
     particular two :class:`.euler.eos.EOS` instances for each phase need to be
     provided.
 

@@ -52,7 +52,7 @@ class BoundaryCondition:
         A :class:`State` instance whose elements per each field are not `float`
         but :class:`ScalarBC` instead
 
-        >>> from josie.solver.state import StateTemplate
+        >>> from josie.state import StateTemplate
         >>> MyState = StateTemplate("u", "v")
         >>> mybc = BoundaryCondition(MyState(Dirichlet(0), Neumann(1)))
     """

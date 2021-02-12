@@ -21,11 +21,12 @@ from josie.mesh.cellset import MeshCellSet
 from josie.scheme import Scheme
 from josie.scheme.convective import ConvectiveScheme
 from josie.scheme.nonconservative import NonConservativeScheme
+from josie.twofluid.state import PhasePair
 from josie.bn.closure import Classical
 from josie.bn.eos import TwoPhaseEOS
 from josie.bn.schemes import TwoPhaseScheme
 from josie.bn.solver import TwoPhaseSolver
-from josie.bn.state import PhasePair, Q
+from josie.bn.state import Q
 
 
 @pytest.fixture(
@@ -683,7 +684,11 @@ def test_toro(riemann_states, request, plot, write):
             x = x.reshape(x.size)
 
             time_series.append(
-                (t, x, np.copy(solver.mesh.cells.values).view(Q))
+                (
+                    t,
+                    x,
+                    np.copy(solver.mesh.cells.values).view(Q),
+                )
             )
 
             # :: End Plot Stuff ::

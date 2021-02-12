@@ -28,9 +28,10 @@ from __future__ import annotations
 
 import numpy as np
 
-from typing import Collection, Type, TYPE_CHECKING
+from typing import Collection, Union, Type, TYPE_CHECKING
 
 from josie.fields import Fields
+
 
 if TYPE_CHECKING:
     from josie.mesh import Mesh
@@ -178,3 +179,30 @@ def StateTemplate(*fields: str) -> Type[State]:
     state_cls = type("DerivedState", (State,), {"fields": state_fields})  # type: ignore # noqa: E501
 
     return state_cls
+
+
+class SubsetState(State):
+    """This class stores a subset of :class`State`, filtered by field name. It also
+    stores a mapping of the indices in :attr:`State.fields` corresponding
+    to the :attr:`SubsetState.fields` in :attr:`self._subset_fields_map`
+
+    Attributes
+    ----------
+    full_state_fields
+        The fields of the full :class:`State`
+    """
+
+    _subset_fields_map: Union[np.typing.ArrayLike, dict]
+    full_state_fields: Type[Fields]
+
+    def __init_subclass__(cls, /, abstract=False, **kwargs):
+        super.__init_subclass__(**kwargs)
+
+        if not (abstract):
+            cls._subset_fields_map = np.array(
+                [
+                    field
+                    for field in cls.full_state_fields
+                    if field.name in cls.fields.names()
+                ]
+            )

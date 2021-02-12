@@ -32,11 +32,12 @@ from josie.euler.schemes import Rusanov as EulerRusanov
 from josie.scheme import Scheme
 from josie.scheme.nonconservative import NonConservativeScheme
 from josie.scheme.convective import ConvectiveScheme
+from josie.twofluid.state import Phases, PhasePair
 
 from .closure import Closure
 from .eos import TwoPhaseEOS
 from .problem import TwoPhaseProblem
-from .state import Q, Phases, PhasePair
+from .state import Q
 
 
 class TwoPhaseScheme(Scheme):

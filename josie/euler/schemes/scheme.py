@@ -38,7 +38,7 @@ from josie.scheme import ConvectiveScheme
 if TYPE_CHECKING:
     from josie.euler.eos import EOS
     from josie.mesh.cellset import MeshCellSet
-    from josie.fluid.state import FluidState
+    from josie.fluid.state import SingleFluidState
 
 
 class EulerScheme(ConvectiveScheme):
@@ -81,7 +81,7 @@ class EulerScheme(ConvectiveScheme):
         values[..., fields.c] = c
 
     @staticmethod
-    def compute_U_norm(values: FluidState, normals: np.ndarray):
+    def compute_U_norm(values: SingleFluidState, normals: np.ndarray):
         r"""Returns the value of the normal velocity component to the given
         ``normals``.
 

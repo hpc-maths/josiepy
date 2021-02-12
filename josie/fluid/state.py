@@ -1,20 +1,39 @@
 from __future__ import annotations
 
-import numpy as np
-
 
 from typing import Type
 
-from josie.state import State
+from josie.state import State, SubsetState
 
 from .fields import FluidFields
 
 
-class FluidState(State):
+class ConsSubsetState(SubsetState, abstract=True):
+    """A :class:`SubsetState` holding the conservative subset of a
+    system"""
+
+    pass
+
+
+class ConsState(State):
+    """A mixin providing methods to retrieve the conservative part of a
+    :class:`State`"""
+
+    cons_state: Type[ConsSubsetState]
+
+    def get_conservative(self) -> State:
+        """ Returns the conservative part of the state """
+        return self[..., self.cons_state._subset_fields_map]
+
+    def set_conservative(self, values: State):
+        """ Set the conservative part of the state """
+        self[..., self.cons_state._subset_fields_map] = values
+
+
+class SingleFluidState(ConsState):
     """A class used for type checking to indicate a state for a fluid dynamics
     problem, i.e. a state whose fields are :class:`FluidFields`, that is they
-    have velocity components. This class also allows to retrieve the
-    conservative part of the state
+    have velocity components.
 
     Attributes
     ----------
@@ -27,21 +46,3 @@ class FluidState(State):
     """
 
     fields: Type[FluidFields]
-    cons_state: Type[State]
-
-    def __init_subclass__(cls):
-        super.__init_subclass__()
-        cls._cons_fields = np.array(
-            [
-                field
-                for field in cls.fields
-                if field.name in cls.cons_state.fields.names()
-            ]
-        )
-
-    def get_conservative(self) -> State:
-        """ Returns the conservative part of the state """
-        return self[..., self._cons_fields]
-
-    def set_conservative(self, values: State):
-        self[..., self._cons_fields] = values

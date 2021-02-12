@@ -48,9 +48,9 @@ needed, for example, to compute the speed of sound.
 """
 from __future__ import annotations
 
-from josie.fluid.state import FluidState
+from josie.fluid.state import ConsSubsetState, SingleFluidState
 from josie.fluid.fields import FluidFields
-from josie.state import Fields, State
+from josie.state import Fields
 
 
 class EulerFields(FluidFields):
@@ -76,31 +76,15 @@ class ConsFields(Fields):
     rhoE = 3
 
 
-class AuxFields(Fields):
-    """ Indexing enum for the auxiliary state variables of the problem """
-
-    rhoe = 0
-    U = 1
-    V = 2
-    p = 3
-    c = 4
-
-
-class ConsQ(State):
+class EulerConsState(ConsSubsetState):
     """A :class:`State` class representing the conservative state variables
     of the Euler system"""
 
+    full_state_fields = EulerFields
     fields = ConsFields
 
 
-class AuxQ(State):
-    """A :class:`State` class representing the auxiliary state variables
-    of the Euler system"""
-
-    fields = AuxFields
-
-
-class Q(FluidState):
+class Q(SingleFluidState):
     r"""The class representing the state variables of the Euler system
 
     .. math::
@@ -109,14 +93,4 @@ class Q(FluidState):
 
     """
     fields = EulerFields
-    cons_state = ConsQ
-
-    def get_auxiliary(self) -> AuxQ:
-        """ Returns the auxiliary part of the state """
-
-        return self[..., self.fields.rhoe : self.fields.c + 1].view(AuxQ)
-
-    def set_auxiliary(self, values: AuxQ):
-        """ Sets the auxiliary part of the state """
-
-        self[..., self.fields.rhoe : self.fields.c + 1] = values
+    cons_state = EulerConsState

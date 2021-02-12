@@ -35,7 +35,7 @@ from josie.mesh.cellset import CellSet, MeshCellSet
 
 from .eos import TwoPhaseEOS
 from .closure import Closure
-from .state import Q, ConsFields, GradFields
+from .state import Q, BaerConsFields, BaerGradFields
 
 
 class TwoPhaseProblem(Problem):
@@ -113,7 +113,7 @@ class TwoPhaseProblem(Problem):
                 num_cells_x,
                 num_cells_y,
                 num_fields,
-                len(GradFields),
+                len(BaerGradFields),
                 MAX_DIMENSIONALITY,
             )
         )
@@ -133,18 +133,68 @@ class TwoPhaseProblem(Problem):
         pIVI = np.multiply(pI, VI)
 
         # Gradient component along x
-        B[..., [Q.fields.alpha], GradFields.alpha, Direction.X] = UI
-        B[..., [Q.fields.arhoU1], GradFields.alpha, Direction.X] = -pI
-        B[..., [Q.fields.arhoE1], GradFields.alpha, Direction.X] = -pIUI
-        B[..., [Q.fields.arhoU2], GradFields.alpha, Direction.X] = pI
-        B[..., [Q.fields.arhoE2], GradFields.alpha, Direction.X] = pIUI
+        B[
+            ...,
+            [Q.fields.alpha],
+            BaerGradFields.alpha,
+            Direction.X,
+        ] = UI
+        B[
+            ...,
+            [Q.fields.arhoU1],
+            BaerGradFields.alpha,
+            Direction.X,
+        ] = -pI
+        B[
+            ...,
+            [Q.fields.arhoE1],
+            BaerGradFields.alpha,
+            Direction.X,
+        ] = -pIUI
+        B[
+            ...,
+            [Q.fields.arhoU2],
+            BaerGradFields.alpha,
+            Direction.X,
+        ] = pI
+        B[
+            ...,
+            [Q.fields.arhoE2],
+            BaerGradFields.alpha,
+            Direction.X,
+        ] = pIUI
 
         # Gradient component along y
-        B[..., [Q.fields.alpha], GradFields.alpha, Direction.Y] = VI
-        B[..., [Q.fields.arhoV1], GradFields.alpha, Direction.Y] = -pI
-        B[..., [Q.fields.arhoE1], GradFields.alpha, Direction.Y] = -pIVI
-        B[..., [Q.fields.arhoV2], GradFields.alpha, Direction.Y] = pI
-        B[..., [Q.fields.arhoE2], GradFields.alpha, Direction.Y] = pIVI
+        B[
+            ...,
+            [Q.fields.alpha],
+            BaerGradFields.alpha,
+            Direction.Y,
+        ] = VI
+        B[
+            ...,
+            [Q.fields.arhoV1],
+            BaerGradFields.alpha,
+            Direction.Y,
+        ] = -pI
+        B[
+            ...,
+            [Q.fields.arhoE1],
+            BaerGradFields.alpha,
+            Direction.Y,
+        ] = -pIVI
+        B[
+            ...,
+            [Q.fields.arhoV2],
+            BaerGradFields.alpha,
+            Direction.Y,
+        ] = pI
+        B[
+            ...,
+            [Q.fields.arhoE2],
+            BaerGradFields.alpha,
+            Direction.Y,
+        ] = pIVI
 
         return B
 
@@ -189,7 +239,12 @@ class TwoPhaseProblem(Problem):
 
         # Flux tensor
         F = np.zeros(
-            (num_cells_x, num_cells_y, len(ConsFields), MAX_DIMENSIONALITY)
+            (
+                num_cells_x,
+                num_cells_y,
+                len(BaerConsFields),
+                MAX_DIMENSIONALITY,
+            )
         )
         fields = values.fields
 
@@ -221,22 +276,30 @@ class TwoPhaseProblem(Problem):
         arhoVV2 = np.multiply(arhoV2, V2)
         arhoVU2 = arhoUV2  # np.multiply(arhoV2, U2)
 
-        F[..., ConsFields.arho1, Direction.X] = arhoU1
-        F[..., ConsFields.arho1, Direction.Y] = arhoV1
-        F[..., ConsFields.arhoU1, Direction.X] = arhoUU1 + ap1
-        F[..., ConsFields.arhoU1, Direction.Y] = arhoUV1
-        F[..., ConsFields.arhoV1, Direction.X] = arhoVU1
-        F[..., ConsFields.arhoV1, Direction.Y] = arhoVV1 + ap1
-        F[..., ConsFields.arhoE1, Direction.X] = np.multiply(arhoE1 + ap1, U1)
-        F[..., ConsFields.arhoE1, Direction.Y] = np.multiply(arhoE1 + ap1, V1)
+        F[..., BaerConsFields.arho1, Direction.X] = arhoU1
+        F[..., BaerConsFields.arho1, Direction.Y] = arhoV1
+        F[..., BaerConsFields.arhoU1, Direction.X] = arhoUU1 + ap1
+        F[..., BaerConsFields.arhoU1, Direction.Y] = arhoUV1
+        F[..., BaerConsFields.arhoV1, Direction.X] = arhoVU1
+        F[..., BaerConsFields.arhoV1, Direction.Y] = arhoVV1 + ap1
+        F[..., BaerConsFields.arhoE1, Direction.X] = np.multiply(
+            arhoE1 + ap1, U1
+        )
+        F[..., BaerConsFields.arhoE1, Direction.Y] = np.multiply(
+            arhoE1 + ap1, V1
+        )
 
-        F[..., ConsFields.arho2, Direction.X] = arhoU2
-        F[..., ConsFields.arho2, Direction.Y] = arhoV2
-        F[..., ConsFields.arhoU2, Direction.X] = arhoUU2 + ap2
-        F[..., ConsFields.arhoU2, Direction.Y] = arhoUV2
-        F[..., ConsFields.arhoV2, Direction.X] = arhoVU2
-        F[..., ConsFields.arhoV2, Direction.Y] = arhoVV2 + ap2
-        F[..., ConsFields.arhoE2, Direction.X] = np.multiply(arhoE2 + ap2, U2)
-        F[..., ConsFields.arhoE2, Direction.Y] = np.multiply(arhoE2 + ap2, V2)
+        F[..., BaerConsFields.arho2, Direction.X] = arhoU2
+        F[..., BaerConsFields.arho2, Direction.Y] = arhoV2
+        F[..., BaerConsFields.arhoU2, Direction.X] = arhoUU2 + ap2
+        F[..., BaerConsFields.arhoU2, Direction.Y] = arhoUV2
+        F[..., BaerConsFields.arhoV2, Direction.X] = arhoVU2
+        F[..., BaerConsFields.arhoV2, Direction.Y] = arhoVV2 + ap2
+        F[..., BaerConsFields.arhoE2, Direction.X] = np.multiply(
+            arhoE2 + ap2, U2
+        )
+        F[..., BaerConsFields.arhoE2, Direction.Y] = np.multiply(
+            arhoE2 + ap2, V2
+        )
 
         return F
