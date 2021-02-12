@@ -1,7 +1,4 @@
-Simplified BSD License
-======================
-
-_Copyright © `2019`, `Ruben Di Battista`_  
+_Copyright © `2021`, `Ruben Di Battista`_  
 _All rights reserved._
 
 Redistribution and use in source and binary forms, with or without
