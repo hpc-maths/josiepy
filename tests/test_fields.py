@@ -38,3 +38,7 @@ def test_field_name(fields):
 def test_field_value(fields):
     assert fields.a.value == 0
     assert fields.b.value == 1
+
+
+def test_field_names(fields):
+    assert fields.names() == [f.name for f in fields]

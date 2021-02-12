@@ -109,16 +109,7 @@ class Q(FluidState):
 
     """
     fields = EulerFields
-
-    def get_conservative(self) -> ConsQ:
-        """ Returns the conservative part of the state """
-
-        return self[..., self.fields.rho : self.fields.rhoE + 1].view(ConsQ)
-
-    def set_conservative(self, values: ConsQ):
-        """ Sets the conservative part of the state """
-
-        self[..., self.fields.rho : self.fields.rhoE + 1] = values
+    cons_state = ConsQ
 
     def get_auxiliary(self) -> AuxQ:
         """ Returns the auxiliary part of the state """

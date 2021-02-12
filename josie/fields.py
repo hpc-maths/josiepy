@@ -25,10 +25,9 @@
 # are those of the authors and should not be interpreted as representing
 # official policies, either expressed or implied, of Ruben Di Battista.
 #
-import abc
 import sys
 
-from typing import Optional
+from typing import List, Optional
 
 from aenum import (
     _is_sunder,
@@ -53,7 +52,7 @@ class Field(int):
         return obj
 
 
-class FieldsMeta(abc.ABCMeta):
+class FieldsMeta(type):
     """This metaclass reproduces in a simpler form the behaviour of
     :class:`Enum`.  It tracks all the defined attributes of a class, it
     precomputes the number of fields and replaces the fields that have no int
@@ -77,13 +76,16 @@ class FieldsMeta(abc.ABCMeta):
         # FIXME: Replace `None` indices
 
         fields_cls = super().__new__(cls, name, bases, fields)
-        fields_cls._fields = fields
+
+        # Internal data
+        fields_cls._fields_values = [f for f in fields.values()]
+        fields_cls._field_names = [f.name for f in fields.values()]
         fields_cls._len = len(fields)
 
         return fields_cls
 
     def __iter__(cls):
-        return (f for f in cls._fields.values())
+        return iter(cls._fields_values)
 
     def __call__(
         cls,
@@ -110,6 +112,11 @@ class FieldsMeta(abc.ABCMeta):
 
     def __len__(self):
         return self._len
+
+    def names(self) -> List[str]:
+        """ Returns a list of field names """
+
+        return self._field_names
 
 
 class Fields(metaclass=FieldsMeta):
