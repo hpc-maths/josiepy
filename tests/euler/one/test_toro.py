@@ -10,7 +10,6 @@ import pytest
 
 import josie.general.schemes.time as time_schemes
 
-from dataclasses import dataclass
 
 from josie.bc import Dirichlet
 from josie.boundary import Line
@@ -54,95 +53,6 @@ def Scheme(SpaceScheme, TimeScheme):
     return ToroScheme
 
 
-@dataclass
-class RiemannState:
-    rho: float
-    U: float
-    V: float
-    p: float
-
-
-@dataclass
-class RiemannSolution:
-    rho_star_L: float
-    rho_star_R: float
-    p_star: float
-    U_star: float
-
-
-@dataclass
-class RiemannProblem:
-    left: RiemannState
-    right: RiemannState
-    final_time: float
-    CFL: float
-    solution: RiemannSolution
-
-
-riemann_states = [
-    RiemannProblem(
-        left=RiemannState(rho=1.0, U=0, V=0, p=1.0),
-        right=RiemannState(rho=0.125, U=0, V=0, p=0.1),
-        final_time=0.25,
-        CFL=0.5,
-        solution=RiemannSolution(
-            p_star=0.30313,
-            U_star=0.92745,
-            rho_star_L=0.42632,
-            rho_star_R=0.26557,
-        ),
-    ),
-    RiemannProblem(
-        left=RiemannState(rho=1.0, U=-2, V=0, p=0.4),
-        right=RiemannState(rho=1.0, U=2.0, V=0, p=0.4),
-        final_time=0.15,
-        CFL=0.5,
-        solution=RiemannSolution(
-            p_star=0.00189,
-            U_star=0.0,
-            rho_star_L=0.02185,
-            rho_star_R=0.02185,
-        ),
-    ),
-    RiemannProblem(
-        left=RiemannState(rho=1.0, U=0, V=0, p=1000),
-        right=RiemannState(rho=1.0, U=0, V=0, p=0.01),
-        final_time=0.012,
-        CFL=0.45,
-        solution=RiemannSolution(
-            p_star=460.894,
-            U_star=19.5975,
-            rho_star_L=0.57506,
-            rho_star_R=5.99924,
-        ),
-    ),
-    RiemannProblem(
-        left=RiemannState(rho=1.0, U=0, V=0, p=0.01),
-        right=RiemannState(rho=1.0, U=0, V=0, p=100),
-        final_time=0.035,
-        CFL=0.45,
-        solution=RiemannSolution(
-            p_star=46.0950,
-            U_star=-6.19633,
-            rho_star_L=5.9924,
-            rho_star_R=0.57511,
-        ),
-    ),
-    RiemannProblem(
-        left=RiemannState(rho=5.99924, U=19.5975, V=0, p=460.894),
-        right=RiemannState(rho=5.9924, U=-6.19633, V=0, p=46.0950),
-        final_time=0.035,
-        CFL=0.5,
-        solution=RiemannSolution(
-            p_star=1691.64,
-            U_star=8.68975,
-            rho_star_L=14.2823,
-            rho_star_R=31.0426,
-        ),
-    ),
-]
-
-
 def riemann2Q(state, eos):
     """Wrap all the operations to create a complete Euler state from the
     initial Rieman Problem data
@@ -159,8 +69,7 @@ def riemann2Q(state, eos):
     return Q(rho, rho * U, rho * V, rho * E, rhoe, U, V, p, c)
 
 
-@pytest.mark.parametrize("riemann", sorted(riemann_states, key=id))
-def test_toro(riemann, Scheme, plot, request):
+def test_toro(toro_riemann_state, Scheme, plot, request):
     left = Line([0, 0], [0, 1])
     bottom = Line([0, 0], [1, 0])
     right = Line([1, 0], [1, 1])
@@ -168,8 +77,8 @@ def test_toro(riemann, Scheme, plot, request):
 
     eos = PerfectGas(gamma=1.4)
 
-    Q_left = riemann2Q(riemann.left, eos)
-    Q_right = riemann2Q(riemann.right, eos)
+    Q_left = riemann2Q(toro_riemann_state.left, eos)
+    Q_right = riemann2Q(toro_riemann_state.right, eos)
 
     # Create exact Riemann solver
     riemann_solver = Exact(eos, Q_left, Q_right)
@@ -183,7 +92,7 @@ def test_toro(riemann, Scheme, plot, request):
     bottom.bc = None
 
     mesh = Mesh(left, bottom, right, top, SimpleCell)
-    mesh.interpolate(500, 1)
+    mesh.interpolate(100, 1)
     mesh.generate()
 
     def init_fun(cells: MeshCellSet):
@@ -196,9 +105,9 @@ def test_toro(riemann, Scheme, plot, request):
     solver = EulerSolver(mesh, scheme)
     solver.init(init_fun)
 
-    final_time = riemann.final_time
+    final_time = toro_riemann_state.final_time
     t = 0
-    CFL = riemann.CFL
+    CFL = toro_riemann_state.CFL
 
     cells = solver.mesh.cells
 
@@ -287,12 +196,11 @@ def test_toro(riemann, Scheme, plot, request):
         plt.close()
 
 
-@pytest.mark.parametrize("riemann", riemann_states)
-def test_exact_solver(riemann):
+def test_exact_solver(toro_riemann_state):
     eos = PerfectGas()
 
-    Q_L = riemann2Q(riemann.left, eos)
-    Q_R = riemann2Q(riemann.right, eos)
+    Q_L = riemann2Q(toro_riemann_state.left, eos)
+    Q_R = riemann2Q(toro_riemann_state.right, eos)
 
     fields = Q_L.fields
 
@@ -310,7 +218,17 @@ def test_exact_solver(riemann):
 
     tolerance = 5e-3
 
-    assert relative_error(rho_star_L, riemann.solution.rho_star_L) < tolerance
-    assert relative_error(rho_star_R, riemann.solution.rho_star_R) < tolerance
-    assert relative_error(p_star, riemann.solution.p_star) < tolerance
-    assert relative_error(U_star, riemann.solution.U_star) < tolerance
+    assert (
+        relative_error(rho_star_L, toro_riemann_state.solution.rho_star_L)
+        < tolerance
+    )
+    assert (
+        relative_error(rho_star_R, toro_riemann_state.solution.rho_star_R)
+        < tolerance
+    )
+    assert (
+        relative_error(p_star, toro_riemann_state.solution.p_star) < tolerance
+    )
+    assert (
+        relative_error(U_star, toro_riemann_state.solution.U_star) < tolerance
+    )

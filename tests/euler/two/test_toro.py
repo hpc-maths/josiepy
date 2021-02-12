@@ -45,87 +45,23 @@ def Scheme(SpaceScheme, TimeScheme):
     return ToroScheme
 
 
-riemann_states = [
-    {
-        "rhoL": 1.0,
-        "uL": 0.0,
-        "vL": 0,
-        "pL": 1.0,
-        "rhoR": 0.125,
-        "uR": 0,
-        "vR": 0,
-        "pR": 0.1,
-        "t": 0.25,
-        "CFL": 0.5,
-    },
-    {
-        "rhoL": 1.0,
-        "uL": -2,
-        "vL": 0,
-        "pL": 0.4,
-        "rhoR": 1.0,
-        "uR": 2.0,
-        "vR": 0,
-        "pR": 0.4,
-        "t": 0.15,
-        "CFL": 0.5,
-    },
-    {
-        "rhoL": 1.0,
-        "uL": 0,
-        "vL": 0,
-        "pL": 1000,
-        "rhoR": 1.0,
-        "uR": 0,
-        "vR": 0,
-        "pR": 0.01,
-        "t": 0.012,
-        "CFL": 0.45,
-    },
-    {
-        "rhoL": 1.0,
-        "uL": 0,
-        "vL": 0,
-        "pL": 0.01,
-        "rhoR": 1.0,
-        "uR": 0,
-        "vR": 0,
-        "pR": 100,
-        "t": 0.035,
-        "CFL": 0.45,
-    },
-    {
-        "rhoL": 5.99924,
-        "uL": 19.5975,
-        "vL": 0,
-        "pL": 460.894,
-        "rhoR": 5.9924,
-        "uR": -6.19633,
-        "vR": 0,
-        "pR": 46.0950,
-        "t": 0.035,
-        "CFL": 0.5,
-    },
-]
-
-
 def init_test(direction, Scheme, riemann_problem, bc_fun):
     """A handy function to init the test state on the base of the direction,
     to avoid code duplication"""
 
     if direction is Direction.X:
-        uL = riemann_problem["uL"]
-        vL = riemann_problem["vL"]
+        uL = riemann_problem.left.U
+        vL = riemann_problem.left.V
 
-        uR = riemann_problem["uR"]
-        vR = riemann_problem["vR"]
+        uR = riemann_problem.right.U
+        vR = riemann_problem.right.V
 
     elif direction is Direction.Y:
-        uL = riemann_problem["vL"]
-        vL = riemann_problem["uL"]
+        uL = riemann_problem.left.V
+        vL = riemann_problem.left.U
 
-        uR = riemann_problem["vR"]
-        vR = riemann_problem["uR"]
+        uR = riemann_problem.right.V
+        vR = riemann_problem.right.U
 
     # Common stuff in all directions
     left = Line([0, 0], [0, 1])
@@ -135,14 +71,14 @@ def init_test(direction, Scheme, riemann_problem, bc_fun):
 
     eos = PerfectGas(gamma=1.4)
 
-    rhoL = riemann_problem["rhoL"]
-    pL = riemann_problem["pL"]
+    rhoL = riemann_problem.left.rho
+    pL = riemann_problem.left.p
     rhoeL = eos.rhoe(rhoL, pL)
     EL = rhoeL / rhoL + 0.5 * (uL ** 2 + vL ** 2)
     cL = eos.sound_velocity(rhoL, pL)
 
-    rhoR = riemann_problem["rhoR"]
-    pR = riemann_problem["pR"]
+    rhoR = riemann_problem.right.rho
+    pR = riemann_problem.right.p
     rhoeR = eos.rhoe(rhoR, pR)
     ER = rhoeR / rhoR + 0.5 * (uR ** 2 + vR ** 2)
     cR = eos.sound_velocity(rhoR, pR)
@@ -204,20 +140,19 @@ def periodic(first, second, direction):
     return make_periodic(first, second, direction)
 
 
-@pytest.mark.parametrize("riemann_problem", riemann_states)
 @pytest.mark.parametrize("bc_fun", [periodic, neumann])
 @pytest.mark.parametrize("direction", [Direction.X, Direction.Y])
-def test_toro(direction, Scheme, riemann_problem, bc_fun, plot):
+def test_toro(direction, Scheme, toro_riemann_state, bc_fun, plot):
 
-    solver, plot_var = init_test(direction, Scheme, riemann_problem, bc_fun)
+    solver, plot_var = init_test(direction, Scheme, toro_riemann_state, bc_fun)
     scheme = solver.scheme
 
     if plot:
         solver.plot()
 
-    final_time = riemann_problem["t"]
+    final_time = toro_riemann_state.final_time
     t = 0
-    CFL = riemann_problem["CFL"]
+    CFL = toro_riemann_state.CFL
 
     while t <= final_time:
         if plot:

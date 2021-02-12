@@ -111,7 +111,7 @@ class RiemannProblem:
 def riemann_states(
     ToroConvectiveScheme, ToroNonConservativeScheme, TimeScheme
 ):
-    class AdvectionOnly(ToroConvectiveScheme, TimeScheme):
+    class AdvectionOnly(ToroNonConservativeScheme, TimeScheme):
         # Define this to avoid exception of ABC
         def post_step(self, cells):
             pass

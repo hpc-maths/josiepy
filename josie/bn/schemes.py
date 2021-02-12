@@ -85,6 +85,11 @@ class TwoPhaseScheme(Scheme):
             phase_values[..., fields.p] = p
             phase_values[..., fields.c] = c
 
+            values.set_phase(
+                phase,
+                phase_values,
+            )
+
 
 class Upwind(NonConservativeScheme, TwoPhaseScheme):
     r"""An optimized upwind scheme that reduces the size of the
