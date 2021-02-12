@@ -7,14 +7,16 @@ Subpackages
 .. toctree::
    :maxdepth: 4
 
+   josie.bn
    josie.boundary
    josie.euler
+   josie.fluid
    josie.general
    josie.io
    josie.mesh
    josie.plot
-   josie.solver
-   josie.twophase
+   josie.scheme
+   josie.twofluid
 
 Submodules
 ----------
@@ -24,7 +26,6 @@ josie.bc module
 
 .. automodule:: josie.bc
    :members:
-   :special-members: __call__
    :undoc-members:
    :show-inheritance:
 
@@ -57,7 +58,6 @@ josie.geometry module
 
 .. automodule:: josie.geometry
    :members:
-   :special-members: __call__
    :undoc-members:
    :show-inheritance:
 
@@ -81,6 +81,22 @@ josie.ode module
 ----------------
 
 .. automodule:: josie.ode
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+josie.problem module
+--------------------
+
+.. automodule:: josie.problem
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+josie.solver module
+-------------------
+
+.. automodule:: josie.solver
    :members:
    :undoc-members:
    :show-inheritance:
