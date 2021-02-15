@@ -1,7 +1,8 @@
 import numpy as np
 import pytest
 
-from josie.twofluid.state import PhasePair, Phases
+from josie.twofluid.fields import Phases
+from josie.twofluid.state import PhasePair
 from josie.bn.state import Q
 
 

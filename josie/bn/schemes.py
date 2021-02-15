@@ -32,7 +32,8 @@ from josie.euler.schemes import Rusanov as EulerRusanov
 from josie.scheme import Scheme
 from josie.scheme.nonconservative import NonConservativeScheme
 from josie.scheme.convective import ConvectiveScheme
-from josie.twofluid.state import Phases, PhasePair
+from josie.twofluid.state import PhasePair
+from josie.twofluid.fields import Phases
 
 from .closure import Closure
 from .eos import TwoPhaseEOS
@@ -40,7 +41,7 @@ from .problem import TwoPhaseProblem
 from .state import Q
 
 
-class TwoPhaseScheme(Scheme):
+class BaerScheme(Scheme):
     """ A base class for a twophase scheme """
 
     problem: TwoPhaseProblem
@@ -91,7 +92,7 @@ class TwoPhaseScheme(Scheme):
             )
 
 
-class Upwind(NonConservativeScheme, TwoPhaseScheme):
+class Upwind(NonConservativeScheme, BaerScheme):
     r"""An optimized upwind scheme that reduces the size of the
     :math:`\pdeNonConservativeMultiplier` knowing that for
     :cite:`baer_two-phase_1986` the only state variable appearing in the non
@@ -133,7 +134,7 @@ class Upwind(NonConservativeScheme, TwoPhaseScheme):
         return G
 
 
-class Rusanov(ConvectiveScheme, TwoPhaseScheme):
+class Rusanov(ConvectiveScheme, BaerScheme):
     def F(
         self,
         cells: MeshCellSet,

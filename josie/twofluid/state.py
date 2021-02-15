@@ -5,21 +5,8 @@ import re
 from typing import Any, Optional, Type
 
 from josie.fluid.state import ConsState, ConsSubsetState, SingleFluidState
-from josie.fields import Fields
 from josie.state import SubsetState
-
-
-# FIXME: The attributes of this class are detected by mypy as `int` instead of
-# `Field`. In PhasePair I needed to force the type check to int, I'd like to
-# have the real thing
-class Phases(Fields):
-    """A phase indicator :class:`IntEnum`. It gives the index within the
-    :class:`TwoFluidState` array where that phase state variables begin
-
-    """
-
-    PHASE1 = 1
-    PHASE2 = 10
+from josie.twofluid import fields
 
 
 class PhasePair(dict):
@@ -29,16 +16,16 @@ class PhasePair(dict):
         self, phase1: Optional[Any] = None, phase2: Optional[Any] = None
     ):
         _dict = {
-            Phases.PHASE1: phase1,
-            Phases.PHASE2: phase2,
+            fields.Phases.PHASE1: phase1,
+            fields.Phases.PHASE2: phase2,
         }
 
         super().__init__(_dict)
 
     def __repr__(self):
 
-        key1 = Phases.PHASE1
-        key2 = Phases.PHASE2
+        key1 = fields.Phases.PHASE1
+        key2 = fields.Phases.PHASE2
 
         val1 = self[key1]
         val2 = self[key2]
@@ -47,11 +34,11 @@ class PhasePair(dict):
 
     @property
     def phase1(self) -> Any:
-        return super().__getitem__(Phases.PHASE1)
+        return super().__getitem__(fields.Phases.PHASE1)
 
     @property
     def phase2(self) -> Any:
-        return super().__getitem__(Phases.PHASE1)
+        return super().__getitem__(fields.Phases.PHASE1)
 
 
 class PhaseState(SubsetState, SingleFluidState, abstract=True):
@@ -66,7 +53,7 @@ class PhaseState(SubsetState, SingleFluidState, abstract=True):
     def __init_subclass__(cls, /, abstract=False, **kwargs):
         cls._subset_fields_map = PhasePair(phase1=[], phase2=[])
         if not (abstract):
-            phase_fields = {Phases.PHASE1: [], Phases.PHASE2: []}
+            phase_fields = {fields.Phases.PHASE1: [], fields.Phases.PHASE2: []}
 
             # Add the matched fields to the corresponding entry in the
             # phase_fields dictionary
@@ -77,9 +64,9 @@ class PhaseState(SubsetState, SingleFluidState, abstract=True):
                     # TODO: If more than 2 phases needed, this needs to be
                     # generalized
                     if phase_number == 1:
-                        phase_fields[Phases.PHASE1].append(field)
+                        phase_fields[fields.Phases.PHASE1].append(field)
                     else:
-                        phase_fields[Phases.PHASE2].append(field)
+                        phase_fields[fields.Phases.PHASE2].append(field)
 
             cls._subset_fields_map.update(phase_fields)
 
@@ -94,7 +81,7 @@ class TwoFluidState(ConsState):
 
     phase_state: Type[PhaseState]
 
-    def get_phase(self, phase: Phases) -> PhaseState:
+    def get_phase(self, phase: fields.Phases) -> PhaseState:
         r"""Returns the part of the state associated to a specified ``phase``
         as an instance of :class:`~PhaseQ`
 
@@ -118,7 +105,7 @@ class TwoFluidState(ConsState):
 
         return self[..., self.phase_state._subset_fields_map[phase]]
 
-    def set_phase(self, phase: Phases, values: SingleFluidState):
+    def set_phase(self, phase: fields.Phases, values: SingleFluidState):
         """Sets the part of the system associated to the specified ``phase``
         with the provided `values`
 

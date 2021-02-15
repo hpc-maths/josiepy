@@ -29,12 +29,12 @@ from __future__ import annotations
 from josie.solver import Solver
 from josie.mesh import Mesh
 
-from .schemes import TwoPhaseScheme
+from .schemes import BaerScheme
 from .state import Q
 
 
-class TwoPhaseSolver(Solver):
+class BaerSolver(Solver):
     """ A solver for the TwoPhase system """
 
-    def __init__(self, mesh: Mesh, scheme: TwoPhaseScheme):
+    def __init__(self, mesh: Mesh, scheme: BaerScheme):
         super().__init__(mesh, Q, scheme)

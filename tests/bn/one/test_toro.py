@@ -24,8 +24,8 @@ from josie.scheme.nonconservative import NonConservativeScheme
 from josie.twofluid.state import PhasePair
 from josie.bn.closure import Classical
 from josie.bn.eos import TwoPhaseEOS
-from josie.bn.schemes import TwoPhaseScheme
-from josie.bn.solver import TwoPhaseSolver
+from josie.bn.schemes import BaerScheme
+from josie.bn.solver import BaerSolver
 from josie.bn.state import Q
 
 
@@ -44,12 +44,12 @@ def TimeScheme(request):
 @pytest.fixture(
     params=[
         subcls
-        for subcls in TwoPhaseScheme._all_subclasses()
+        for subcls in BaerScheme._all_subclasses()
         if issubclass(subcls, NonConservativeScheme)
     ]
 )
 def ToroNonConservativeScheme(request):
-    """Fixture that yields all the concrete :class:`TwoPhaseScheme` that are
+    """Fixture that yields all the concrete :class:`BaerScheme` that are
     also :class:`NonConservativeScheme`"""
     yield request.param
 
@@ -57,12 +57,12 @@ def ToroNonConservativeScheme(request):
 @pytest.fixture(
     params=[
         subcls
-        for subcls in TwoPhaseScheme._all_subclasses()
+        for subcls in BaerScheme._all_subclasses()
         if issubclass(subcls, ConvectiveScheme)
     ]
 )
 def ToroConvectiveScheme(request):
-    """Fixture that yields all the concrete :class:`TwoPhaseScheme` that are
+    """Fixture that yields all the concrete :class:`BaerScheme` that are
     also :class:`ConvectiveScheme`"""
     yield request.param
 
@@ -625,7 +625,7 @@ def test_toro(riemann_states, request, plot, write):
             ] = Q_left
 
         scheme = riemann.scheme
-        solver = TwoPhaseSolver(mesh, scheme)
+        solver = BaerSolver(mesh, scheme)
         solver.init(init_fun)
 
         final_time = riemann.final_time

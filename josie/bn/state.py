@@ -26,12 +26,8 @@
 from __future__ import annotations
 
 from josie.fluid.fields import FluidFields
-from josie.twofluid.state import (
-    TwoFluidState,
-    Phases,
-    PhaseState,
-    PhaseConsState,
-)
+from josie.twofluid.fields import Phases
+from josie.twofluid.state import TwoFluidState, PhaseState, PhaseConsState
 
 from josie.state import Fields
 
