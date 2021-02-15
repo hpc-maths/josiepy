@@ -28,6 +28,14 @@ josie.euler.exact module
    :undoc-members:
    :show-inheritance:
 
+josie.euler.fields module
+-------------------------
+
+.. automodule:: josie.euler.fields
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 josie.euler.problem module
 --------------------------
 

@@ -32,7 +32,7 @@ from typing import TYPE_CHECKING
 
 from josie.euler.problem import EulerProblem
 from josie.euler.state import Q
-from josie.scheme import ConvectiveScheme
+from josie.scheme.convective import ConvectiveScheme
 
 
 if TYPE_CHECKING:

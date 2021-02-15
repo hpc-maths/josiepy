@@ -6,8 +6,8 @@ from josie.bc import BoundaryCondition, ScalarBC
 from josie.mesh import Mesh
 from josie.mesh.cell import SimpleCell
 from josie.mesh.cellset import MeshCellSet
-from josie.general.schemes.diffusive import LeastSquareGradient
 from josie.solver import Solver
+from josie.general.schemes.diffusive.lstsq import LeastSquareGradient
 
 
 @pytest.fixture
@@ -16,23 +16,41 @@ def gradient_one_boundaries(boundaries, Q):
 
     class GradientOneBC(ScalarBC):
         def __call__(self, cells, ghost_cells, field, t):
-            return np.sum(ghost_cells.centroids, axis=-1).reshape(3).view(Q)
+            num_ghosts_x, num_ghosts_y, _ = ghost_cells.centroids.shape
+            return (
+                np.sum(ghost_cells.centroids, axis=-1)
+                .reshape(num_ghosts_x * num_ghosts_y)
+                .view(Q)
+            )
 
     left, bottom, right, top = boundaries
 
-    left.bc = bottom.bc = right.bc = top.bc = BoundaryCondition(
-        Q(GradientOneBC())
-    )
+    bc = BoundaryCondition(Q(GradientOneBC()))
+
+    left.bc = bc
+    right.bc = bc
+    top.bc = bc
+    bottom.bc = bc
 
     yield (left, bottom, right, top)
 
 
-@pytest.fixture
-def mesh(gradient_one_boundaries):
+@pytest.fixture(params=(Dimensionality.ONED, Dimensionality.TWOD))
+def mesh(request, gradient_one_boundaries):
     left, bottom, right, top = gradient_one_boundaries
 
+    ny = 3
+
+    # Hack for 1D
+    if request.param < 2:
+        # Remove the curve, for 1D we must have straight lines
+        bottom = top
+        top.bc = None
+        bottom.bc = None
+        ny = 1
+
     mesh = Mesh(left, bottom, right, top, SimpleCell)
-    mesh.interpolate(3, 3)
+    mesh.interpolate(3, ny)
     mesh.generate()
 
     yield mesh
@@ -69,5 +87,6 @@ def test_least_square_gradient(mocker, tol, mesh, Q, init_fun):
     solver.init(init_fun)
 
     scheme.pre_step(mesh.cells)
+    scheme.pre_accumulate(mesh.cells, 0)
 
-    assert np.all(np.abs(scheme._gradient - 1 < tol))
+    assert np.all(np.abs(scheme._gradient - 1) < tol)

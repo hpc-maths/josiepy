@@ -77,7 +77,7 @@ class ConstantSource(SourceScheme):
         """The source flux computed only for the cells, without taking into
         consideration the neighbours since they're not needed
         """
-        return self.problem.s(cells, t) * cells.volumes
+        return self.problem.s(cells, t) * cells.volumes[..., np.newaxis]
 
     def s(self, cells: MeshCellSet, neighs: CellSet, t: float) -> State:
         """ Use :meth:`volume_s` instead """

@@ -97,7 +97,7 @@ class Problem(metaclass=abc.ABCMeta):
         """
         pass
 
-    def D(self, cells: Union[CellSet, MeshCellSet]) -> np.ndarray:
+    def K(self, cells: Union[CellSet, MeshCellSet]) -> np.ndarray:
         r"""This returns the tensor that pre-multiplies the gradient in the
         diffusive term of the problem.
 
