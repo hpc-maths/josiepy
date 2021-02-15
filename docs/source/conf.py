@@ -51,6 +51,9 @@ napoleon_use_param = True
 # :: sphinx_autodoc_typehints
 set_type_checking_flag = False
 
+# :: sphinxcontrib.bibtex
+bibtex_bibfiles = ["bibliography.bib"]
+
 # :: sphinx.ext.imgmath
 imgmath_image_format = "svg"
 imgmath_font_size = 14
