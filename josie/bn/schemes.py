@@ -227,7 +227,7 @@ class Rusanov(ConvectiveScheme, BaerScheme):
     ) -> float:
 
         dt = 1e9
-        dx = np.min(cells.volumes[..., np.newaxis] / cells.surfaces)
+        dx = cells.min_length
         alpha = cells.values[..., Q.fields.alpha]
         alphas = PhasePair(alpha, 1 - alpha)
         for phase in Phases:

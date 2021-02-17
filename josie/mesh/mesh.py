@@ -121,6 +121,7 @@ class Mesh:
 
     points: np.ndarray
     cells: MeshCellSet
+    min_length: float
     boundaries: Iterable[Boundary]
 
     def __init__(
@@ -308,6 +309,7 @@ class Mesh:
         """
 
         self.cell_type.create_connectivity(self)
+        self.cells.compute_min_length()
 
     def export(self) -> MeshIO:
         """ Export the mesh to a :class:`meshio.Mesh` object """

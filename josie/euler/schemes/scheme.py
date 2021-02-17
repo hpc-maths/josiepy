@@ -126,7 +126,7 @@ class EulerScheme(ConvectiveScheme):
 
         sigma = np.max(np.abs(U) + c[..., np.newaxis])
 
-        # Min face surface
-        dx = np.min(cells.volumes[..., np.newaxis] / cells.surfaces)
+        # Min mesh dx
+        dx = cells.min_length
 
         return CFL_value * dx / sigma

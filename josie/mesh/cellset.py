@@ -57,6 +57,7 @@ class CellSet:
     normals: np.ndarray
     centroids: np.ndarray
     values: State
+    min_length: float = np.nan
 
     def __getitem__(self, key: MeshIndex) -> CellSet:
         """ Slice the :class:`CellSet` as a whole """
@@ -79,6 +80,13 @@ class CellSet:
             centroids=self.centroids.copy(),
             values=self.values.copy(),
         )
+
+    def compute_min_length(self):
+        """This method computes the min dx of the :class:`CellSet`.
+
+        Useful for CFL computations
+        """
+        self.min_length = np.min(self.volumes[..., np.newaxis] / self.surfaces)
 
 
 @dataclass
@@ -155,6 +163,11 @@ class MeshCellSet(CellSet):
         An array of dimensions :math:`N_x \times N_y \times N_\text{fields}`
         storing the value of the :class:`State` for each cell of the
         :class:`Mesh`
+
+    min_length
+        The minimal :math:`\dd{x}` of the mesh.
+
+        Useful for CFL computations
 
     dimensionality
         The :class:`Mesh` dimensionality
