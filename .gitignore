@@ -18,6 +18,9 @@ htmlcov/
 .mypy_cache/
 .pytest_cache/
 *.xml
+.ropeproject/globalnames
+.ropeproject/history
+.ropeproject/objectdb
 
 # Docs artifacts
 docs/build/
