@@ -26,8 +26,9 @@
 # official policies, either expressed or implied, of Ruben Di Battista.
 import numpy as np
 
+
 from josie.scheme.diffusive import DiffusiveScheme
-from josie.mesh.cellset import CellSet, MeshCellSet
+from josie.mesh.cellset import MeshCellSet, NeighboursCellSet
 
 
 class CentralDifferenceGradient(DiffusiveScheme):
@@ -55,17 +56,21 @@ class CentralDifferenceGradient(DiffusiveScheme):
 
         super().post_init(cells)
 
-        # Norm of the relative
+        # Norm of the relative distance
         self._r = np.zeros(
             (nx, ny, num_points, 2 * dimensionality, dimensionality)
         )
 
-        for i, neigh in enumerate(cells.neighbours):
+        # Store a mapping between the index of the neighbour cell set and its
+        # direction
+        self._directions = {}
+
+        for idx, neighs in enumerate(cells.neighbours):
             # Compute relative vector between cells and neighbour
             # using only the components associated to the problem
-            # dimensionality (i.e. 1D -> first component, 2D -> first two)
+            # dimensionality (idx.e. 1D -> first component, 2D -> first two)
             r = (
-                neigh.centroids[..., :dimensionality]
+                neighs.centroids[..., :dimensionality]
                 - cells.centroids[..., :dimensionality]
             )
 
@@ -91,3 +96,6 @@ class CentralDifferenceGradient(DiffusiveScheme):
         dQ = (neighs.values - cells.values) / r
 
         KdQ = np.einsum("...ijkl,...j->...i", self.problem.K(cells), dQ)
+
+        # Multiply by the surface
+        return KdQ * neighs.surfaces[..., np.newaxis]

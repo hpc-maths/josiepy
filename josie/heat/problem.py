@@ -1,5 +1,5 @@
 # josiepy
-# Copyright © 2020 Ruben Di Battista
+# Copyright © 2021 Ruben Di Battista
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -24,32 +24,33 @@
 # The views and conclusions contained in the software and documentation
 # are those of the authors and should not be interpreted as representing
 # official policies, either expressed or implied, of Ruben Di Battista.
+from __future__ import annotations
+
 import numpy as np
 
-from josie.mesh.cellset import MeshCellSet
+from typing import TYPE_CHECKING, Union
 
-from .scheme import Scheme
+from josie.problem import Problem
+
+if TYPE_CHECKING:
+    from josie.mesh.cellset import MeshCellSet, CellSet
+    from josie.transport import Transport
 
 
-class GradientScheme(Scheme):
-    r"""A mixin that provides the scheme interface for the gradient
-    term"""
+class HeatProblem(Problem):
+    """A class representing a system governed by the heat equation
 
-    _gradient: np.ndarray
+    Attributes
+    ----------
+    transport
+        A instance of :class:`Transport` providing transport coefficients
 
-    def post_init(self, cells: MeshCellSet):
-        r"""Initialize the datastructure holding the gradient
-        :math:`\pdeGradient, \ipdeGradient` per each cell
-        """
+    """
 
-        nx, ny, num_state = cells.values.shape
-        dimensionality = cells.dimensionality
+    def __init__(self, transport: Transport):
+        self.transport = transport
 
-        super().post_init(cells)
+    def K(self, cells: Union[CellSet, MeshCellSet]) -> np.ndarray:
+        """ This is a scalar value """
 
-        self._gradient = np.zeros((nx, ny, num_state, dimensionality))
-
-    def pre_step(self, cells: MeshCellSet):
-        super().pre_step(cells)
-
-        self._gradient.fill(0)
+        return self.transport.thermal_diffusivity(cells)

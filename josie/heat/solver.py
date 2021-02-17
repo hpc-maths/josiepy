@@ -1,5 +1,5 @@
 # josiepy
-# Copyright © 2020 Ruben Di Battista
+# Copyright © 2021 Ruben Di Battista
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -24,32 +24,21 @@
 # The views and conclusions contained in the software and documentation
 # are those of the authors and should not be interpreted as representing
 # official policies, either expressed or implied, of Ruben Di Battista.
-import numpy as np
+from __future__ import annotations
 
-from josie.mesh.cellset import MeshCellSet
+from typing import TYPE_CHECKING
 
-from .scheme import Scheme
+from josie.solver import Solver
+
+from .state import Q
+from .schemes import HeatScheme
+
+if TYPE_CHECKING:
+    from josie.mesh import Mesh
 
 
-class GradientScheme(Scheme):
-    r"""A mixin that provides the scheme interface for the gradient
-    term"""
+class HeatSolver(Solver):
+    """ A solver for a system governed by the heat equation """
 
-    _gradient: np.ndarray
-
-    def post_init(self, cells: MeshCellSet):
-        r"""Initialize the datastructure holding the gradient
-        :math:`\pdeGradient, \ipdeGradient` per each cell
-        """
-
-        nx, ny, num_state = cells.values.shape
-        dimensionality = cells.dimensionality
-
-        super().post_init(cells)
-
-        self._gradient = np.zeros((nx, ny, num_state, dimensionality))
-
-    def pre_step(self, cells: MeshCellSet):
-        super().pre_step(cells)
-
-        self._gradient.fill(0)
+    def __init__(self, mesh: Mesh, scheme: HeatScheme):
+        super().__init__(mesh, Q, scheme)

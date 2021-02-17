@@ -93,11 +93,45 @@ class ConstantTransport(Transport):
         self._thermal_diffusivity = thermal_diffusivity
 
     def momentum_diffusivity(self, cells: Union[MeshCellSet, CellSet]):
-        nx, ny, num_state = cells.values.shape
+        nx, ny, num_fields = cells.values.shape
+        dimensionality = cells.dimensionality
 
-        return np.ones((nx, ny, num_state)) * self._momentum_diffusivity
+        # FIXME: num_fields can be different from the number of fields in the
+        # state (`num_state`)
+
+        return (
+            np.ones(
+                (
+                    nx,
+                    ny,
+                    num_fields,
+                    num_fields,
+                    dimensionality,
+                    dimensionality,
+                )
+            )
+            * self._momentum_diffusivity
+        )
 
     def thermal_diffusivity(self, cells: Union[MeshCellSet, CellSet]):
-        nx, ny, num_state = cells.values.shape
+        nx, ny, num_fields = cells.values.shape
 
-        return np.ones((nx, ny, num_state)) * self._thermal_diffusivity
+        nx, ny, num_fields = cells.values.shape
+        dimensionality = cells.dimensionality
+
+        # FIXME: num_fields can be different from the number of fields in the
+        # state (`num_state`)
+
+        return (
+            np.ones(
+                (
+                    nx,
+                    ny,
+                    num_fields,
+                    num_fields,
+                    dimensionality,
+                    dimensionality,
+                )
+            )
+            * self._thermal_diffusivity
+        )

@@ -7,14 +7,14 @@ import pytest
 
 import matplotlib.pyplot as plt
 
-from josie.bc import Dirichlet
-from josie.boundary import Line
-from josie.mesh import Mesh
-from josie.mesh.cell import SimpleCell
 from josie.math import Direction
 from josie.general.schemes.time import ExplicitEuler
-from josie.heat.problem import HeatProblem
+from josie.boundary.boundary import Line
+from josie.bc import Dirichlet
+from josie.mesh import Mesh
+from josie.mesh.cell import SimpleCell
 from josie.heat.schemes import HeatScheme
+from josie.heat.problem import HeatProblem
 from josie.heat.solver import HeatSolver
 from josie.heat.state import Q
 from josie.transport import ConstantTransport
@@ -99,32 +99,28 @@ def test_heat(mesh, plot):
 
     cells = solver.mesh.cells
 
-    x = cells.centroids[..., Direction.X]
-    x = x.reshape(x.size)
-
-    T_exact = exact_solution(x, t)
-
-    T = cells.values[..., Q.fields.T]
-    plt.plot(x, T, "--o", label=f"Numerical {t}")
-    plt.plot(x, T_exact, label=f"Exact {t}")
-
     while t <= final_time:
         dt = scheme.CFL(cells, CFL)
         solver.step(dt)
-
-        if plot:
-            # Plot final step solution
-
-            x = cells.centroids[..., Direction.X]
-            x = x.reshape(x.size)
-
-            T = cells.values[..., Q.fields.T]
-            plt.plot(x, T)
-            plt.tight_layout()
 
         t += dt
         print(f"Time: {t}, dt: {dt}")
 
     if plot:
+        # Plot final step solution
+
+        x = cells.centroids[..., Direction.X]
+        x = x.reshape(x.size)
+
+        T_exact = exact_solution(
+            initial_condition, x, t, thermal_diffusivity, sum_elements=10
+        )
+
+        T = cells.values[..., Q.fields.T]
+        plt.plot(x, T, "x")
+        plt.plot(x, T_exact)
+
+        plt.tight_layout()
+
         plt.show()
         plt.close()

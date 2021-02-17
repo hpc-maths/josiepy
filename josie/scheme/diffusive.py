@@ -81,4 +81,5 @@ class DiffusiveScheme(Scheme):
         super().accumulate(cells, neighs, t)
 
         # Add conservative contribution
-        self._fluxes += self.D(cells, neighs)
+        self._fluxes -= self.D(cells, neighs)
+        #

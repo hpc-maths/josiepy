@@ -50,6 +50,7 @@ class CellSet:
         An array of dimensions :math:`N_x \times N_y \times N_\text{fields}`
         storing the value of the :class:`State` for each cell of the
         :class:`Mesh`
+
     """
 
     volumes: np.ndarray
