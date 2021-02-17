@@ -1,5 +1,5 @@
 # josiepy
-# Copyright © 2019 Ruben Di Battista
+# Copyright © 2021 Ruben Di Battista
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -24,50 +24,31 @@
 # The views and conclusions contained in the software and documentation
 # are those of the authors and should not be interpreted as representing
 # official policies, either expressed or implied, of Ruben Di Battista.
-r"""
-We create one big state that contains the actual conservative variables that
-are used in the flux together with the "auxiliary" variables that are instead
-needed, for example, to compute the speed of sound.
 
-.. math::
-
-    \eulerState
-
-
-* ``rho``: density :math:`\rho`
-* | ``rhoU``: component along :math:`x` of the velocity :math:`\vb{u}`,
-  | multiplied by the density
-* | ``rhoV``: component along :math:`y` of the velocity :math:`\vb{u}`,
-  | multiplied by the density
-* ``rhoE``: total energy multiplied by the density :math:`\rho E`
-* ``rhoe``: internal energy multiplied by the density :math:`\rho e`
-* ``U``: component along :math:`x` of the velocity :math:`u`
-* ``V``: component along :math:`y` of the velocity :math:`v`
-* ``p``: pressure :math:`p`
-* ``c``: sound velocity :math:`c`
-"""
 from __future__ import annotations
 
-from josie.fluid.state import ConsSubsetState, SingleFluidState
-
-from .fields import EulerFields, ConsFields
-
-
-class EulerConsState(ConsSubsetState):
-    """A :class:`State` class representing the conservative state variables
-    of the Euler system"""
-
-    full_state_fields = EulerFields
-    fields = ConsFields
+from josie.fluid.fields import FluidFields
+from josie.state import Fields
 
 
-class Q(SingleFluidState):
-    r"""The class representing the state variables of the Euler system
+class ConsFields(Fields):
+    """ Indexing enum for the conservative state variables of the problem """
 
-    .. math::
+    rho = 0
+    rhoU = 1
+    rhoV = 2
+    rhoE = 3
 
-        \eulerState
 
-    """
-    fields = EulerFields
-    cons_state = EulerConsState
+class EulerFields(FluidFields):
+    """ Indexing enum for the state variables of the problem """
+
+    rho = 0
+    rhoU = 1
+    rhoV = 2
+    rhoE = 3
+    rhoe = 4
+    U = 5
+    V = 6
+    p = 7
+    c = 8

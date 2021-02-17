@@ -36,6 +36,7 @@ from josie.problem import Problem
 
 from .eos import EOS
 from .state import ConsFields, Q
+from .fields import ConsFields
 
 
 class EulerProblem(Problem):
@@ -93,7 +94,12 @@ class EulerProblem(Problem):
 
         # Flux tensor
         F = np.empty(
-            (num_cells_x, num_cells_y, len(ConsFields), MAX_DIMENSIONALITY)
+            (
+                num_cells_x,
+                num_cells_y,
+                len(ConsFields),
+                MAX_DIMENSIONALITY,
+            )
         )
 
         rhoU = values[..., fields.rhoU]

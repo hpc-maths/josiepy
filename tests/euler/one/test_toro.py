@@ -151,18 +151,17 @@ def test_toro(toro_riemann_state, Scheme, plot, request):
         p = cells.values[..., Q.fields.p]
         p = p.reshape(p.size)
 
-        if plot:
-            (im1,) = ax1.plot(x, rho, "-", label="Numerical")
-            ax1.set_xlabel("x")
-            ax1.set_ylabel(r"$\rho$")
+        (im1,) = ax1.plot(x, rho, "-", label="Numerical")
+        ax1.set_xlabel("x")
+        ax1.set_ylabel(r"$\rho$")
 
-            (im2,) = ax2.plot(x, U, "-", label="Numerical")
-            ax2.set_xlabel("x")
-            ax2.set_ylabel("U")
+        (im2,) = ax2.plot(x, U, "-", label="Numerical")
+        ax2.set_xlabel("x")
+        ax2.set_ylabel("U")
 
-            (im3,) = ax3.plot(x, p, "-", label="Numerical")
-            ax3.set_xlabel("x")
-            ax3.set_ylabel("p")
+        (im3,) = ax3.plot(x, p, "-", label="Numerical")
+        ax3.set_xlabel("x")
+        ax3.set_ylabel("p")
 
         # Plot the exact solution over the final step solution
         p = []
