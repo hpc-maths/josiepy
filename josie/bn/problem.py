@@ -26,12 +26,10 @@
 # official policies, either expressed or implied, of Ruben Di Battista.
 import numpy as np
 
-from typing import Union
 
 from josie.dimension import MAX_DIMENSIONALITY
 from josie.problem import Problem
 from josie.math import Direction
-from josie.mesh.cellset import CellSet, MeshCellSet
 
 from .eos import TwoPhaseEOS
 from .closure import Closure
@@ -46,7 +44,7 @@ class TwoPhaseProblem(Problem):
         self.eos = eos
         self.closure = closure
 
-    def B(self, cells: Union[CellSet, MeshCellSet]):
+    def B(self, values: Q):
         r""" This returns the tensor that pre-multiplies the non-conservative
         term of the problem.
 
@@ -104,7 +102,6 @@ class TwoPhaseProblem(Problem):
             to implement the :class:`~.Closure` trait in order to be able to
             return `pI` and `uI` (in addition to the :class:`~.euler.EOS`)
         """
-        values = cells.values.view(Q)
 
         num_cells_x, num_cells_y, num_dofs, num_fields = values.shape
 
@@ -122,10 +119,10 @@ class TwoPhaseProblem(Problem):
         )
 
         # Compute pI
-        pI = self.closure.pI(values)
+        pI = self.closure.pI(values.view(Q))
 
         # This is the vector (uI, vI)
-        UI_VI = self.closure.uI(values)
+        UI_VI = self.closure.uI(values.view(Q))
 
         # First component of (uI, vI) along x
         UI = UI_VI[..., [Direction.X]]
@@ -201,7 +198,7 @@ class TwoPhaseProblem(Problem):
 
         return B
 
-    def F(self, cells: Union[MeshCellSet, CellSet]) -> np.ndarray:
+    def F(self, values: Q) -> np.ndarray:
         r""" This returns the tensor representing the flux for a two-fluid model
         as described originally by :cite:`baer_two-phase_1986`
 
@@ -250,7 +247,7 @@ class TwoPhaseProblem(Problem):
                 MAX_DIMENSIONALITY,
             )
         )
-        fields = values.fields
+        fields = Q.fields
 
         alpha1 = values[..., fields.alpha]
         arhoU1 = values[..., fields.arhoU1]

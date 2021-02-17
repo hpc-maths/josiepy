@@ -28,15 +28,15 @@ from __future__ import annotations
 
 import numpy as np
 
-from typing import Tuple, TYPE_CHECKING
+from typing import Tuple
 
 from josie.math import Direction
+
 from josie.euler.state import EulerState
+from josie.state import State
+from josie.fluid.state import ConsState
 
 from .scheme import EulerScheme
-
-if TYPE_CHECKING:
-    from josie.mesh.cellset import NeighboursCellSet, MeshCellSet
 
 
 class HLL(EulerScheme):
@@ -107,17 +107,20 @@ class HLL(EulerScheme):
 
         return sigma_L, sigma_R
 
-    def F(self, cells: MeshCellSet, neighs: NeighboursCellSet):
+    def intercellFlux(
+        self,
+        Q_L: ConsState,
+        Q_R: ConsState,
+        normals: np.ndarray,
+        surfaces: np.ndarray,
+    ):
 
-        values: EulerState = cells.values.view(EulerState)
-
-        FS = np.zeros_like(values).view(EulerState)
-        Q_L, Q_R = values, neighs.values.view(EulerState)
-        fields = values.fields
+        FS = np.zeros_like(Q_L).view(EulerState)
+        fields = EulerState.fields
 
         # Get normal velocities
-        U_L = self.compute_U_norm(Q_L, neighs.normals)
-        U_R = self.compute_U_norm(Q_R, neighs.normals)
+        U_L = self.compute_U_norm(Q_L, normals)
+        U_R = self.compute_U_norm(Q_R, normals)
 
         # Get sound speed
         c_L = Q_L[..., fields.c]
@@ -164,14 +167,13 @@ class HLLC(HLL):
     :cite:`toro_riemann_2009` for a detailed view on compressible schemes.
     """
 
-    def F(self, cells: MeshCellSet, neighs: NeighboursCellSet):
+    def intercellFlux(
+        self, Q_L: State, Q_R: State, normals: np.ndarray, surfaces: np.ndarray
+    ):
 
-        values = cells.values.view(EulerState)
-
-        FS = np.zeros_like(values).view(EulerState)
-        F = np.zeros_like(values.get_conservative())
+        FS = np.zeros_like(Q_L).view(EulerState)
+        F = np.zeros_like(Q_L.view(EulerState).get_conservative())
         fields = EulerState.fields
-        Q_L, Q_R = values, neighs.values.view(EulerState)
 
         # Get density
         rho_L = Q_L[..., np.newaxis, fields.rho]
@@ -220,8 +222,8 @@ class HLLC(HLL):
 
         # First four variables of the total state are the conservative
         # variables (rho, rhoU, rhoV, rhoE)
-        Qc_L = Q_L.get_conservative()
-        Qc_R = Q_R.get_conservative()
+        Qc_L = Q_L.view(EulerState).get_conservative()
+        Qc_R = Q_R.view(EulerState).get_conservative()
 
         # Init the intermediate states
         Q_star_R = np.empty_like(Qc_R)

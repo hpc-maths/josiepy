@@ -15,6 +15,7 @@ from josie.ns.state import NSState
 from josie.ns.transport import NSConstantTransport
 from josie.mesh import Mesh
 from josie.mesh.cell import SimpleCell
+from josie.general.schemes.space import Godunov
 
 
 @pytest.fixture
@@ -108,7 +109,9 @@ def scheme():
 
     eos = PerfectGas()
 
-    class Scheme(NSScheme, CentralDifferenceGradient, Rusanov, ExplicitEuler):
+    class Scheme(
+        Godunov, NSScheme, CentralDifferenceGradient, Rusanov, ExplicitEuler
+    ):
         pass
 
     yield Scheme(eos, transport)

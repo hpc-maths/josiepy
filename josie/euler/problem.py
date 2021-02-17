@@ -31,12 +31,11 @@ import numpy as np
 
 from josie.dimension import MAX_DIMENSIONALITY
 from josie.math import Direction
-from josie.mesh.cellset import CellSet
 from josie.problem import Problem
 
 from .eos import EOS
-from .state import EulerState
-from .fields import ConsFields
+from .state import ConsFields, EulerState
+from josie.state import State
 
 
 class EulerProblem(Problem):
@@ -53,7 +52,7 @@ class EulerProblem(Problem):
 
         self.eos = eos
 
-    def F(self, cells: CellSet) -> np.ndarray:
+    def F(self, values: State) -> np.ndarray:
         r""" This returns the tensor representing the flux for an Euler model
 
         A general problem can be written in a compact way:
@@ -89,8 +88,7 @@ class EulerProblem(Problem):
                     (\rho E + p)U & (\rho E + p)V
                 \end{bmatrix}
         """
-        values: EulerState = cells.values.view(EulerState)
-        fields = values.fields
+        fields = EulerState.fields
 
         num_cells_x, num_cells_y, num_dofs, _ = values.shape
 

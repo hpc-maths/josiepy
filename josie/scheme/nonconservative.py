@@ -44,7 +44,7 @@ class NonConservativeScheme(Scheme):
         # Accumulate other terms
         super().accumulate(cells, neighs, t)
 
-        B = self.problem.B(cells)
+        B = self.problem.B(cells.values)
         G = self.G(cells, neighs)
 
         BG = np.einsum("...ikl,...kl->...i", B, G)

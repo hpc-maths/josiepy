@@ -47,8 +47,7 @@ class OdeProblem(Problem):
         self.f = f
 
     def s(self, cells: Union[MeshCellSet, CellSet], t: float) -> State:
-        # FIXME: Ignoring typing: https://github.com/numpy/numpy/issues/20072
-        return -self.f(cells.values, t)  # type: ignore
+        return -self.f(cells.values, t)
 
 
 class OdeSolver(Solver):

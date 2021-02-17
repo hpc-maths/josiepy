@@ -4,6 +4,7 @@ import numpy as np
 import pytest
 
 import josie.general.schemes.time as time_schemes
+from josie.general.schemes.space.godunov import Godunov
 
 from dataclasses import dataclass
 from matplotlib.animation import FuncAnimation
@@ -61,7 +62,7 @@ def ToroNonConservativeScheme(request):
         if issubclass(subcls, ConvectiveScheme)
     ]
 )
-def ToroConvectiveScheme(request):
+def IntercellFluxScheme(request):
     """Fixture that yields all the concrete :class:`BaerScheme` that are
     also :class:`ConvectiveScheme`"""
     yield request.param
@@ -108,9 +109,7 @@ class RiemannProblem:
 
 
 @pytest.fixture
-def riemann_states(
-    ToroConvectiveScheme, ToroNonConservativeScheme, TimeScheme
-):
+def riemann_states(IntercellFluxScheme, ToroNonConservativeScheme, TimeScheme):
     class AdvectionOnly(ToroNonConservativeScheme, TimeScheme):
         # Define this to avoid exception of ABC
         def post_step(self, cells):
@@ -125,7 +124,10 @@ def riemann_states(
             return 1e-3
 
     class ToroScheme(
-        ToroConvectiveScheme, ToroNonConservativeScheme, TimeScheme
+        IntercellFluxScheme,
+        ToroNonConservativeScheme,
+        TimeScheme,
+        Godunov,
     ):
         pass
 

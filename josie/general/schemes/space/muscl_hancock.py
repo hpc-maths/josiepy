@@ -1,0 +1,200 @@
+# josiepy
+# Copyright © 2020 Ruben Di Battista
+# All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are met:
+# 1. Redistributions of source code must retain the above copyright
+# notice, this list of conditions and the following disclaimer.
+# 2. Redistributions in binary form must reproduce the above copyright
+# notice, this list of conditions and the following disclaimer in the
+# documentation and/or other materials provided with the distribution.
+#
+# THIS SOFTWARE IS PROVIDED BY Ruben Di Battista ''AS IS'' AND ANY
+# EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+# WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+# DISCLAIMED. IN NO EVENT SHALL Ruben Di Battista BE LIABLE FOR ANY
+# DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+# (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+# LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+# ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+# SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+#
+# The views and conclusions contained in the software and documentation
+# are those of the authors and should not be interpreted as representing
+# official policies, either expressed or implied, of Ruben Di Battista.
+
+import numpy as np
+
+import abc
+
+from josie.mesh.cellset import MeshCellSet, NeighboursCellSet
+
+from josie.scheme.convective import ConvectiveScheme
+
+from josie.mesh.cellset import DimensionPair
+
+
+class MUSCL_Hancock(ConvectiveScheme):
+
+    slopes: np.ndarray
+
+    # Parameter for limiters
+    # between -1 and 1
+    omega = 0
+
+    @abc.abstractmethod
+    def compute_slopes(self, cells: MeshCellSet):
+        r"""Compute the slopes of the local linear approximation of
+        neighbouring state values. Limiters can be used here to limit the
+        oscillations of linear approximation in the neighbourhood of
+        discontinuities.
+
+        Parameters
+        ----------
+        cells
+            A :class:`MeshCellSet` which contains mesh info such as normals,
+            volumes or surfaces of the cells/interfaces.
+        """
+        pass
+
+    def update_values_face(self, cells: MeshCellSet, dt: float):
+        r"""Updates the extrapolated values at each interface for half
+        a timestep using flux evaluated within the cell.
+
+        Parameters
+        ----------
+        cells
+            A :class:`MeshCellSet` which contains mesh info such as normals,
+            volumes or surfaces of the cells/interfaces.
+
+        dt
+            A `float` to store the timestep.
+        """
+
+        for i, dim in enumerate(DimensionPair):
+            if i >= cells.dimensionality:
+                break
+            dir_L = dim.value[0].value
+            dir_R = dim.value[1].value
+            neigh_L = cells.neighbours[dir_L]
+            neigh_R = cells.neighbours[dir_R]
+
+            n_L = neigh_L.normals
+            n_R = neigh_R.normals
+
+            Q_L = self.values_face.values[..., dir_L]
+            Q_R = self.values_face.values[..., dir_R]
+
+            F_L = np.einsum("...kl,...l->...k", self.problem.F(Q_L), n_L)
+            F_R = np.einsum("...kl,...l->...k", self.problem.F(Q_R), n_R)
+
+            Q_L.set_conservative(
+                Q_L.get_conservative()
+                - 0.5
+                * dt
+                / cells.volumes[..., np.newaxis]
+                * cells.surfaces[..., [dir_L]]
+                * (F_L + F_R)
+            )
+
+            Q_R.set_conservative(
+                Q_R.get_conservative()
+                - 0.5
+                * dt
+                / cells.volumes[..., np.newaxis]
+                * cells.surfaces[..., [dir_R]]
+                * (F_L + F_R)
+            )
+
+    def pre_extrapolation(self, cells: MeshCellSet):
+        r"""Optional step before applying the slopes to compute the state
+        values at each face. For instance, this is where the additional
+        Berthon limiter is implemented.
+
+        Parameters
+        ----------
+        cells
+            A :class:`MeshCellSet` which contains mesh info such as normals,
+            volumes or surfaces of the cells/interfaces.
+        """
+        pass
+
+    def linear_extrapolation(self, cells: MeshCellSet):
+        # Compute linear extrapolated values at each face
+        for direction in range(2 ** cells.dimensionality):
+            self.values_face.values[..., direction] = (
+                cells.values + 0.5 * self.slopes[..., direction]
+            )
+
+    def F(self, cells: MeshCellSet, neighs: NeighboursCellSet):
+        # Solve the Riemann problem to compute the intercell flux
+        # using the extrapolated and half-timestep updated states of each
+        # interface as initial conditions.
+
+        direction = neighs.direction
+        oppDirection = direction + 1 if direction % 2 == 0 else direction - 1
+        Q_L = self.values_face.values[..., direction]
+        Q_R = self.values_face.neighbours[direction].values[..., oppDirection]
+
+        return self.intercellFlux(
+            Q_L,
+            Q_R,
+            neighs.normals,
+            neighs.surfaces,
+        )
+
+    def post_init(self, cells: MeshCellSet):
+        r"""Initialize the datastructure holding the values at interface
+        for each cell and face
+        """
+
+        super().post_init(cells)
+
+        self.values_face = cells.copy()
+
+        self.slopes = np.empty(
+            cells.values.shape + (2 ** cells.dimensionality,)
+        ).view(cells.values.__class__)
+
+        self.values_face._values = np.empty(
+            cells._values.shape + (2 ** cells.dimensionality,)
+        ).view(cells._values.__class__)
+
+        self.values_face.create_neighbours()
+
+    def pre_step(self, cells: MeshCellSet, dt: float):
+        super().pre_step(cells, dt)
+
+        self.slopes.fill(0)
+
+        # Initialize state values at each face with the state value
+        # of the cell
+        for dir in range(2 ** cells.dimensionality):
+            self.values_face._values[..., dir] = cells._values
+
+        # Compute the slope for each direction according to the
+        # chosen limiter
+        # TODO : adapt the limiters for a case with a non-constant
+        # space step
+        self.compute_slopes(cells)
+
+        # If needed (e.g. Berthon), apply complementary computations
+        self.pre_extrapolation(cells)
+
+        # Extrapolation of the cell value (the conserved ones) into
+        # the value at each interface thanks to the computed slopes
+        self.linear_extrapolation(cells)
+
+        # Update the auxiliary components at each face
+        for dir in range(2 ** cells.dimensionality):
+            self.post_step(self.values_face._values[..., dir])
+
+        # Perform the half-timestep at each interface using cell
+        # flux (for the conserved components)
+        self.update_values_face(cells, dt)
+
+        # Update the auxiliary components at each face
+        for dir in range(2 ** cells.dimensionality):
+            self.post_step(self.values_face._values[..., dir])

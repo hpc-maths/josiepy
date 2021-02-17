@@ -49,15 +49,14 @@ class BaerScheme(Scheme):
     def __init__(self, eos: TwoPhaseEOS, closure: Closure):
         super().__init__(TwoPhaseProblem(eos, closure))
 
-    def post_step(self, cells: MeshCellSet):
+    def post_step(self, values: Q):
         """During the step we update the conservative values. After the
         step we update the non-conservative variables. This method updates
         the values of the non-conservative (auxiliary) variables using the
         :class:`~.EOS`
         """
-        values: Q = cells.values.view(Q)
 
-        alpha = values[..., values.fields.alpha]
+        alpha = values[..., Q.fields.alpha]
 
         alphas = PhasePair(alpha, 1 - alpha)
 
@@ -92,7 +91,7 @@ class BaerScheme(Scheme):
             )
 
 
-class Upwind(NonConservativeScheme, BaerScheme):
+class Upwind(BaerScheme, NonConservativeScheme):
     r"""An optimized upwind scheme that reduces the size of the
     :math:`\pdeNonConservativeMultiplier` knowing that for
     :cite:`baer_two-phase_1986` the only state variable appearing in the non
@@ -104,28 +103,29 @@ class Upwind(NonConservativeScheme, BaerScheme):
 
     def G(self, cells: MeshCellSet, neighs: NeighboursCellSet) -> np.ndarray:
 
-        values: Q = cells.values.view(Q)
+        Q_L: Q = cells.values.view(Q)
+        Q_R: Q = neighs.values.view(Q)
 
-        nx, ny, num_dofs, _ = values.shape
+        nx, ny, num_dofs, _ = Q_L.shape
 
         alpha_face = np.zeros((nx, ny, num_dofs, 1))
 
         # Get vector of uI
-        UI_VI = self.problem.closure.uI(values)
-        UI_VI_neigh = self.problem.closure.uI(neighs.values.view(Q))
+        UI_VI_L = self.problem.closure.uI(Q_L)
+        UI_VI_R = self.problem.closure.uI(Q_R)
 
-        UI_VI_face = 0.5 * (UI_VI + UI_VI_neigh)
+        UI_VI_face = 0.5 * (UI_VI_L + UI_VI_R)
 
         # Normal uI
         U_face = np.einsum("...kl,...l->...k", UI_VI_face, neighs.normals)[
             ..., np.newaxis
         ]
 
-        alpha = values[..., [Q.fields.alpha]]
-        alpha_neigh = neighs.values[..., [Q.fields.alpha]]
+        alpha_L = Q_L[..., [Q.fields.alpha]]
+        alpha_R = Q_R[..., [Q.fields.alpha]]
 
-        np.copyto(alpha_face, alpha, where=U_face >= 0)
-        np.copyto(alpha_face, alpha_neigh, where=U_face < 0)
+        np.copyto(alpha_face, alpha_L, where=U_face >= 0)
+        np.copyto(alpha_face, alpha_R, where=U_face < 0)
 
         alphan_face = np.einsum(
             "...mk,...l->...mkl", alpha_face, neighs.normals
@@ -140,11 +140,9 @@ class Upwind(NonConservativeScheme, BaerScheme):
         return G
 
 
-class Rusanov(ConvectiveScheme, BaerScheme):
-    def F(
-        self,
-        cells: MeshCellSet,
-        neighs: NeighboursCellSet,
+class Rusanov(BaerScheme, ConvectiveScheme):
+    def intercellFlux(
+        self, Q_L: Q, Q_R: Q, normals: np.ndarray, surfaces: np.ndarray
     ) -> Q:
         r"""This schemes implements the Rusanov scheme for a
         :class:`TwoPhaseProblem`. It applies the :class:`~.euler.Rusanov`
@@ -153,12 +151,11 @@ class Rusanov(ConvectiveScheme, BaerScheme):
 
         Parameters
         ----------
-        cells:
-            A :class:`MeshCellSet` containing the state of the mesh cells
+        Q_L:
+            State values in the "left" side of the interface
 
-        neighs
-            A :class:`NeighboursCellSet` containing data of neighbour cells
-            corresponding to the :attr:`values`
+        Q_R:
+            State values in the "right" side of the interface
 
         Returns
         -------
@@ -166,38 +163,35 @@ class Rusanov(ConvectiveScheme, BaerScheme):
             The value of the numerical convective flux multiplied by the
             surface value :math:`\numConvective`
         """
-        values: Q = cells.values.view(Q)
 
-        FS = np.zeros_like(values).view(Q)
+        FS = np.zeros_like(Q_L).view(Q)
 
         # Compute the sigma per each phase
         sigmas = []
 
-        alpha = values[..., values.fields.alpha]
+        alpha = Q_L[..., Q.fields.alpha]
 
         alphas = PhasePair(alpha, 1 - alpha)
 
         for phase in Phases:
-            phase_values = values.get_phase(phase)
-            phase_neigh_values = neighs.values.view(Q).get_phase(phase)
+            phase_L = Q_L.view(Q).get_phase(phase)
+            phase_R = Q_R.view(Q).get_phase(phase)
 
-            fields = phase_values.fields
+            fields = phase_L.fields
 
             alpha = alphas[phase]
 
             # Get normal velocities
-            U = EulerRusanov.compute_U_norm(phase_values, neighs.normals)
-            U_neigh = EulerRusanov.compute_U_norm(
-                phase_neigh_values, neighs.normals
-            )
+            U_L = EulerRusanov.compute_U_norm(phase_L, normals)
+            U_R = EulerRusanov.compute_U_norm(phase_R, normals)
 
             # Speed of sound
-            c = phase_values[..., fields.c]
-            c_neigh = phase_neigh_values[..., fields.c]
+            c_L = phase_L[..., fields.c]
+            c_R = phase_R[..., fields.c]
 
             # Let's retrieve the values of the sigma on every cell
             # for current cell
-            sigma = EulerRusanov.compute_sigma(U, U_neigh, c, c_neigh)
+            sigma = EulerRusanov.compute_sigma(U_L, U_R, c_L, c_R)
 
             # And the we found the max on the last axis (i.e. the maximum value
             # of sigma for each cell)
@@ -210,15 +204,15 @@ class Rusanov(ConvectiveScheme, BaerScheme):
         # of sigma for each cell)
         sigma = np.max(sigma_array, axis=-1, keepdims=True)
 
-        DeltaF = 0.5 * (self.problem.F(cells) + self.problem.F(neighs))
+        DeltaF = 0.5 * (self.problem.F(Q_L) + self.problem.F(Q_R))
 
         # This is the flux tensor dot the normal
         DeltaF = np.einsum("...mkl,...l->...mk", DeltaF, neighs.normals)
 
-        values_cons = values.get_conservative()
-        neigh_values_cons = neighs.values.view(Q).get_conservative()
+        Qc_L = Q_L.view(Q).get_conservative()
+        Qc_R = Q_R.view(Q).get_conservative()
 
-        DeltaQ = 0.5 * sigma * (neigh_values_cons - values_cons)
+        DeltaQ = 0.5 * sigma * (Qc_R - Qc_L)
 
         FS.set_conservative(
             neighs.surfaces[..., np.newaxis, np.newaxis] * (DeltaF - DeltaQ)

@@ -32,6 +32,8 @@ from typing import TYPE_CHECKING
 
 from .scheme import Scheme
 
+import numpy as np
+
 
 if TYPE_CHECKING:
     from josie.mesh.cellset import NeighboursCellSet, MeshCellSet
@@ -47,6 +49,19 @@ class ConvectiveScheme(Scheme):
         \numConvectiveFull
 
     """
+
+    @abc.abstractmethod
+    def intercellFlux(
+        self,
+        Q_L,
+        Q_R,
+        normals: np.ndarray,
+        surfaces: np.ndarray,
+    ):
+        raise NotImplementedError
+
+    def update_values_face(self, cells: MeshCellSet, dt: float):
+        pass
 
     @abc.abstractmethod
     def F(self, cells: MeshCellSet, neighs: NeighboursCellSet) -> State:

@@ -6,7 +6,6 @@ https://doi.org/10.1007/b79761, page 129 """
 import numpy as np
 import pytest
 
-
 from josie.bc import Dirichlet, Neumann, Direction, make_periodic
 from josie.boundary import Line
 from josie.euler.eos import PerfectGas

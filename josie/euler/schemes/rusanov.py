@@ -28,14 +28,10 @@ from __future__ import annotations
 
 import numpy as np
 
-from typing import TYPE_CHECKING
-
 from josie.euler.state import EulerState
+from josie.state import State
 
 from .scheme import EulerScheme
-
-if TYPE_CHECKING:
-    from josie.mesh.cellset import NeighboursCellSet, MeshCellSet
 
 
 class Rusanov(EulerScheme):
@@ -100,18 +96,17 @@ class Rusanov(EulerScheme):
 
         return sigma
 
-    def F(self, cells: MeshCellSet, neighs: NeighboursCellSet):
-
-        Q_L: EulerState = cells.values.view(EulerState)
-        Q_R: EulerState = neighs.values.view(EulerState)
+    def intercellFlux(
+        self, Q_L: State, Q_R: State, normals: np.ndarray, surfaces: np.ndarray
+    ):
 
         fields = EulerState.fields
 
         FS = np.zeros_like(Q_L).view(EulerState)
 
         # Get normal velocities
-        U_L = self.compute_U_norm(Q_L, neighs.normals)
-        U_R = self.compute_U_norm(Q_R, neighs.normals)
+        U_L = self.compute_U_norm(Q_L, normals)
+        U_R = self.compute_U_norm(Q_R, normals)
 
         # Speed of sound
         c_L = Q_L[..., fields.c]
@@ -119,15 +114,15 @@ class Rusanov(EulerScheme):
 
         sigma = self.compute_sigma(U_L, U_R, c_L, c_R)
 
-        DeltaF = 0.5 * (self.problem.F(cells) + self.problem.F(neighs))
+        DeltaF = 0.5 * (self.problem.F(Q_L) + self.problem.F(Q_R))
 
         # This is the flux tensor dot the normal
         DeltaF = np.einsum("...mkl,...l->...mk", DeltaF, neighs.normals)
 
         # First four variables of the total state are the conservative
         # variables (rho, rhoU, rhoV, rhoE)
-        Q_L_cons = Q_L.get_conservative()
-        Q_R_cons = Q_R.get_conservative()
+        Q_L_cons = Q_L.view(EulerState).get_conservative()
+        Q_R_cons = Q_R.view(EulerState).get_conservative()
 
         DeltaQ = 0.5 * sigma * (Q_R_cons - Q_L_cons)
 

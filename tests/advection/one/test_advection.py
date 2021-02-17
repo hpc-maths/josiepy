@@ -8,13 +8,12 @@ from matplotlib.animation import ArtistAnimation
 from .adv1d import main as main_1d
 
 import josie.general.schemes.time as time_schemes
-
+from josie.general.schemes.space import Godunov
 from josie.dimension import MAX_DIMENSIONALITY
-from josie.mesh.cellset import MeshCellSet, CellSet
+from josie.mesh.cellset import MeshCellSet
 from josie.state import State
 from josie.solver import Solver
 from josie.problem import Problem
-from josie.scheme.convective import ConvectiveScheme
 
 # Advection velocity in x-direction
 V = np.array([1.0, 0.0])
@@ -36,37 +35,6 @@ class AdvectionProblem(Problem):
         return flux(state_array)
 
 
-def upwind(cells: MeshCellSet, neighs: CellSet):
-
-    values = cells.values
-
-    nx, ny, num_dofs, num_fields = values.shape
-
-    FS = np.zeros_like(values)
-    F = np.zeros((nx, ny, num_dofs, num_fields, MAX_DIMENSIONALITY))
-
-    # I do a dot product of each normal in `norm` by the advection velocity
-    # Equivalent to: un = np.sum(Advection.V*(normals), axis=-1)
-    Vn = np.einsum("...k,k->...", neighs.normals, V)
-
-    # Check where un > 0
-    idx = np.where(Vn > 0)
-
-    if np.any(np.nonzero(idx)):
-        F[idx] = flux(values)[idx]
-
-    idx = np.where(Vn < 0)
-    if np.any(np.nonzero(idx)):
-        F[idx] = flux(neighs.values)[idx]
-
-    FS = (
-        np.einsum("...mkl,...l->...mk", F, neighs.normals)
-        * neighs.surfaces[..., np.newaxis, np.newaxis]
-    )
-
-    return FS
-
-
 @pytest.fixture(
     params=[
         member[1]
@@ -74,9 +42,36 @@ def upwind(cells: MeshCellSet, neighs: CellSet):
     ],
 )
 def scheme(request):
-    class Upwind(ConvectiveScheme, request.param):
-        def F(self, cells: MeshCellSet, neighs: CellSet):
-            return upwind(cells, neighs)
+    class Upwind(Godunov, request.param):
+        def intercellFlux(
+            self, Q_L: Q, Q_R: Q, normals: np.ndarray, surfaces: np.ndarray
+        ):
+
+            nx, ny, num_dofs, num_fields = Q_L.shape
+
+            FS = np.zeros_like(Q_L)
+            F = np.zeros((nx, ny, num_dofs, num_fields, MAX_DIMENSIONALITY))
+
+            # Dot product of each normal in `norm` by the advection velocity
+            # Equivalent to: un = np.sum(Advection.V*(normals), axis=-1)
+            Vn = np.einsum("...k,k->...", normals, V)
+
+            # Check where un > 0
+            idx = np.where(Vn > 0)
+
+            if np.any(np.nonzero(idx)):
+                F[idx] = flux(Q_L)[idx]
+
+            idx = np.where(Vn < 0)
+            if np.any(np.nonzero(idx)):
+                F[idx] = flux(Q_R)[idx]
+
+            FS = (
+                np.einsum("...mkl,...l->...mk", F, normals)
+                * surfaces[..., np.newaxis, np.newaxis]
+            )
+
+            return FS[..., np.newaxis]
 
         def CFL(
             self,

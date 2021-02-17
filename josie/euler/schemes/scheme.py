@@ -30,15 +30,16 @@ import numpy as np
 
 from typing import TYPE_CHECKING
 
+from josie.state import State
 from josie.euler.problem import EulerProblem
 from josie.euler.state import EulerState
 from josie.scheme.convective import ConvectiveScheme
+from josie.general.schemes.space import MUSCL_Hancock
 
 
 if TYPE_CHECKING:
     from josie.euler.eos import EOS
     from josie.mesh.cellset import MeshCellSet
-    from josie.fluid.state import SingleFluidState
 
 
 class EulerScheme(ConvectiveScheme):
@@ -49,16 +50,14 @@ class EulerScheme(ConvectiveScheme):
     def __init__(self, eos: EOS):
         super().__init__(EulerProblem(eos))
 
-    def post_step(self, cells: MeshCellSet):
+    def post_step(self, values: State):
         """During the step we update the conservative values. After the
         step we update the non-conservative variables. This method updates
         the values of the non-conservative (auxiliary) variables using the
         :class:`~.EOS`
         """
 
-        values: EulerState = cells.values.view(EulerState)
-
-        fields = values.fields
+        fields = EulerState.fields
 
         rho = values[..., fields.rho]
         rhoU = values[..., fields.rhoU]
@@ -82,7 +81,7 @@ class EulerScheme(ConvectiveScheme):
         values[..., fields.e] = e
 
     @staticmethod
-    def compute_U_norm(values: SingleFluidState, normals: np.ndarray):
+    def compute_U_norm(values: State, normals: np.ndarray):
         r"""Returns the value of the normal velocity component to the given
         ``normals``.
 
@@ -102,7 +101,7 @@ class EulerScheme(ConvectiveScheme):
         -------
         The value of the normal velocity
         """
-        fields = values.fields
+        fields = EulerState.fields
 
         # Get the velocity components
         UV_slice = slice(fields.U, fields.V + 1)
@@ -135,3 +134,77 @@ class EulerScheme(ConvectiveScheme):
         new_dt = CFL_value * dx / sigma
 
         return np.min((dt, new_dt))
+
+
+class BerthonScheme(MUSCL_Hancock):
+    """An optional class to use the Berthon limiter in addition to the usual
+    limiters for Euler equations. See in Berthon, Christophe. « Why the
+    MUSCL–Hancock Scheme Is L1-Stable ». Numerische Mathematik, nᵒ 104 (2006):
+    27‑46. https://doi.org/10.1007/s00211-006-0007-4."""
+
+    @staticmethod
+    def array_max_min(arr1: np.ndarray, arr2: np.ndarray, arr3: np.ndarray):
+        return np.stack([arr1, np.stack([arr2, arr3]).min(axis=0)]).max(axis=0)
+
+    @staticmethod
+    def array_min(arr1: np.ndarray, arr2: np.ndarray):
+        return np.stack([arr1, arr2]).min(axis=0)
+
+    def pre_extrapolation(self, cells: MeshCellSet):
+        for d in range(cells.dimensionality):
+            ind_left = 2 * d
+            ind_right = 2 * d + 1
+            slope_R = self.slopes[..., ind_right]
+
+            # Get the conservative fields (here in 1D only)
+            fields = EulerState.fields
+            rho = cells.values[..., fields.rho]
+            U = cells.values[..., fields.U]
+            rhoE = cells.values[..., fields.rhoE]
+
+            # Density slope correction
+            slope_R[..., fields.rho] = self.array_max_min(
+                -0.5 * rho * np.sqrt((rhoE - rho * 0.5 * U * U) / rhoE),
+                0.5 * rho * np.sqrt((rhoE - rho * 0.5 * U * U) / rhoE),
+                0.5 * slope_R[..., fields.rho],
+            )
+
+            # Momentum slope correction
+            slope_R[..., fields.rhoU] = self.array_max_min(
+                0.5 * U * slope_R[..., fields.rho]
+                - 0.5
+                * np.sqrt(
+                    2
+                    * (rho - 4 * slope_R[..., fields.rho] ** 2 / rho)
+                    * (rhoE - rho * 0.5 * U * U)
+                ),
+                0.5 * U * slope_R[..., fields.rho]
+                + 0.5
+                * np.sqrt(
+                    2
+                    * (rho - 4 * slope_R[..., fields.rho] ** 2 / rho)
+                    * (rhoE - rho * 0.5 * U * U)
+                ),
+                0.5 * slope_R[..., fields.rhoU],
+            )
+
+            # Energy
+            slope_R[..., fields.rhoE] = self.array_max_min(
+                -0.5
+                * (
+                    rhoE
+                    - (rho * U + 2 * slope_R[..., fields.rhoU]) ** 2
+                    / (2 * (rho + 2 * slope_R[..., fields.rho]))
+                ),
+                0.5
+                * (
+                    rhoE
+                    - (rho * U - 2 * slope_R[..., fields.rhoU]) ** 2
+                    / (2 * (rho - 2 * slope_R[..., fields.rho]))
+                ),
+                0.5 * slope_R[..., fields.rhoE],
+            )
+
+            # Without limiters
+            self.slopes[..., ind_right] = slope_R
+            self.slopes[..., ind_left] = -slope_R
