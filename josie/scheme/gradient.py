@@ -27,7 +27,6 @@
 import numpy as np
 
 from josie.mesh.cellset import MeshCellSet
-
 from .scheme import Scheme
 
 

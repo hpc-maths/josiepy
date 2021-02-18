@@ -29,7 +29,7 @@ from __future__ import annotations
 import numpy as np
 
 
-from josie._dim import MAX_DIMENSIONALITY
+from josie.dimension import MAX_DIMENSIONALITY
 from josie.math import Direction
 from josie.mesh.cellset import CellSet
 from josie.problem import Problem

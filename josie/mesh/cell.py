@@ -34,7 +34,7 @@ from meshio import Mesh as MeshIO
 from typing import TYPE_CHECKING
 
 from josie.geometry import PointType
-from josie._dim import MAX_DIMENSIONALITY
+from josie.dimension import MAX_DIMENSIONALITY
 from josie.math import R3
 
 from .cellset import MeshCellSet, NormalDirection

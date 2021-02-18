@@ -29,7 +29,7 @@ import numpy as np
 
 from enum import IntEnum
 
-from ._dim import MAX_DIMENSIONALITY
+from .dimension import MAX_DIMENSIONALITY
 
 
 def map01to(x, a, b):

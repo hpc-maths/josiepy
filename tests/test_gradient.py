@@ -3,6 +3,7 @@ import numpy as np
 import pytest
 
 from josie.bc import BoundaryCondition, ScalarBC
+from josie.dimension import Dimensionality
 from josie.mesh import Mesh
 from josie.mesh.cell import SimpleCell
 from josie.mesh.cellset import MeshCellSet
