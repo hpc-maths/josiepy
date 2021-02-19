@@ -261,7 +261,7 @@ class SimpleCell(Cell):
         r"""This class method computes the normal to a face from its points.
 
         The normal is computed as the ortogonal vector to the vector made
-        by the two given points obtained doing a CW rotation
+        by the two given points obtained doing a CW rotation of 90 degrees
 
         .. todo::
 
@@ -394,6 +394,7 @@ class SimpleCell(Cell):
         r"""
         Generate ghost cells centroids ortogonal to
         :math:\hat{\vb{x}},\hat{\vb{y}},\hat{\vb{z}}
+        at unitary distance
 
         """
         for boundary in mesh.boundaries:
