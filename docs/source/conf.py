@@ -222,7 +222,7 @@ imgmath_latex_preamble = r"""
 
 \newcommand{\thermalConductivity}{\ensuremath{%
     \kappa
-}
+}}
 
 \newcommand{\thermalDiffusivity}{\ensuremath{%
     \alpha

@@ -44,13 +44,12 @@ class CellSet:
     surfaces
         An array containing the surfaces of the cells. It has the dimensions of
         :math:`N_x \times N_y \times N_\text{points}` where
-        N_\text{points} depends on the :class:`Cell` type provided
+        :math:`N_\text{points}` depends on the :class:`Cell` type provided
 
     values
         An array of dimensions :math:`N_x \times N_y \times N_\text{fields}`
         storing the value of the :class:`State` for each cell of the
         :class:`Mesh`
-
     """
 
     volumes: np.ndarray
@@ -158,7 +157,7 @@ class MeshCellSet(CellSet):
     surfaces
         An array containing the surfaces of the cells. It has the dimensions of
         :math:`N_x \times N_y \times N_\text{points}` where
-        N_\text{points} depends on the :class:`Cell` type provided
+        :math`N_\text{points}` depends on the :class:`Cell` type provided
 
     values
         An array of dimensions :math:`N_x \times N_y \times N_\text{fields}`

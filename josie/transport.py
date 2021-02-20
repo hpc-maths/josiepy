@@ -54,7 +54,7 @@ class Transport(abc.ABC):
 
             \kinematicViscosity = \frac{\viscosity}{\density}
 
-        being :math:`\viscosity} the dynamic viscosity
+        being :math:`\viscosity` the dynamic viscosity
 
         """
         raise NotImplementedError

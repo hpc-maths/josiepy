@@ -101,7 +101,7 @@ class BaerPhaseConsState(PhaseConsState):
 
 class BaerGradFields(Fields):
     r"""Indexes used to index the gradient pre-factor
-    :math:`\pdeNonConservativeMultiplier`. Check :mod:`twophase.problem` for
+    :math:`\pdeNonConservativeMultiplier`. Check :mod:`~twofluid.problem` for
     more information on how the multiplier is reduced in size to optimize
     the compuation"""
 

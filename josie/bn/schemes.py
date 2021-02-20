@@ -99,7 +99,7 @@ class Upwind(NonConservativeScheme, BaerScheme):
     conservative term is :math:`\alpha`. It concentratres the numerical
     flux computation into :meth:`G`.
 
-    Check also :class:`~twophase.problem.TwoPhaseProblem.B`.
+    Check also :class:`~twofluid.problem.TwoPhaseProblem.B`.
     """
 
     def G(self, cells: MeshCellSet, neighs: CellSet) -> np.ndarray:
