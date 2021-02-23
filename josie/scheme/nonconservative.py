@@ -27,7 +27,7 @@
 import abc
 import numpy as np
 
-from josie.mesh.cellset import CellSet, MeshCellSet
+from josie.mesh.cellset import NeighboursCellSet, MeshCellSet
 
 from .scheme import Scheme
 
@@ -37,7 +37,9 @@ class NonConservativeScheme(Scheme):
     conservative term
     """
 
-    def accumulate(self, cells: MeshCellSet, neighs: CellSet, t: float):
+    def accumulate(
+        self, cells: MeshCellSet, neighs: NeighboursCellSet, t: float
+    ):
 
         # Accumulate other terms
         super().accumulate(cells, neighs, t)
@@ -48,7 +50,7 @@ class NonConservativeScheme(Scheme):
         self._fluxes += BG
 
     @abc.abstractmethod
-    def G(self, cells: MeshCellSet, neighs: CellSet) -> np.ndarray:
+    def G(self, cells: MeshCellSet, neighs: NeighboursCellSet) -> np.ndarray:
 
         r"""This is the non-conservative flux implementation of the scheme. See
         :cite:`toro_riemann_2009` for a great overview on numerical methods for
@@ -77,8 +79,8 @@ class NonConservativeScheme(Scheme):
             The values of the state fields in each cell
 
         neighs
-            A :class:`CellSet` containing data of neighbour cells corresponding
-            to the :attr:`values`
+            A :class:`NeighboursCellSet` containing data of neighbour cells
+            corresponding to the :attr:`values`
 
         Returns
         -------

@@ -26,6 +26,7 @@
 # official policies, either expressed or implied, of Ruben Di Battista.
 
 import numpy as np
+
 from josie.mesh.cellset import MeshCellSet
 from josie.scheme.diffusive import DiffusiveScheme
 

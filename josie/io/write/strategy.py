@@ -31,7 +31,7 @@ from josie.solver import Solver
 
 
 class Strategy(abc.ABC):
-    """ The write strategy to use when serializing a simulation.
+    """The write strategy to use when serializing a simulation.
 
     Attributes
     ----------
@@ -41,7 +41,7 @@ class Strategy(abc.ABC):
         If True, enables capturing an animation with this strategy
     serialize
         If True, enables serializing the solver state with this strategy
-     """
+    """
 
     def __init__(self, animate: bool = False, serialize: bool = True):
         self.should_write = False
@@ -50,7 +50,7 @@ class Strategy(abc.ABC):
 
     @abc.abstractmethod
     def check_write(self, t: float, dt: float, solver: Solver) -> float:
-        """ Updates the state and modifies the :attr:`should_write` if needed.
+        """Updates the state and modifies the :attr:`should_write` if needed.
 
         Returns
         -------
@@ -62,8 +62,7 @@ class Strategy(abc.ABC):
 
 
 class NoopStrategy(Strategy):
-    """ A :class:`Strategy` that never serializes anything
-    """
+    """A :class:`Strategy` that never serializes anything"""
 
     def __init__(self):
         super().__init__(False, False)
@@ -73,7 +72,7 @@ class NoopStrategy(Strategy):
 
 
 class TimeStrategy(Strategy):
-    """ A :class:`Strategy` that serializes every `dt_save` seconds of
+    """A :class:`Strategy` that serializes every `dt_save` seconds of
     simulated time
 
     Attributes
@@ -85,7 +84,10 @@ class TimeStrategy(Strategy):
     """
 
     def __init__(
-        self, dt_save: float, animate: bool = False, serialize: bool = True,
+        self,
+        dt_save: float,
+        animate: bool = False,
+        serialize: bool = True,
     ):
         super().__init__(animate, serialize)
 
@@ -115,7 +117,7 @@ class TimeStrategy(Strategy):
 
 
 class IterationStrategy(Strategy):
-    """ A :class:`Strategy` that serializes every `n` iterations
+    """A :class:`Strategy` that serializes every `n` iterations
 
     Attributes
     ---------

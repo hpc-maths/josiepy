@@ -27,7 +27,7 @@
 
 import numpy as np
 
-from josie.mesh.cellset import CellSet, MeshCellSet
+from josie.mesh.cellset import NeighboursCellSet, MeshCellSet
 from josie.euler.schemes import Rusanov as EulerRusanov
 from josie.scheme import Scheme
 from josie.scheme.nonconservative import NonConservativeScheme
@@ -102,7 +102,7 @@ class Upwind(NonConservativeScheme, BaerScheme):
     Check also :class:`~twofluid.problem.TwoPhaseProblem.B`.
     """
 
-    def G(self, cells: MeshCellSet, neighs: CellSet) -> np.ndarray:
+    def G(self, cells: MeshCellSet, neighs: NeighboursCellSet) -> np.ndarray:
 
         values: Q = cells.values.view(Q)
 
@@ -138,7 +138,7 @@ class Rusanov(ConvectiveScheme, BaerScheme):
     def F(
         self,
         cells: MeshCellSet,
-        neighs: CellSet,
+        neighs: NeighboursCellSet,
     ) -> Q:
         r"""This schemes implements the Rusanov scheme for a
         :class:`TwoPhaseProblem`. It applies the :class:`~.euler.Rusanov`
@@ -151,8 +151,8 @@ class Rusanov(ConvectiveScheme, BaerScheme):
             A :class:`MeshCellSet` containing the state of the mesh cells
 
         neighs
-            A :class:`CellSet` containing data of neighbour cells corresponding
-            to the :attr:`values`
+            A :class:`NeighboursCellSet` containing data of neighbour cells
+            corresponding to the :attr:`values`
 
         Returns
         -------

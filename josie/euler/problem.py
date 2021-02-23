@@ -35,7 +35,7 @@ from josie.mesh.cellset import CellSet
 from josie.problem import Problem
 
 from .eos import EOS
-from .state import ConsFields, Q
+from .state import Q
 from .fields import ConsFields
 
 

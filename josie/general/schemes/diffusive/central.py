@@ -28,7 +28,7 @@ import numpy as np
 
 
 from josie.scheme.diffusive import DiffusiveScheme
-from josie.mesh.cellset import MeshCellSet, NeighboursCellSet
+from josie.mesh.cellset import NeighboursCellSet, MeshCellSet
 
 
 class CentralDifferenceGradient(DiffusiveScheme):

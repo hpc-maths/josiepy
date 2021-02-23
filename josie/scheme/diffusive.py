@@ -27,7 +27,7 @@
 import numpy as np
 
 from josie.scheme import Scheme
-from josie.mesh.cellset import MeshCellSet, CellSet
+from josie.mesh.cellset import MeshCellSet, NeighboursCellSet
 
 
 class DiffusiveScheme(Scheme):
@@ -35,7 +35,7 @@ class DiffusiveScheme(Scheme):
     :class:`DiffusiveScheme` needs to implement a strategy to approximate the
     state gradient at the cell interface with its neighbour"""
 
-    def D(self, cells: MeshCellSet, neighs: CellSet) -> np.ndarray:
+    def D(self, cells: MeshCellSet, neighs: NeighboursCellSet) -> np.ndarray:
         r"""This is the diffusive flux implementation of the scheme. See
         :cite:`toro_riemann_2009` for a great overview on numerical methods for
         hyperbolic problems.
@@ -63,8 +63,8 @@ class DiffusiveScheme(Scheme):
             The values of the state fields in each cell
 
         neighs
-            A :class:`CellSet` containing data of neighbour cells corresponding
-            to the :attr:`values`
+            A :class:`NeighboursCellSet` containing data of neighbour cells
+            corresponding to the :attr:`values`
 
         Returns
         -------
@@ -75,7 +75,9 @@ class DiffusiveScheme(Scheme):
 
         raise NotImplementedError
 
-    def accumulate(self, cells: MeshCellSet, neighs: CellSet, t: float):
+    def accumulate(
+        self, cells: MeshCellSet, neighs: NeighboursCellSet, t: float
+    ):
 
         # Compute fluxes computed eventually by the other terms
         super().accumulate(cells, neighs, t)

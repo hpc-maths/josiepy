@@ -37,12 +37,11 @@ if TYPE_CHECKING:
 
 
 class PlotBackend(metaclass=abc.ABCMeta):
-    """ An abstract interface representing a plot backend
-    """
+    """An abstract interface representing a plot backend"""
 
     @abc.abstractmethod
     def plot(self, mesh: Mesh):
-        """ Allocate a drawing instance in order to draw a single image plot.
+        """Allocate a drawing instance in order to draw a single image plot.
         The drawing state is stored in :attr:`plot_state`.
 
         Parameters
@@ -55,7 +54,7 @@ class PlotBackend(metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
     def append(self, solver: Solver, t):
-        """ Appends a new simulation time state
+        """Appends a new simulation time state
 
         Parameters
         ---------
@@ -71,7 +70,7 @@ class PlotBackend(metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
     def update(self, solver: Solver):
-        """ Updates the :attr:`plot_state` with the state (i.e. the field data
+        """Updates the :attr:`plot_state` with the state (i.e. the field data
         stored in the mesh, e.g. cell data) in the Solver.
 
         By default each call to :func:`update` overrides the plot state (in
@@ -88,7 +87,7 @@ class PlotBackend(metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
     def show(self, fields: Union[List, str]):
-        """ Show on screen a list of fields.
+        """Show on screen a list of fields.
 
         Parameters
         ----------

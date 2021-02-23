@@ -35,7 +35,7 @@ from josie.euler.state import Q
 from .scheme import EulerScheme
 
 if TYPE_CHECKING:
-    from josie.mesh.cellset import CellSet, MeshCellSet
+    from josie.mesh.cellset import NeighboursCellSet, MeshCellSet
 
 
 class Rusanov(EulerScheme):
@@ -100,7 +100,7 @@ class Rusanov(EulerScheme):
 
         return sigma
 
-    def F(self, cells: MeshCellSet, neighs: CellSet):
+    def F(self, cells: MeshCellSet, neighs: NeighboursCellSet):
 
         Q_L: Q = cells.values.view(Q)
         Q_R: Q = neighs.values.view(Q)

@@ -36,7 +36,7 @@ from josie.state import State
 
 
 if TYPE_CHECKING:
-    from josie.mesh.cellset import CellSet, MeshCellSet
+    from josie.mesh.cellset import NeighboursCellSet, MeshCellSet
     from josie.mesh import Mesh
 
 
@@ -155,7 +155,9 @@ class Scheme(abc.ABC):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def accumulate(self, cells: MeshCellSet, neighs: CellSet, t: float):
+    def accumulate(
+        self, cells: MeshCellSet, neighs: NeighboursCellSet, t: float
+    ):
         r"""This method implements the accumulation of all fluxes between
         each cell and its neighbour.
 
@@ -174,8 +176,8 @@ class Scheme(abc.ABC):
             A :class:`MeshCellSet` containing the state of the mesh cells
 
         neighs
-            A :class:`CellSet` containing data of neighbour cells corresponding
-            to the :attr:`cells`
+            A :class:`NeighboursCellSet` containing data of neighbour cells
+            corresponding to the :attr:`cells`
 
         t
             The time instant at which to compute time-dependent terms

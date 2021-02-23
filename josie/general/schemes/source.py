@@ -32,7 +32,7 @@ from typing import TYPE_CHECKING
 from josie.scheme.source import SourceScheme
 
 if TYPE_CHECKING:
-    from josie.mesh.cellset import CellSet, MeshCellSet
+    from josie.mesh.cellset import NeighboursCellSet, MeshCellSet
     from josie.state import State
 
 
@@ -65,7 +65,7 @@ class ConstantSource(SourceScheme):
         self._fluxes += self.volume_s(cells, t)
 
     def accumulate(
-        self, cells: MeshCellSet, neighs: CellSet, t: float
+        self, cells: MeshCellSet, neighs: NeighboursCellSet, t: float
     ) -> State:
         """We do not use the :meth:`accumulate` method to put source
         contribution into the fluxes but we do in in :meth:`pre_step`, because
@@ -79,6 +79,8 @@ class ConstantSource(SourceScheme):
         """
         return self.problem.s(cells, t) * cells.volumes[..., np.newaxis]
 
-    def s(self, cells: MeshCellSet, neighs: CellSet, t: float) -> State:
+    def s(
+        self, cells: MeshCellSet, neighs: NeighboursCellSet, t: float
+    ) -> State:
         """ Use :meth:`volume_s` instead """
         raise NotImplementedError
