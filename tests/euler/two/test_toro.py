@@ -3,46 +3,18 @@ F. Riemann Solvers and Numerical Methods for Fluid Dynamics: A Practical
 Introduction. 3rd ed. Berlin Heidelberg: Springer-Verlag, 2009.
 https://doi.org/10.1007/b79761, page 129 """
 
-import inspect
 import numpy as np
 import pytest
 
-import josie.general.schemes.time as time_schemes
 
 from josie.bc import Dirichlet, Neumann, Direction, make_periodic
 from josie.boundary import Line
 from josie.euler.eos import PerfectGas
-from josie.euler.schemes import EulerScheme
 from josie.euler.solver import EulerSolver
 from josie.euler.state import Q
 from josie.mesh import Mesh
 from josie.mesh.cell import SimpleCell
 from josie.mesh.cellset import MeshCellSet
-
-
-@pytest.fixture(
-    params=[
-        member[1]
-        for member in inspect.getmembers(time_schemes, inspect.isclass)
-    ],
-)
-def TimeScheme(request):
-    yield request.param
-
-
-@pytest.fixture(params=EulerScheme._all_subclasses())
-def SpaceScheme(request):
-    yield request.param
-
-
-@pytest.fixture
-def Scheme(SpaceScheme, TimeScheme):
-    """ Create all the different schemes """
-
-    class ToroScheme(SpaceScheme, TimeScheme):
-        pass
-
-    return ToroScheme
 
 
 def init_test(direction, Scheme, riemann_problem, bc_fun):

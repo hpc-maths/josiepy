@@ -1,6 +1,10 @@
+import inspect
 import pytest
 
 from dataclasses import dataclass
+
+import josie.general.schemes.time as time_schemes
+from josie.euler.schemes import EulerScheme
 
 # Test Toro
 
@@ -97,3 +101,33 @@ riemann_states = [
 @pytest.fixture(params=sorted(riemann_states, key=id))
 def toro_riemann_state(request):
     yield request.param
+
+
+@pytest.fixture(
+    params=sorted(
+        [
+            member[1]
+            for member in inspect.getmembers(time_schemes, inspect.isclass)
+        ],
+        key=lambda c: c.__name__,
+    ),
+)
+def TimeScheme(request):
+    yield request.param
+
+
+@pytest.fixture(
+    params=sorted(EulerScheme._all_subclasses(), key=lambda c: c.__name__)
+)
+def SpaceScheme(request):
+    yield request.param
+
+
+@pytest.fixture
+def Scheme(SpaceScheme, TimeScheme):
+    """ Create all the different schemes """
+
+    class ToroScheme(SpaceScheme, TimeScheme):
+        pass
+
+    return ToroScheme
