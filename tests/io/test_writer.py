@@ -15,6 +15,11 @@ def solver(mesh, mocker):
     solver.scheme.CFL = mocker.Mock(return_value=0.1)
     solver.Q = StateTemplate("u")
 
+    def step_func(self, dt):
+        self.t += dt
+
+    solver.step = step_func.__get__(solver)
+
     yield solver
 
 
@@ -32,7 +37,7 @@ def test_noop(solver):
 
     writer.solve()
 
-    assert solver.step.call_count == 11
+    assert solver.t >= 1.0
 
 
 def test_memory(solver, strategy):
