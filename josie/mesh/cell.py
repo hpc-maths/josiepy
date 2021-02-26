@@ -410,6 +410,9 @@ class SimpleCell(Cell):
         at unitary distance
 
         """
+
+        mesh.cells.compute_min_length()
+
         for boundary in mesh.boundaries:
             side = boundary.side
             boundary_idx = boundary.cells_idx
@@ -421,7 +424,8 @@ class SimpleCell(Cell):
 
             # Compute the ghost cells centroids
             mesh.cells._centroids[ghost_idx[0], ghost_idx[1]] = (
-                boundary_centroids + cls._side_normal[side.name]
+                boundary_centroids
+                + cls._side_normal[side.name] * mesh.cells.min_length
             )
 
     @classmethod

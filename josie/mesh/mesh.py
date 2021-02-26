@@ -309,7 +309,6 @@ class Mesh:
         """
 
         self.cell_type.create_connectivity(self)
-        self.cells.compute_min_length()
 
     def export(self) -> MeshIO:
         """ Export the mesh to a :class:`meshio.Mesh` object """

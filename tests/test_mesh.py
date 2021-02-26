@@ -28,7 +28,7 @@ def test_interpolate(mesh, plot):
     plt.show(block=False)
 
 
-def test_ghost_centroids(mesh):
+def test_ghost_centroids(mesh, tol):
     # Test that the ghosts centroids have distance one from the corresponding
     # boundary cells
 
@@ -44,9 +44,12 @@ def test_ghost_centroids(mesh):
         ghost_centroids = mesh.cells._centroids[ghost_idx[0], ghost_idx[1]]
 
         # The distance (lenght of the relative vector between boundary cells
-        # and related ghost cell) must be one
+        # and related ghost cell) must be min_length
         distances = ghost_centroids - boundary_centroids
-        assert np.mean(np.linalg.norm(distances, axis=-1)) == 1.0
+        assert (
+            np.mean(np.linalg.norm(distances, axis=-1)) - mesh.cells.min_length
+            < tol
+        )
 
 
 def test_write(tmp_path, mesh):

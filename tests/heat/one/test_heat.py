@@ -1,6 +1,15 @@
-""" Tests for the heat equation
+r""" Tests for the heat equation
 
-Source: https://web.stanford.edu/class/math220b/handouts/heateqn.pdf
+.. math::
+    \frac{\partial T}{\partial t} = \frac{\partial^2 T}{\partial x^2} + b(x, t)
+
+with:
+
+* :math:`b(x, t) = (4 \pi^2 - 1)\sin(2 \pi x)e^{-t}`
+* Solution :math:`u(x,t) = \sin(2 \pi x) e^{-t}`
+
+https://gitlab.com/rubendibattista/josiepy/-/snippets/2082802
+
 """
 import numpy as np
 import pytest
@@ -20,6 +29,10 @@ from josie.heat.state import Q
 from josie.transport import ConstantTransport
 from josie.general.schemes.diffusive import CentralDifferenceGradient
 from josie.general.schemes.source import ConstantSource
+
+
+def relative_error(a, b):
+    return np.abs(a - b)
 
 
 def exact_solution(x, t):
@@ -54,12 +67,15 @@ class CentralHeatScheme(
 
 @pytest.fixture
 def N():
-    yield 10
+    yield 500
 
 
 @pytest.fixture
 def boundaries(N):
     """ 1D problem along x """
+
+    # This is needed to have the same centroids coordinates as  for 1D
+    # diffusion code here:
     L = -1 - 1 / (N - 1)
     R = 1 + 1 / (N - 1)
     left = Line([L, 0], [L, 1])
@@ -95,7 +111,7 @@ def test_heat(mesh, plot):
 
     CFL = 1
     t = 0.0
-    final_time = 1
+    final_time = 0.1
 
     cells = solver.mesh.cells
 
@@ -104,21 +120,30 @@ def test_heat(mesh, plot):
         solver.step(dt)
 
         t += dt
-        print(f"Time: {t}, dt: {dt}")
+        print(f"Time: {solver.t}, dt: {dt}")
+
+    # Final solution
+    x = cells.centroids[..., Direction.X]
+    x = x.reshape(x.size)
+
+    T_exact = exact_solution(x, t)
+    T = cells.values[..., Q.fields.T]
+
+    assert t >= final_time
+
+    tolerance = 1e-2
+    err = relative_error(T.reshape(T_exact.size), T_exact)
+
+    inliers = np.count_nonzero(err < tolerance) / err.size
+
+    # 90% of the points are within tolerance
+    assert inliers >= 0.9
 
     if plot:
         # Plot final step solution
 
-        x = cells.centroids[..., Direction.X]
-        x = x.reshape(x.size)
-
-        T_exact = exact_solution(
-            initial_condition, x, t, thermal_diffusivity, sum_elements=10
-        )
-
-        T = cells.values[..., Q.fields.T]
-        plt.plot(x, T, "x")
-        plt.plot(x, T_exact)
+        plt.plot(x, T, "--o", label=f"Numerical {t}")
+        plt.plot(x, T_exact, label=f"Exact {t}")
 
         plt.tight_layout()
 
