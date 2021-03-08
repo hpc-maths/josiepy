@@ -27,6 +27,7 @@ sphinxcontrib-bibtex = "*"
 pytest-profiling = "*"
 
 [packages]
+josiepy = {path = "."}
 
 [requires]
 
