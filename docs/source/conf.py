@@ -189,6 +189,11 @@ imgmath_latex_preamble = r"""
     \rho, \rho u, \rho u, \rho E, \rho e, u, v, p, c
 )}
 
+% :: Navier-Stokes ::
+\newcommand{\nsState}{\qty(%
+    \rho, \rho u, \rho u, \rho E, \rho e, u, v, e, p, c
+)}
+
 % :: RK ::
 \newcommand{\rungeKutta}{\ensuremath{%
     \pdeState^{k+1} = \pdeState^{k} + \Delta t \sum_i^s b_i k_i
@@ -218,6 +223,10 @@ imgmath_latex_preamble = r"""
 
 \newcommand{\kinematicViscosity}{\ensuremath{%
     \nu
+}}
+
+\newcommand{\bulkViscosity}{\ensuremath{%
+    \lambda
 }}
 
 \newcommand{\thermalConductivity}{\ensuremath{%

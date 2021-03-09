@@ -48,7 +48,9 @@ class EulerProblem(Problem):
         An instance of :class:`~.EOS`, an equation of state for the fluid
     """
 
-    def __init__(self, eos: EOS):
+    def __init__(self, eos: EOS, **kwargs):
+        super().__init__(**kwargs)
+
         self.eos = eos
 
     def F(self, cells: CellSet) -> np.ndarray:
