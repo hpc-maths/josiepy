@@ -53,6 +53,9 @@ class Problem(metaclass=abc.ABCMeta):
         \pdeTermList
     """
 
+    def __init__(self, **kwargs):
+        super().__init__()
+
     def F(self, cells: Union[CellSet, MeshCellSet]) -> np.ndarray:
         r"""The convective flux operator :math:`\pdeConvective`
 

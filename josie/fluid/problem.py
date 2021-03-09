@@ -26,32 +26,15 @@
 # official policies, either expressed or implied, of Ruben Di Battista.
 from __future__ import annotations
 
-import numpy as np
-
-from typing import TYPE_CHECKING, Union
-
-from josie.fluid.problem import DiffusiveProblem
-
-if TYPE_CHECKING:
-    from josie.mesh.cellset import MeshCellSet, CellSet
+from josie.problem import Problem
+from josie.transport import Transport
 
 
-class HeatProblem(DiffusiveProblem):
-    """A class representing a system governed by the heat equation
+class DiffusiveProblem(Problem):
+    """A :class:`Problem` providing a :class:`Transport` attribute to compute
+    transport coefficients"""
 
-    Attributes
-    ----------
-    transport
-        A instance of :class:`Transport` providing transport coefficients
+    def __init__(self, transport: Transport, **kwargs):
+        super().__init__(**kwargs)
 
-    """
-
-    def K(self, cells: Union[CellSet, MeshCellSet]) -> np.ndarray:
-        """This is a scalar value, but :class:`DiffusiveProblem` expects a 4th
-        rank tensor"""
-        nx, ny, num_fields = cells.values.shape
-        dimensionality = cells.dimensionality
-
-        return self.transport.thermal_diffusivity(cells).reshape(
-            (nx, ny, num_fields, num_fields, dimensionality, dimensionality)
-        )
+        self.transport = transport

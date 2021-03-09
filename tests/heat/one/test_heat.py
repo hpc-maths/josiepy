@@ -26,7 +26,7 @@ from josie.heat.schemes import HeatScheme
 from josie.heat.problem import HeatProblem
 from josie.heat.solver import HeatSolver
 from josie.heat.state import Q
-from josie.transport import ConstantTransport
+from josie.heat.transport import ConstantHeatTransport
 from josie.general.schemes.diffusive import CentralDifferenceGradient
 from josie.general.schemes.source import ConstantSource
 
@@ -104,7 +104,7 @@ def mesh(boundaries, N):
 
 def test_heat(mesh, plot):
     thermal_diffusivity = 1
-    problem = Problem(ConstantTransport(None, thermal_diffusivity))
+    problem = Problem(ConstantHeatTransport(thermal_diffusivity))
     scheme = CentralHeatScheme(problem)
     solver = HeatSolver(mesh, scheme)
     solver.init(init_fun)
