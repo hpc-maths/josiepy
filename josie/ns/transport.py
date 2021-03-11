@@ -43,11 +43,12 @@ class NSTransport(Transport):
         self, cells: Union[MeshCellSet, CellSet]
     ) -> np.ndarray:
         r"""Thermal diffusivity :math:`\thermalDiffusivity`.
-        Units: :math:`\qty[\si{\kilogram \per \meter \second}]`
+        Units: :math:`\qty[\si{\square \meter \per \second}]`
 
         .. math::
 
-            \alpha = \frac{\thermalConductivity}{\specificHeat_\pressure}
+            \alpha = \frac{\thermalConductivity}%
+            {\specificHeat_\volume \density}
 
         It returns a value per each cell centroid
         """

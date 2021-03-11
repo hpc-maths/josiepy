@@ -61,7 +61,7 @@ class EulerConsState(ConsSubsetState):
     fields = ConsFields
 
 
-class Q(SingleFluidState):
+class EulerState(SingleFluidState):
     r"""The class representing the state variables of the Euler system
 
     .. math::

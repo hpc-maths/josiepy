@@ -29,25 +29,9 @@
 from __future__ import annotations
 
 from josie.fields import Fields
-from josie.euler.fields import ConsFields
-
-
-class NSFields(Fields):
-    r"""We add the :math:`e` wrt :class:`EulerFields` field to be used in the
-    diffusion term"""
-    rho = 0
-    rhoU = 1
-    rhoV = 2
-    rhoE = 3
-    rhoe = 4
-    U = 5
-    V = 6
-    e = 7
-    p = 8
-    c = 9
 
 
 class NSGradientFields(Fields):
     U = 0
     V = 1
-    e = 2
+    rhoe = 2

@@ -55,11 +55,12 @@ class CentralDifferenceGradient(CDG):
         # Retrieve length of the relative vector between cell and neighbour
         r = self._r[..., idx, :].reshape(nx, ny, dimensionality)
 
-        # Estimate the gradient in normal direction
-        dQ = (
-            neighs.values[..., self.problem.gradient_fields]
-            - cells.values[..., self.problem.gradient_fields]
-        ) / r
+        # Estimate the gradient in normal direction acting only on the gradient
+        # variables
+        Q_L = cells.values.view(Q).get_diffusive().view(NSGradientState)
+        Q_R = neighs.values.view(Q).get_diffusive().view(NSGradientState)
+
+        dQ = (Q_R - Q_L) / r
 
         KdQ = np.einsum("...ijkl,...j->...i", self.problem.K(cells), dQ)
 

@@ -35,7 +35,7 @@ from scipy.integrate import solve_ivp
 from scipy.interpolate import interp1d
 
 from josie.euler.eos import EOS
-from josie.euler.state import Q
+from josie.euler.state import EulerState
 from josie.state import Fields, State
 
 
@@ -105,15 +105,15 @@ class Exact:
     left_wave: WaveType
     right_wave: WaveType
 
-    def __init__(self, eos, Q_L: Q, Q_R: Q):
+    def __init__(self, eos, Q_L: EulerState, Q_R: EulerState):
         self.eos = eos
         self.Q_L = Q_L
         self.Q_R = Q_R
 
         self._interpolators = {}
 
-    def _set_state(self, rho: float, p: float, U: float, V: float) -> Q:
-        """Handy function to set a full :class:`Q` state from density,
+    def _set_state(self, rho: float, p: float, U: float, V: float) -> EulerState:
+        """Handy function to set a full :class:`EulerState` state from density,
         pressure, and velocity"""
         fields = self.Q_L.fields
         state = np.empty_like(self.Q_L)
@@ -169,7 +169,7 @@ class Exact:
 
         return rho_star_k
 
-    def shock(self, p: float, Q_k: Q, wave: Wave) -> float:
+    def shock(self, p: float, Q_k: EulerState, wave: Wave) -> float:
         """This function returns the after-shock velocity
 
         Parameters
@@ -280,7 +280,7 @@ class Exact:
         )
 
         # Accumulate the full state for the rarefaction
-        rar_full_state = np.empty((len(ode_sol.t), len(Q.fields))).view(Q)
+        rar_full_state = np.empty((len(ode_sol.t), len(EulerState.fields))).view(EulerState)
 
         for i, p_step in enumerate(ode_sol.t):
             rho_step = ode_sol.y[1, i]
@@ -290,10 +290,10 @@ class Exact:
                 rho_step, p_step, U_step, V_k
             )
 
-        U = rar_full_state[..., Q.fields.U]
-        rho = rar_full_state[..., Q.fields.rho]
-        p = rar_full_state[..., Q.fields.p]
-        c = rar_full_state[..., Q.fields.c]
+        U = rar_full_state[..., EulerState.fields.U]
+        rho = rar_full_state[..., EulerState.fields.rho]
+        p = rar_full_state[..., EulerState.fields.p]
+        c = rar_full_state[..., EulerState.fields.c]
 
         # Create cubic interpolators
         if wave is Wave.LEFT:
@@ -312,7 +312,7 @@ class Exact:
 
         return rho[-1]
 
-    def rarefaction(self, p: float, Q_k: Q, wave: Wave) -> float:
+    def rarefaction(self, p: float, Q_k: EulerState, wave: Wave) -> float:
         r"""Non linear function for the rarefaction
 
         Parameters
@@ -346,7 +346,7 @@ class Exact:
 
         return wave * (U - U_k)
 
-    def sample_rarefaction(self, U_c: float, V_k: float, wave: Wave) -> Q:
+    def sample_rarefaction(self, U_c: float, V_k: float, wave: Wave) -> EulerState:
         r""" Return the state within the rarefaction fan """
 
         if wave is Wave.LEFT:
@@ -474,7 +474,7 @@ class Exact:
         self.Q_star_L = Q_star_L
         self.Q_star_R = Q_star_R
 
-    def sample(self, x: float, t: float, origin: float = 0.5) -> Q:
+    def sample(self, x: float, t: float, origin: float = 0.5) -> EulerState:
         """Sample the solution at given :math:`(x, t)`
 
         Returns

@@ -35,7 +35,7 @@ from josie.mesh.cellset import CellSet
 from josie.problem import Problem
 
 from .eos import EOS
-from .state import Q
+from .state import EulerState
 from .fields import ConsFields
 
 
@@ -89,7 +89,7 @@ class EulerProblem(Problem):
                     (\rho E + p)U & (\rho E + p)V
                 \end{bmatrix}
         """
-        values: Q = cells.values.view(Q)
+        values: EulerState = cells.values.view(EulerState)
         fields = values.fields
 
         num_cells_x, num_cells_y, _ = values.shape

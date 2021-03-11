@@ -11,7 +11,7 @@ from josie.bc import Dirichlet, Neumann, Direction, make_periodic
 from josie.boundary import Line
 from josie.euler.eos import PerfectGas
 from josie.euler.solver import EulerSolver
-from josie.euler.state import Q
+from josie.euler.state import EulerState
 from josie.mesh import Mesh
 from josie.mesh.cell import SimpleCell
 from josie.mesh.cellset import MeshCellSet
@@ -55,8 +55,8 @@ def init_test(direction, Scheme, riemann_problem, bc_fun):
     ER = rhoeR / rhoR + 0.5 * (uR ** 2 + vR ** 2)
     cR = eos.sound_velocity(rhoR, pR)
 
-    Q_left = Q(rhoL, rhoL * uL, rhoL * vL, rhoL * EL, rhoeL, uL, vL, pL, cL)
-    Q_right = Q(rhoR, rhoR * uR, rhoR * vR, rhoR * ER, rhoeR, uR, vR, pR, cR)
+    Q_left = EulerState(rhoL, rhoL * uL, rhoL * vL, rhoL * EL, rhoeL, uL, vL, pL, cL)
+    Q_right = EulerState(rhoR, rhoR * uR, rhoR * vR, rhoR * ER, rhoeR, uR, vR, pR, cR)
 
     if direction is Direction.X:
         left.bc = Dirichlet(Q_left)
@@ -102,8 +102,8 @@ def init_test(direction, Scheme, riemann_problem, bc_fun):
 
 
 def neumann(first, second, direction):
-    second.bc = Neumann(np.zeros(len(Q.fields)).view(Q))
-    first.bc = Neumann(np.zeros(len(Q.fields)).view(Q))
+    second.bc = Neumann(np.zeros(len(EulerState.fields)).view(EulerState))
+    first.bc = Neumann(np.zeros(len(EulerState.fields)).view(EulerState))
 
     return first, second
 
