@@ -84,4 +84,3 @@ class DiffusiveScheme(Scheme):
 
         # Add conservative contribution
         self._fluxes -= self.D(cells, neighs)
-        #

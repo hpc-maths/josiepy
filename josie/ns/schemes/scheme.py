@@ -26,51 +26,34 @@
 # official policies, either expressed or implied, of Ruben Di Battista.
 from __future__ import annotations
 
-import abc
-import numpy as np
+from typing import TYPE_CHECKING
 
-from typing import TYPE_CHECKING, Union
-
-from josie.transport import Transport
+from josie.euler.schemes import EulerScheme
+from josie.ns.state import Q
+from josie.scheme.diffusive import DiffusiveScheme
 
 if TYPE_CHECKING:
-    from josie.mesh.cellset import CellSet, MeshCellSet
+    from josie.mesh.cellset import MeshCellSet
+    from josie.transport import Transport
+
+    from .problem import NSProblem
+    from .eos import EOS
 
 
-class HeatTransport(Transport):
-    """ A class providing the thermal diffusivity for the temperature """
+class NSScheme(EulerScheme, DiffusiveScheme):
+    problem: NSProblem
 
-    @abc.abstractmethod
-    def thermal_diffusivity(
-        self, cells: Union[MeshCellSet, CellSet]
-    ) -> np.ndarray:
-        r"""Thermal diffusivity :math:`\thermalDiffusivity`.
-        Units: :math:`\qty[\si{\meter \per \square \second}]`
+    def __init__(self, eos: EOS, transport: Transport):
+        self.problem = NSProblem(eos, transport)
 
-        .. math::
+    def post_step(self, cells: MeshCellSet):
+        """ wrt to :class:`EulerScheme` we need to compute ``e`` """
+        super().post_step(cells)
 
-            \alpha =
-            \frac{\thermalConductivity}{\density \specificHeat_\pressure}
-        """
-        raise NotImplementedError
+        values: Q = cells.values.view(Q)
+        fields = values.fields
 
+        rho = values[..., fields.rho]
+        rhoe = values[..., fields.rhoe]
 
-class ConstantHeatTransport(HeatTransport):
-    r"""A :class:`HeatTransport` providing constant
-    :math:`\thermalDiffusivity`
-
-    Parameters
-    ----------
-    thermal_diffusivity
-        The constant value of the thermal diffusivity
-    """
-
-    def __init__(self, thermal_diffusivity: float):
-        self._thermal_diffusivity = thermal_diffusivity
-
-    def thermal_diffusivity(
-        self, cells: Union[MeshCellSet, CellSet]
-    ) -> np.ndarray:
-        nx, ny, num_fields = cells.values.shape
-
-        return np.ones((nx, ny)) * self._thermal_diffusivity
+        values[..., fields.e] = rhoe / rho

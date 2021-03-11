@@ -31,11 +31,13 @@ import numpy as np
 
 from typing import TYPE_CHECKING, Union
 
+from josie.transport import Transport
+
 if TYPE_CHECKING:
     from josie.mesh.cellset import CellSet, MeshCellSet
 
 
-class NSTransport(abc.ABCMeta):
+class NSTransport(Transport):
     @abc.abstractmethod
     def thermal_diffusivity(
         self, cells: Union[MeshCellSet, CellSet]

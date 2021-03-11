@@ -26,34 +26,42 @@
 # official policies, either expressed or implied, of Ruben Di Battista.
 from __future__ import annotations
 
+import numpy as np
+
 from typing import TYPE_CHECKING
 
-from josie.euler.schemes import EulerScheme
-
-from .state import Q
+from josie.general.schemes.diffusive import CentralDifferenceGradient as CDG
 
 if TYPE_CHECKING:
-    from josie.mesh.cellset import MeshCellSet
-    from josie.transport import Transport
-
-    from .problem import NSProblem
-    from .eos import EOS
+    from josie.mesh.cellset import MeshCellSet, NeighboursCellSet
+    from josie.ns.problem import NSProblem
 
 
-class NSScheme(EulerScheme):
+class CentralDifferenceGradient(CDG):
+    """Optimizing the implementation of the
+    :class:`~general.schemes.diffusive.CentralDifferenceGradient` using a
+    viscosity tensor that is smaller in size noting that it only operates on
+    the fields :math:`u, v, e`"""
+
     problem: NSProblem
 
-    def __init__(self, eos: EOS, transport: Transport):
-        self.problem = NSProblem(eos, transport)
+    def D(self, cells: MeshCellSet, neighs: NeighboursCellSet):
+        nx, ny, num_state = cells.values.shape
+        dimensionality = cells.dimensionality
 
-    def post_step(self, cells: MeshCellSet):
-        """ wrt to :class:`EulerScheme` we need to compute ``e`` """
-        super().post_step(cells)
+        # Retrieve neighbour index
+        idx = self._directions[neighs.direction]
 
-        values: Q = cells.values.view(Q)
-        fields = values.fields
+        # Retrieve length of the relative vector between cell and neighbour
+        r = self._r[..., idx, :].reshape(nx, ny, dimensionality)
 
-        rho = values[..., fields.rho]
-        rhoe = values[..., fields.rhoe]
+        # Estimate the gradient in normal direction
+        dQ = (
+            neighs.values[..., self.problem.gradient_fields]
+            - cells.values[..., self.problem.gradient_fields]
+        ) / r
 
-        values[..., fields.e] = rhoe / rho
+        KdQ = np.einsum("...ijkl,...j->...i", self.problem.K(cells), dQ)
+
+        # Multiply by the surface
+        return KdQ * neighs.surfaces[..., np.newaxis]

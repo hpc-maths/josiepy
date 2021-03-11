@@ -15,6 +15,7 @@ Subpackages
    josie.heat
    josie.io
    josie.mesh
+   josie.ns
    josie.plot
    josie.scheme
    josie.twofluid
@@ -27,7 +28,6 @@ josie.bc module
 
 .. automodule:: josie.bc
    :members:
-   :special-members: __call__
    :undoc-members:
    :show-inheritance:
 
@@ -68,7 +68,6 @@ josie.geometry module
 
 .. automodule:: josie.geometry
    :members:
-   :special-members: __call__
    :undoc-members:
    :show-inheritance:
 

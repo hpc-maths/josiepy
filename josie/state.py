@@ -200,6 +200,8 @@ class SubsetState(State):
         super.__init_subclass__(**kwargs)
 
         if not (abstract):
+            # FIXME: Using an array to subset the full state crease a copy of
+            # the array, while using a slice generaates a view
             cls._subset_fields_map = np.array(
                 [
                     field

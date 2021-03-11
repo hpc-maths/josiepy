@@ -48,9 +48,10 @@ needed, for example, to compute the speed of sound.
 """
 from __future__ import annotations
 
+from josie.state import SubsetState
 from josie.fluid.state import ConsSubsetState, SingleFluidState
 
-from .fields import ConsFields, NSFields
+from .fields import ConsFields, NSFields, NSGradientFields
 
 
 class NSConsState(ConsSubsetState):
@@ -59,6 +60,15 @@ class NSConsState(ConsSubsetState):
 
     full_state_fields = NSFields
     fields = ConsFields
+
+
+class NSGradientState(SubsetState):
+    """A :class:`State` class representing the diffusive state variables
+    of the Navier-Stokes system, i.e. the variables whose gradient is required
+    in the diffusive term"""
+
+    full_state_fields = NSFields
+    fields = NSGradientFields
 
 
 class Q(SingleFluidState):
