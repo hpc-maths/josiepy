@@ -114,6 +114,8 @@ class EulerScheme(ConvectiveScheme):
 
     def CFL(self, cells: MeshCellSet, CFL_value: float) -> float:
 
+        dt = super().CFL(cells, CFL_value)
+
         values: EulerState = cells.values.view(EulerState)
         fields = values.fields
 
@@ -129,4 +131,6 @@ class EulerScheme(ConvectiveScheme):
         # Min mesh dx
         dx = cells.min_length
 
-        return CFL_value * dx / sigma
+        new_dt = CFL_value * dx / sigma
+
+        return np.min((dt, new_dt))

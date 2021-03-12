@@ -27,7 +27,6 @@
 from __future__ import annotations
 
 
-from josie.mesh.cellset import MeshCellSet
 from josie.scheme.diffusive import DiffusiveScheme
 
 from .problem import HeatProblem
@@ -36,9 +35,3 @@ from .problem import HeatProblem
 class HeatScheme(DiffusiveScheme):
     def __init__(self, problem: HeatProblem):
         super().__init__(problem)
-
-    def CFL(self, cells: MeshCellSet, CFL_value: float) -> float:
-        # Min mesh dx
-        dx = cells.min_length
-
-        return CFL_value * (dx ** 2) / 2

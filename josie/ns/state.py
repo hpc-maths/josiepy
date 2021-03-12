@@ -48,18 +48,15 @@ needed, for example, to compute the speed of sound.
 """
 from __future__ import annotations
 
+from josie.fluid.state import (
+    DiffState,
+)
+
+from josie.euler.state import EulerState
+from josie.euler.fields import EulerFields
 from josie.state import SubsetState
-from josie.fluid.state import ConsSubsetState, SingleFluidState
 
-from .fields import ConsFields, NSFields, NSGradientFields
-
-
-class NSConsState(ConsSubsetState):
-    """A :class:`State` class representing the conservative state variables
-    of the Navier-Stokes system"""
-
-    full_state_fields = NSFields
-    fields = ConsFields
+from .fields import NSGradientFields
 
 
 class NSGradientState(SubsetState):
@@ -67,10 +64,10 @@ class NSGradientState(SubsetState):
     of the Navier-Stokes system, i.e. the variables whose gradient is required
     in the diffusive term"""
 
-    full_state_fields = NSFields
+    full_state_fields = EulerFields  # Same as Euler
     fields = NSGradientFields
 
 
-class Q(SingleFluidState):
-    fields = NSFields
-    cons_state = NSConsState
+# We add the diffusive subset to the Euler State
+class NSState(EulerState, DiffState):
+    diff_state = NSGradientState

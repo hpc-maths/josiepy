@@ -47,7 +47,7 @@ class NSTransport(Transport):
 
         .. math::
 
-            \alpha = \frac{\thermalConductivity}%
+            \thermalDiffusivity = \frac{\thermalConductivity}%
             {\specificHeat_\volume \density}
 
         It returns a value per each cell centroid
@@ -112,9 +112,7 @@ class NSConstantTransport(NSTransport):
             * self._viscosity
         )
 
-    def bulk_diffusivity(
-        self, cells: Union[MeshCellSet, CellSet]
-    ) -> np.ndarray:
+    def bulk_viscosity(self, cells: Union[MeshCellSet, CellSet]) -> np.ndarray:
         nx, ny, num_fields = cells.values.shape
         return (
             np.ones(

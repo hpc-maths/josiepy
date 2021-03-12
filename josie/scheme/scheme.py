@@ -125,7 +125,8 @@ class Scheme(abc.ABC):
             CFL number
         """
 
-        raise NotImplementedError
+        # Return big value to allow super() calls for children classes
+        return 1e6
 
     @abc.abstractmethod
     def step(

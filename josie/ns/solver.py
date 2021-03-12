@@ -26,44 +26,20 @@
 # official policies, either expressed or implied, of Ruben Di Battista.
 from __future__ import annotations
 
-import numpy as np
-
 from typing import TYPE_CHECKING
 
-from josie.general.schemes.diffusive import CentralDifferenceGradient as _CDG
-from josie.ns.state import NSGradientState, NSState
+from josie.solver import Solver
+
+from .state import NSState
+from .schemes import NSScheme
 
 if TYPE_CHECKING:
-    from josie.mesh.cellset import MeshCellSet, NeighboursCellSet
-    from josie.ns.problem import NSProblem
+    from josie.mesh import Mesh
 
 
-class CentralDifferenceGradient(_CDG):
-    """Optimizing the implementation of the
-    :class:`~general.schemes.diffusive.CentralDifferenceGradient` using a
-    viscosity tensor that is smaller in size noting that it only operates on
-    the fields :math:`u, v, e`"""
+class NSSolver(Solver):
+    """ A solver for the Euler system """
 
-    problem: NSProblem
+    def __init__(self, mesh: Mesh, scheme: NSScheme):
 
-    def D(self, cells: MeshCellSet, neighs: NeighboursCellSet):
-        nx, ny, num_state = cells.values.shape
-        dimensionality = cells.dimensionality
-
-        # Retrieve neighbour index
-        idx = self._directions[neighs.direction]
-
-        # Retrieve length of the relative vector between cell and neighbour
-        r = self._r[..., idx, :].reshape(nx, ny, dimensionality)
-
-        # Estimate the gradient in normal direction acting only on the gradient
-        # variables
-        Q_L = cells.values.view(NSState).get_diffusive().view(NSGradientState)
-        Q_R = neighs.values.view(NSState).get_diffusive().view(NSGradientState)
-
-        dQ = (Q_R - Q_L) / r
-
-        KdQ = np.einsum("...ijkl,...j->...i", self.problem.K(cells), dQ)
-
-        # Multiply by the surface
-        return KdQ * neighs.surfaces[..., np.newaxis]
+        super().__init__(mesh, NSState, scheme)

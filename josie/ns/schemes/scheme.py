@@ -29,15 +29,12 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from josie.euler.schemes import EulerScheme
-from josie.ns.state import Q
+from josie.ns.problem import NSProblem
 from josie.scheme.diffusive import DiffusiveScheme
 
 if TYPE_CHECKING:
-    from josie.mesh.cellset import MeshCellSet
+    from josie.euler.eos import EOS
     from josie.transport import Transport
-
-    from .problem import NSProblem
-    from .eos import EOS
 
 
 class NSScheme(EulerScheme, DiffusiveScheme):
@@ -45,15 +42,3 @@ class NSScheme(EulerScheme, DiffusiveScheme):
 
     def __init__(self, eos: EOS, transport: Transport):
         self.problem = NSProblem(eos, transport)
-
-    def post_step(self, cells: MeshCellSet):
-        """ wrt to :class:`EulerScheme` we need to compute ``e`` """
-        super().post_step(cells)
-
-        values: Q = cells.values.view(Q)
-        fields = values.fields
-
-        rho = values[..., fields.rho]
-        rhoe = values[..., fields.rhoe]
-
-        values[..., fields.e] = rhoe / rho

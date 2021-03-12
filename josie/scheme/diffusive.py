@@ -75,6 +75,25 @@ class DiffusiveScheme(Scheme):
 
         raise NotImplementedError
 
+    def CFL(self, cells: MeshCellSet, CFL_value: float) -> float:
+        r"""Definition of CFL for a parabolic problem
+
+        .. math::
+
+            \dd{t} = C_{fl} \dd{x}^2 / 2
+
+        """
+        dt = super().CFL(cells, CFL_value)
+
+        __import__("ipdb").set_trace()
+
+        # Min mesh dx
+        dx = cells.min_length
+
+        new_dt = CFL_value * (dx ** 2) / 2
+
+        return np.min((dt, new_dt))
+
     def accumulate(
         self, cells: MeshCellSet, neighs: NeighboursCellSet, t: float
     ):

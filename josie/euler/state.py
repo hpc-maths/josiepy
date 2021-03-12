@@ -48,12 +48,13 @@ needed, for example, to compute the speed of sound.
 """
 from __future__ import annotations
 
-from josie.fluid.state import ConsSubsetState, SingleFluidState
+from josie.fluid.state import SingleFluidState
+from josie.state import SubsetState
 
 from .fields import EulerFields, ConsFields
 
 
-class EulerConsState(ConsSubsetState):
+class EulerConsState(SubsetState):
     """A :class:`State` class representing the conservative state variables
     of the Euler system"""
 

@@ -226,7 +226,8 @@ class Rusanov(ConvectiveScheme, BaerScheme):
         CFL_value,
     ) -> float:
 
-        dt = 1e9
+        dt = super().CFL(cells, CFL_value)
+
         dx = cells.min_length
         alpha = cells.values[..., Q.fields.alpha]
         alphas = PhasePair(alpha, 1 - alpha)

@@ -250,6 +250,10 @@ imgmath_latex_preamble = r"""
     \rho
 }}
 
+\providecommand{\volume}{\ensuremath{%
+    \mathsf{V}
+}}
+
 \newcommand{\pressure}{\ensuremath{%
     p
 }}
