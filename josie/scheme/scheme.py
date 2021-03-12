@@ -243,6 +243,9 @@ class Scheme(abc.ABC):
             A :class:`MeshCellSet` containing the state of the mesh cells
         """
 
+        # TODO: The fluxes is too big. It should only be the number of
+        # equations without the auxiliary states
+
         # Initialize the datastructure containing the fluxes
         self._fluxes: State = np.empty_like(cells.values)
 

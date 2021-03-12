@@ -1,11 +1,12 @@
 import pytest
-import numpy as np
 
 from josie.bc import BoundaryCondition, Dirichlet, Neumann
 from josie.boundary import Line
 from josie.euler.eos import PerfectGas
 from josie.euler.schemes import Rusanov
 from josie.general.schemes.time import ExplicitEuler
+from josie.io.write.writer import XDMFWriter
+from josie.io.write.strategy import TimeStrategy
 from josie.ns.schemes.scheme import NSScheme
 from josie.ns.schemes.diffusive import CentralDifferenceGradient
 from josie.ns.solver import NSSolver
@@ -16,9 +17,9 @@ from josie.mesh.cell import SimpleCell
 
 
 def inlet_state():
-    rho = 1000
+    rho = 1
     U = 1
-    V = 1
+    V = 0
     e = 300
 
     eos = PerfectGas()
@@ -71,9 +72,9 @@ def init_fun(cells):
 @pytest.fixture
 def boundaries():
     left = Line([0, 0], [0, 1])
-    bottom = Line([0, 0], [1, 0])
-    right = Line([1, 0], [1, 1])
-    top = Line([0, 1], [1, 1])
+    bottom = Line([0, 0], [3, 0])
+    right = Line([3, 0], [3, 1])
+    top = Line([0, 1], [3, 1])
 
     left.bc = Dirichlet(inlet_state())
     right.bc = Outflow()
@@ -88,7 +89,7 @@ def mesh(boundaries):
     left, bottom, right, top = boundaries
 
     mesh = Mesh(left, bottom, right, top, SimpleCell)
-    mesh.interpolate(20, 20)
+    mesh.interpolate(99, 33)
     mesh.generate()
 
     yield mesh
@@ -97,11 +98,12 @@ def mesh(boundaries):
 @pytest.fixture
 def scheme():
     mu = 1.8e-5
-    lmbda = -2 / 3 * mu
+    # lmbda = -2 / 3 * mu
+    lmbda = 0
     alphaT = 2.1e-5
 
     transport = NSConstantTransport(
-        viscosity=1.8e-5, bulk_viscosity=lmbda, thermal_diffusivity=alphaT
+        viscosity=mu, bulk_viscosity=lmbda, thermal_diffusivity=alphaT
     )
 
     eos = PerfectGas()
@@ -123,29 +125,15 @@ def solver(mesh, Q, scheme):
 
 
 def test_poiseille(solver, plot):
-    scheme = solver.scheme
-
     if plot:
         solver.plot()
 
-    final_time = 0.1
-    t = 0
+    final_time = 2.5
     CFL = 0.5
 
-    while t <= final_time:
-        if plot:
-            solver.animate(t)
-            # solver.save(t, "toro.xmf")
+    write_strategy = TimeStrategy(dt_save=0.05)
+    writer = XDMFWriter("ns.xdmf", write_strategy, solver, final_time, CFL)
+    writer.solve()
 
-        dt = scheme.CFL(
-            solver.mesh.cells,
-            CFL,
-        )
-
-        # TODO: Basic check. The best would be to check against analytical
-        # solution
-        assert ~np.isnan(dt)
-        solver.step(dt)
-
-        t += dt
-        print(f"Time: {t}, dt: {dt}")
+    if plot:
+        solver.show("U")

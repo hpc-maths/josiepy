@@ -137,6 +137,8 @@ class State(np.ndarray):
         """Initialize an empty class:`State` object of the right dimensiosn
         for the given class:`Mesh`"""
 
+        # TODO: Add num_dofs into the size to allow for multiple dofs in a
+        # single cell
         nx = mesh.num_cells_x
         ny = mesh.num_cells_y
         state_size = len(cls.fields)

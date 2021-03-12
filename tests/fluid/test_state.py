@@ -2,9 +2,10 @@ import numpy as np
 import pytest
 
 from josie.fluid.fields import FluidFields
-from josie.fluid.state import ConsSubsetState, SingleFluidState
+from josie.fluid.state import SingleFluidState
 
 from josie.fields import Fields
+from josie.state import SubsetState
 
 
 def test_fluid_state():
@@ -21,7 +22,7 @@ def test_fluid_state():
         rhoU = 1
         rhoV = 2
 
-    class ConsState(ConsSubsetState):
+    class ConsState(SubsetState):
         full_state_fields = AllFields
         fields = ConsFields
 

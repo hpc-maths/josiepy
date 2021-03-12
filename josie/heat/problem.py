@@ -34,6 +34,7 @@ from josie.fluid.problem import DiffusiveProblem
 
 if TYPE_CHECKING:
     from josie.mesh.cellset import MeshCellSet, CellSet
+    from .transport import HeatTransport
 
 
 class HeatProblem(DiffusiveProblem):
@@ -42,9 +43,15 @@ class HeatProblem(DiffusiveProblem):
     Attributes
     ----------
     transport
-        A instance of :class:`Transport` providing transport coefficients
+        A instance of :class:`HeatTransport` providing transport coefficients
 
     """
+
+    if TYPE_CHECKING:
+        transport: HeatTransport
+
+    def __init__(self, transport: HeatTransport):
+        super().__init__(transport=transport)
 
     def K(self, cells: Union[CellSet, MeshCellSet]) -> np.ndarray:
         """This is a scalar value, but :class:`DiffusiveProblem` expects a 4th

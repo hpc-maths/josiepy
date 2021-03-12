@@ -112,7 +112,9 @@ class Exact:
 
         self._interpolators = {}
 
-    def _set_state(self, rho: float, p: float, U: float, V: float) -> EulerState:
+    def _set_state(
+        self, rho: float, p: float, U: float, V: float
+    ) -> EulerState:
         """Handy function to set a full :class:`EulerState` state from density,
         pressure, and velocity"""
         fields = self.Q_L.fields
@@ -280,7 +282,9 @@ class Exact:
         )
 
         # Accumulate the full state for the rarefaction
-        rar_full_state = np.empty((len(ode_sol.t), len(EulerState.fields))).view(EulerState)
+        rar_full_state = np.empty(
+            (len(ode_sol.t), len(EulerState.fields))
+        ).view(EulerState)
 
         for i, p_step in enumerate(ode_sol.t):
             rho_step = ode_sol.y[1, i]
@@ -346,7 +350,9 @@ class Exact:
 
         return wave * (U - U_k)
 
-    def sample_rarefaction(self, U_c: float, V_k: float, wave: Wave) -> EulerState:
+    def sample_rarefaction(
+        self, U_c: float, V_k: float, wave: Wave
+    ) -> EulerState:
         r""" Return the state within the rarefaction fan """
 
         if wave is Wave.LEFT:

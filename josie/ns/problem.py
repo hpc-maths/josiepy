@@ -96,16 +96,17 @@ class NSProblem(EulerProblem, DiffusiveProblem):
         # TODO: Add 3D (Kxz, Kyz, Kzx, Kzy, Kzz)
         Kxx[..., fields.U, fields.U] = 2 * mu + bulk_viscosity
         Kxx[..., fields.V, fields.V] = mu
-        Kxx[..., fields.e, fields.e] = alpha
+        Kxx[..., fields.rhoe, fields.rhoe] = alpha
 
-        Kxy[..., fields.V, fields.U] = bulk_viscosity
-        Kxy[..., fields.U, fields.V] = mu
+        Kxy[..., fields.U, fields.V] = bulk_viscosity
+        Kxy[..., fields.V, fields.U] = mu
 
         # Symmetric
-        Kyx[:] = Kxy.T
+        Kyx[..., fields.V, fields.U] = bulk_viscosity
+        Kyx[..., fields.U, fields.V] = mu
 
         Kyy[..., fields.U, fields.U] = mu
         Kyy[..., fields.V, fields.V] = 2 * mu + bulk_viscosity
-        Kyy[..., fields.e, fields.e] = alpha
+        Kyy[..., fields.rhoe, fields.rhoe] = alpha
 
         return K

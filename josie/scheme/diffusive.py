@@ -85,8 +85,6 @@ class DiffusiveScheme(Scheme):
         """
         dt = super().CFL(cells, CFL_value)
 
-        __import__("ipdb").set_trace()
-
         # Min mesh dx
         dx = cells.min_length
 

@@ -204,9 +204,7 @@ class XDMFWriter(FileWriter):
 
         for field in self.solver.Q.fields:
             cell_data[field.name] = {
-                cell_type_str: self.solver.mesh.cells.values[
-                    ..., field
-                ].ravel()
+                cell_type_str: self.solver.mesh.cells.values[..., field].ravel()
             }
 
         self._writer.write_data(self.solver.t, cell_data=cell_data)
