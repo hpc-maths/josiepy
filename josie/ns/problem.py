@@ -38,8 +38,8 @@ from josie.math import Direction
 from .fields import NSGradientFields
 
 if TYPE_CHECKING:
+    from josie.euler.eos import EOS
     from josie.mesh.cellset import CellSet, MeshCellSet
-    from .eos import EOS
     from .transport import NSTransport
 
 

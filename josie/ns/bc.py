@@ -28,14 +28,15 @@
 system """
 from __future__ import annotations
 
-from typing import Callable, TYPE_CHECKING
+from typing import TYPE_CHECKING
 from josie.bc import BoundaryCondition, Dirichlet, Neumann
 from josie.euler.eos import EOS
 from josie.euler.fields import EulerFields as fields
 
 
 if TYPE_CHECKING:
-    from josie.mesh.cellset import CellSet, MeshCellSet
+    from josie.bc import ImposedValue
+    from josie.mesh.cellset import MeshCellSet
     from josie.boundary import Boundary
 
 
@@ -60,24 +61,49 @@ class Inlet(BoundaryCondition):
     eos
         The same :class:`EOS` used for the rest of the problem
 
+    constant
+        Set this flag to ``True`` to explicitly force the creation of a
+        constant boundary condition. A constant BC is optimized to reduce the
+        number of calls.
+
+        :class:`Dirichlet` normally is capable to understand automatically if
+        you are providing a constant imposed value: if you provide a constant
+        scalar :class:`float` or :class:`int` (or a :class:`State` containing a
+        scalar value for each field). If you provide a :class:`BCCallable` then
+        it cannot automatically infer it your callable is actually only a
+        function of space (i.e. it does not change at every time step) or not.
+        If you want to optimize the call, you need to explicitly set
+        ``constant`` to ``True``.
+
     """
 
     # TODO: Add 3D
     def __init__(
         self,
-        U: Callable[CellSet],
-        V: Callable[CellSet],
-        e: Callable[CellSet],
+        U: ImposedValue,
+        V: ImposedValue,
+        e: ImposedValue,
         eos: EOS,
+        constant=True,
     ):
         # The partial set of BCs to impose
-        self.U_bc = U
-        self.V_bc = V
-        self.e_bc = e
+        self.U_bc = Dirichlet(U, constant)
+        self.V_bc = Dirichlet(V, constant)
+        self.e_bc = Dirichlet(e, constant)
 
-        self.zero_gradient = Neumann(0)
+        self.zero_gradient = Neumann(0, constant)
 
         self.eos = eos
+
+    def init(self, cells: MeshCellSet, boundary: Boundary):
+        boundary_idx = boundary.cells_idx
+        boundary_cells = cells[boundary_idx]
+
+        self.U_bc.init(boundary_cells)
+        self.V_bc.init(boundary_cells)
+        self.e_bc.init(boundary_cells)
+
+        self.zero_gradient.init(boundary_cells)
 
     def __call__(self, cells: MeshCellSet, boundary: Boundary, t: float):
         ghost_idx = boundary.ghost_cells_idx
@@ -144,6 +170,13 @@ class Outflow(BoundaryCondition):
 
         self.eos = eos
 
+    def init(self, cells: MeshCellSet, boundary: Boundary):
+        boundary_idx = boundary.cells_idx
+        boundary_cells = cells[boundary_idx]
+
+        self.p_bc.init(boundary_cells)
+        self.zero_gradient.init(boundary_cells)
+
     def __call__(self, cells: MeshCellSet, boundary: Boundary, t: float):
         ghost_idx = boundary.ghost_cells_idx
         boundary_idx = boundary.cells_idx
@@ -198,6 +231,13 @@ class NoSlip(BoundaryCondition):
         self.zero_gradient = Neumann(0)
 
         self.eos = eos
+
+    def init(self, cells: MeshCellSet, boundary: Boundary):
+        boundary_idx = boundary.cells_idx
+        boundary_cells = cells[boundary_idx]
+
+        self.no_slip.init(boundary_cells)
+        self.zero_gradient.init(boundary_cells)
 
     def __call__(self, cells: MeshCellSet, boundary: Boundary, t: float):
         ghost_idx = boundary.ghost_cells_idx
