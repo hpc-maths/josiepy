@@ -33,10 +33,11 @@ def riemann2Q(state, eos):
     V = state.V
     p = state.p
     rhoe = eos.rhoe(rho, p)
-    E = rhoe / rho + 0.5 * (U ** 2 + V ** 2)
+    e = rhoe / rho
+    E = e + 0.5 * (U ** 2 + V ** 2)
     c = eos.sound_velocity(rho, p)
 
-    return EulerState(rho, rho * U, rho * V, rho * E, rhoe, U, V, p, c)
+    return EulerState(rho, rho * U, rho * V, rho * E, rhoe, U, V, p, c, e)
 
 
 def test_toro(toro_riemann_state, Scheme, plot, request):

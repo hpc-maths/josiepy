@@ -52,3 +52,4 @@ class EulerFields(FluidFields):
     V = 6
     p = 7
     c = 8
+    e = 9

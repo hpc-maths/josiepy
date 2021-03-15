@@ -124,7 +124,8 @@ class Exact:
         state[..., fields.rhoU] = rho * U
         state[..., fields.rhoV] = rho * V
         rhoe = state[..., fields.rhoe] = self.eos.rhoe(rho, p)
-        state[..., fields.rhoE] = rho * (rhoe / rho + U ** 2 / 2)
+        e = state[..., fields.e] = rhoe / rho
+        state[..., fields.rhoE] = rho * (e + U ** 2 / 2)
         state[..., fields.c] = self.eos.sound_velocity(rhoe, p)
 
         state[..., fields.U] = U

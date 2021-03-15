@@ -79,6 +79,7 @@ class EulerScheme(ConvectiveScheme):
         values[..., fields.V] = V
         values[..., fields.p] = p
         values[..., fields.c] = c
+        values[..., fields.e] = e
 
     @staticmethod
     def compute_U_norm(values: SingleFluidState, normals: np.ndarray):

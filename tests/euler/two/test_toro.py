@@ -46,17 +46,23 @@ def init_test(direction, Scheme, riemann_problem, bc_fun):
     rhoL = riemann_problem.left.rho
     pL = riemann_problem.left.p
     rhoeL = eos.rhoe(rhoL, pL)
-    EL = rhoeL / rhoL + 0.5 * (uL ** 2 + vL ** 2)
+    eL = rhoeL / rhoL
+    EL = eL + 0.5 * (uL ** 2 + vL ** 2)
     cL = eos.sound_velocity(rhoL, pL)
 
     rhoR = riemann_problem.right.rho
     pR = riemann_problem.right.p
     rhoeR = eos.rhoe(rhoR, pR)
-    ER = rhoeR / rhoR + 0.5 * (uR ** 2 + vR ** 2)
+    eR = rhoeR / rhoR
+    ER = eR + 0.5 * (uR ** 2 + vR ** 2)
     cR = eos.sound_velocity(rhoR, pR)
 
-    Q_left = EulerState(rhoL, rhoL * uL, rhoL * vL, rhoL * EL, rhoeL, uL, vL, pL, cL)
-    Q_right = EulerState(rhoR, rhoR * uR, rhoR * vR, rhoR * ER, rhoeR, uR, vR, pR, cR)
+    Q_left = EulerState(
+        rhoL, rhoL * uL, rhoL * vL, rhoL * EL, rhoeL, uL, vL, pL, cL, eL
+    )
+    Q_right = EulerState(
+        rhoR, rhoR * uR, rhoR * vR, rhoR * ER, rhoeR, uR, vR, pR, cR, eR
+    )
 
     if direction is Direction.X:
         left.bc = Dirichlet(Q_left)
