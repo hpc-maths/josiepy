@@ -1,9 +1,10 @@
 import pytest
 
-from josie.bc import make_periodic, Direction
+from josie.bc import Dirichlet
 from josie.boundary import Line
 from josie.mesh import Mesh
 from josie.mesh.cell import SimpleCell
+from josie.heat.state import Q
 
 
 @pytest.fixture
@@ -14,7 +15,8 @@ def boundaries():
     right = Line([1, 0], [1, 1])
     top = Line([0, 1], [1, 1])
 
-    left, right = make_periodic(left, right, Direction.X)
+    left.bc = Dirichlet(Q(0))
+    right.bc = Dirichlet(Q(0))
     top.bc = None
     bottom.bc = None
 

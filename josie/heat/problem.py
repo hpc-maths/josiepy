@@ -1,5 +1,5 @@
 # josiepy
-# Copyright © 2019 Ruben Di Battista
+# Copyright © 2021 Ruben Di Battista
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -24,35 +24,33 @@
 # The views and conclusions contained in the software and documentation
 # are those of the authors and should not be interpreted as representing
 # official policies, either expressed or implied, of Ruben Di Battista.
-""" General purpose math primitives """
+from __future__ import annotations
+
 import numpy as np
 
-from enum import IntEnum
+from typing import TYPE_CHECKING, Union
 
-from .dimension import MAX_DIMENSIONALITY
+from josie.problem import Problem
 
-
-def map01to(x, a, b):
-    r""" Maps :math:`x` in :math:`[0, 1] \to [a, b]` """
-
-    return (b - a) * x + a
+if TYPE_CHECKING:
+    from josie.mesh.cellset import MeshCellSet, CellSet
+    from josie.transport import Transport
 
 
-class Direction(IntEnum):
-    """An :class:`Enum` encapsulating the coordinates indices"""
+class HeatProblem(Problem):
+    """A class representing a system governed by the heat equation
 
-    X = 0
-    Y = 1
-    Z = 2
+    Attributes
+    ----------
+    transport
+        A instance of :class:`Transport` providing transport coefficients
 
-
-class R3:
-    """An :class:`Enum` encapsulating the unit vectors for a cartesia R2
-    space
     """
 
-    _eye = np.eye(MAX_DIMENSIONALITY)
+    def __init__(self, transport: Transport):
+        self.transport = transport
 
-    X = _eye[:, Direction.X]
-    Y = _eye[:, Direction.Y]
-    # Z = _eye[:, Direction.Z]
+    def K(self, cells: Union[CellSet, MeshCellSet]) -> np.ndarray:
+        """ This is a scalar value """
+
+        return self.transport.thermal_diffusivity(cells)

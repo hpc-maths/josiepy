@@ -34,7 +34,7 @@ import os
 from meshio import Mesh as MeshIO
 from typing import Iterable, Tuple, Type, TYPE_CHECKING
 
-from josie._dim import Dimensionality
+from josie.dimension import Dimensionality
 from josie.exceptions import InvalidMesh
 from josie.boundary import Boundary, BoundaryCurve, BoundarySide
 from josie.plot import DefaultBackend
@@ -121,6 +121,7 @@ class Mesh:
 
     points: np.ndarray
     cells: MeshCellSet
+    min_length: float
     boundaries: Iterable[Boundary]
 
     def __init__(

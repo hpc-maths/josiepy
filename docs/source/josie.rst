@@ -12,6 +12,7 @@ Subpackages
    josie.euler
    josie.fluid
    josie.general
+   josie.heat
    josie.io
    josie.mesh
    josie.plot
@@ -26,6 +27,7 @@ josie.bc module
 
 .. automodule:: josie.bc
    :members:
+   :special-members: __call__
    :undoc-members:
    :show-inheritance:
 
@@ -33,6 +35,14 @@ josie.data module
 -----------------
 
 .. automodule:: josie.data
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+josie.dimension module
+----------------------
+
+.. automodule:: josie.dimension
    :members:
    :undoc-members:
    :show-inheritance:
@@ -58,6 +68,7 @@ josie.geometry module
 
 .. automodule:: josie.geometry
    :members:
+   :special-members: __call__
    :undoc-members:
    :show-inheritance:
 
@@ -105,6 +116,14 @@ josie.state module
 ------------------
 
 .. automodule:: josie.state
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+josie.transport module
+----------------------
+
+.. automodule:: josie.transport
    :members:
    :undoc-members:
    :show-inheritance:

@@ -192,8 +192,9 @@ class SubsetState(State):
         The fields of the full :class:`State`
     """
 
-    _subset_fields_map: Union[np.typing.ArrayLike, dict]
-    full_state_fields: Type[Fields]
+    if TYPE_CHECKING:
+        _subset_fields_map: Union[np.typing.ArrayLike, dict]
+        full_state_fields: Type[Fields]
 
     def __init_subclass__(cls, /, abstract=False, **kwargs):
         super.__init_subclass__(**kwargs)

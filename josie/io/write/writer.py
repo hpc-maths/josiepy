@@ -99,8 +99,6 @@ class Writer(abc.ABC):
 
             solver.step(dt)
 
-            self.solver.t += dt
-
 
 class NoopWriter(Writer):
     """ A :class:`Writer` that does not write anything """

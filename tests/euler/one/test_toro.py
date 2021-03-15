@@ -3,12 +3,8 @@ F. Riemann Solvers and Numerical Methods for Fluid Dynamics: A Practical
 Introduction. 3rd ed. Berlin Heidelberg: Springer-Verlag, 2009.
 https://doi.org/10.1007/b79761, page 129 """
 
-import inspect
 import matplotlib.pyplot as plt
 import numpy as np
-import pytest
-
-import josie.general.schemes.time as time_schemes
 
 
 from josie.bc import Dirichlet
@@ -18,39 +14,13 @@ from josie.mesh import Mesh
 from josie.mesh.cell import SimpleCell
 from josie.mesh.cellset import MeshCellSet
 from josie.euler.eos import PerfectGas
-from josie.euler.schemes import EulerScheme
 from josie.euler.exact import Exact
 from josie.euler.solver import EulerSolver
 from josie.euler.state import Q
 
 
-@pytest.fixture(
-    params=[
-        member[1]
-        for member in inspect.getmembers(time_schemes, inspect.isclass)
-    ],
-)
-def TimeScheme(request):
-    yield request.param
-
-
 def relative_error(a, b):
     return np.abs(a - b)
-
-
-@pytest.fixture(params=EulerScheme._all_subclasses())
-def SpaceScheme(request):
-    yield request.param
-
-
-@pytest.fixture
-def Scheme(SpaceScheme, TimeScheme):
-    """ Create all the different schemes """
-
-    class ToroScheme(SpaceScheme, TimeScheme):
-        pass
-
-    return ToroScheme
 
 
 def riemann2Q(state, eos):
@@ -151,18 +121,17 @@ def test_toro(toro_riemann_state, Scheme, plot, request):
         p = cells.values[..., Q.fields.p]
         p = p.reshape(p.size)
 
-        if plot:
-            (im1,) = ax1.plot(x, rho, "-", label="Numerical")
-            ax1.set_xlabel("x")
-            ax1.set_ylabel(r"$\rho$")
+        (im1,) = ax1.plot(x, rho, "-", label="Numerical")
+        ax1.set_xlabel("x")
+        ax1.set_ylabel(r"$\rho$")
 
-            (im2,) = ax2.plot(x, U, "-", label="Numerical")
-            ax2.set_xlabel("x")
-            ax2.set_ylabel("U")
+        (im2,) = ax2.plot(x, U, "-", label="Numerical")
+        ax2.set_xlabel("x")
+        ax2.set_ylabel("U")
 
-            (im3,) = ax3.plot(x, p, "-", label="Numerical")
-            ax3.set_xlabel("x")
-            ax3.set_ylabel("p")
+        (im3,) = ax3.plot(x, p, "-", label="Numerical")
+        ax3.set_xlabel("x")
+        ax3.set_ylabel("p")
 
         # Plot the exact solution over the final step solution
         p = []

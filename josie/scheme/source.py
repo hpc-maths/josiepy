@@ -33,7 +33,7 @@ from typing import TYPE_CHECKING
 from .scheme import Scheme
 
 if TYPE_CHECKING:
-    from josie.mesh.cellset import CellSet, MeshCellSet
+    from josie.mesh.cellset import NeighboursCellSet, MeshCellSet
     from josie.state import State
 
 
@@ -45,7 +45,9 @@ class SourceScheme(Scheme):
         \numSourceFull
     """
 
-    def accumulate(self, cells: MeshCellSet, neighs: CellSet, t: float):
+    def accumulate(
+        self, cells: MeshCellSet, neighs: NeighboursCellSet, t: float
+    ):
 
         # Compute fluxes computed eventually by the other terms (diffusive,
         # nonconservative, source)
@@ -55,7 +57,9 @@ class SourceScheme(Scheme):
         self._fluxes += self.s(cells, neighs, t)
 
     @abc.abstractmethod
-    def s(self, cells: MeshCellSet, neighs: CellSet, t: float) -> State:
+    def s(
+        self, cells: MeshCellSet, neighs: NeighboursCellSet, t: float
+    ) -> State:
         r"""This is the source term implementation of the scheme. See
         :cite:`toro_riemann_2009` for a great overview on numerical methods for
         hyperbolic problems.
@@ -79,8 +83,8 @@ class SourceScheme(Scheme):
             A :class:`MeshCellSet` containing the state of the mesh cells
 
         neighs
-            A :class:`CellSet` containing data of neighbour cells corresponding
-            to the :attr:`values`
+            A :class:`NeighboursCellSet` containing data of neighbour cells
+            corresponding to the :attr:`values`
 
         t
             Time instant

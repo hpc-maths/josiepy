@@ -9,6 +9,7 @@ from josie.geometry import MeshIndex
 
 if TYPE_CHECKING:
     from josie.boundary import Boundary
+    from josie.dimension import Dimensionality
     from josie.state import State
 
 
@@ -44,12 +45,18 @@ class CellSet:
     surfaces
         An array containing the surfaces of the cells. It has the dimensions of
         :math:`N_x \times N_y \times N_\text{points}` where
-        N_\text{points} depends on the :class:`Cell` type provided
+        :math:`N_\text{points}` depends on the :class:`Cell` type provided
 
     values
         An array of dimensions :math:`N_x \times N_y \times N_\text{fields}`
         storing the value of the :class:`State` for each cell of the
         :class:`Mesh`
+
+    dimensionality
+        The :class:`Dimensionality` of the :class:`CellSet`
+
+    min_length
+        The minimal length of the :class:`CellSet`
     """
 
     volumes: np.ndarray
@@ -57,6 +64,8 @@ class CellSet:
     normals: np.ndarray
     centroids: np.ndarray
     values: State
+    dimensionality: Dimensionality
+    min_length: float = np.nan
 
     def __getitem__(self, key: MeshIndex) -> CellSet:
         """ Slice the :class:`CellSet` as a whole """
@@ -67,6 +76,7 @@ class CellSet:
             normals=self.normals[key],
             centroids=self.centroids[key],
             values=self.values[key],
+            dimensionality=self.dimensionality,
         )
 
     def copy(self) -> CellSet:
@@ -78,7 +88,35 @@ class CellSet:
             normals=self.normals.copy(),
             centroids=self.centroids.copy(),
             values=self.values.copy(),
+            dimensionality=self.dimensionality,
         )
+
+    def compute_min_length(self):
+        """This method computes the min dx of the :class:`CellSet`.
+
+        Useful for CFL computations
+        """
+        self.min_length = np.min(self.volumes[..., np.newaxis] / self.surfaces)
+
+
+class NeighboursCellSet(CellSet):
+    """ A :class:`CellSet` that stores also the neighbours direction """
+
+    def __init__(
+        self,
+        volumes,
+        surfaces,
+        normals,
+        centroids,
+        values,
+        direction,
+        dimensionality,
+    ):
+        super().__init__(
+            volumes, surfaces, normals, centroids, values, dimensionality
+        )
+
+        self.direction = direction
 
 
 @dataclass
@@ -149,19 +187,28 @@ class MeshCellSet(CellSet):
     surfaces
         An array containing the surfaces of the cells. It has the dimensions of
         :math:`N_x \times N_y \times N_\text{points}` where
-        N_\text{points} depends on the :class:`Cell` type provided
+        :math`N_\text{points}` depends on the :class:`Cell` type provided
 
     values
         An array of dimensions :math:`N_x \times N_y \times N_\text{fields}`
         storing the value of the :class:`State` for each cell of the
         :class:`Mesh`
 
+    min_length
+        The minimal :math:`\dd{x}` of the mesh.
+
+        Useful for CFL computations
+
     dimensionality
         The :class:`Mesh` dimensionality
+
+    neighbours
+        A list of :class:`NeighboursCellSet` representing the neighbours in a
+        direction of all the cells
     """
 
     _values: State
-    _neighbours: List[CellSet]
+    neighbours: List[NeighboursCellSet]
 
     def __init__(
         self,
@@ -169,7 +216,7 @@ class MeshCellSet(CellSet):
         volumes: np.ndarray,
         surfaces: np.ndarray,
         normals: np.ndarray,
-        dimensionality: int,
+        dimensionality: Dimensionality,
     ):
         self._centroids = centroids
         self._volumes = volumes
@@ -188,6 +235,7 @@ class MeshCellSet(CellSet):
             normals=self._normals[key],
             centroids=self._centroids[key],
             values=self._values[key],
+            dimensionality=self.dimensionality,
         )
 
     def copy(self) -> MeshCellSet:
@@ -230,12 +278,14 @@ class MeshCellSet(CellSet):
             normal_direction = direction.value.normal_direction
 
             self.neighbours.append(
-                CellSet(
+                NeighboursCellSet(
                     centroids=self._centroids[data_index],
                     values=self._values[data_index],
                     volumes=self._volumes[data_index],
                     normals=self.normals[..., normal_direction, :],
                     surfaces=self.surfaces[..., normal_direction],
+                    dimensionality=self.dimensionality,
+                    direction=normal_direction,
                 )
             )
 

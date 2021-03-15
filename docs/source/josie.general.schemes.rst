@@ -7,18 +7,11 @@ Subpackages
 .. toctree::
    :maxdepth: 4
 
+   josie.general.schemes.diffusive
    josie.general.schemes.time
 
 Submodules
 ----------
-
-josie.general.schemes.diffusive module
---------------------------------------
-
-.. automodule:: josie.general.schemes.diffusive
-   :members:
-   :undoc-members:
-   :show-inheritance:
 
 josie.general.schemes.source module
 -----------------------------------

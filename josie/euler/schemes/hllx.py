@@ -36,7 +36,7 @@ from josie.euler.state import Q
 from .scheme import EulerScheme
 
 if TYPE_CHECKING:
-    from josie.mesh.cellset import CellSet, MeshCellSet
+    from josie.mesh.cellset import NeighboursCellSet, MeshCellSet
 
 
 class HLL(EulerScheme):
@@ -103,7 +103,7 @@ class HLL(EulerScheme):
 
         return sigma_L, sigma_R
 
-    def F(self, cells: MeshCellSet, neighs: CellSet):
+    def F(self, cells: MeshCellSet, neighs: NeighboursCellSet):
 
         values: Q = cells.values.view(Q)
 
@@ -159,7 +159,7 @@ class HLLC(HLL):
     :cite:`toro_riemann_2009` for a detailed view on compressible schemes.
     """
 
-    def F(self, cells: MeshCellSet, neighs: CellSet):
+    def F(self, cells: MeshCellSet, neighs: NeighboursCellSet):
 
         values: Q = cells.values.view(Q)
 

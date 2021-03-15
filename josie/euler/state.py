@@ -49,31 +49,8 @@ needed, for example, to compute the speed of sound.
 from __future__ import annotations
 
 from josie.fluid.state import ConsSubsetState, SingleFluidState
-from josie.fluid.fields import FluidFields
-from josie.state import Fields
 
-
-class EulerFields(FluidFields):
-    """ Indexing enum for the state variables of the problem """
-
-    rho = 0
-    rhoU = 1
-    rhoV = 2
-    rhoE = 3
-    rhoe = 4
-    U = 5
-    V = 6
-    p = 7
-    c = 8
-
-
-class ConsFields(Fields):
-    """ Indexing enum for the conservative state variables of the problem """
-
-    rho = 0
-    rhoU = 1
-    rhoV = 2
-    rhoE = 3
+from .fields import EulerFields, ConsFields
 
 
 class EulerConsState(ConsSubsetState):

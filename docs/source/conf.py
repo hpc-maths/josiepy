@@ -62,6 +62,7 @@ imgmath_latex_preamble = r"""
 \usepackage{amsmath}
 \usepackage{physics}
 \usepackage{lmodern}
+\usepackage{siunitx}
 \usepackage[T1]{fontenc}
 
 \newcommand{\pdeNormal}{\ensuremath{\hat{\vb{n}}}}
@@ -196,6 +197,35 @@ imgmath_latex_preamble = r"""
 % :: ODE ::
 \newcommand{\odeProblem}{\ensuremath{%
     \dot{\pdeState} = \mathbf{f}\qty(\pdeState, t)
+}}
+
+
+% :: Transport coefficients
+\newcommand{\density}{\ensuremath{%
+    \rho
+}}
+
+\newcommand{\pressure}{\ensuremath{%
+    p
+}}
+
+\newcommand{\specificHeat}{\ensuremath{%
+    C
+}}
+
+\newcommand{\viscosity}{\ensuremath{%
+}}
+
+\newcommand{\kinematicViscosity}{\ensuremath{%
+    \nu
+}}
+
+\newcommand{\thermalConductivity}{\ensuremath{%
+    \kappa
+}}
+
+\newcommand{\thermalDiffusivity}{\ensuremath{%
+    \alpha
 }}
 
 """

@@ -1,5 +1,5 @@
 # josiepy
-# Copyright © 2019 Ruben Di Battista
+# Copyright © 2021 Ruben Di Battista
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -24,35 +24,31 @@
 # The views and conclusions contained in the software and documentation
 # are those of the authors and should not be interpreted as representing
 # official policies, either expressed or implied, of Ruben Di Battista.
-""" General purpose math primitives """
-import numpy as np
 
-from enum import IntEnum
+from __future__ import annotations
 
-from .dimension import MAX_DIMENSIONALITY
-
-
-def map01to(x, a, b):
-    r""" Maps :math:`x` in :math:`[0, 1] \to [a, b]` """
-
-    return (b - a) * x + a
+from josie.fluid.fields import FluidFields
+from josie.state import Fields
 
 
-class Direction(IntEnum):
-    """An :class:`Enum` encapsulating the coordinates indices"""
+class ConsFields(Fields):
+    """ Indexing enum for the conservative state variables of the problem """
 
-    X = 0
-    Y = 1
-    Z = 2
+    rho = 0
+    rhoU = 1
+    rhoV = 2
+    rhoE = 3
 
 
-class R3:
-    """An :class:`Enum` encapsulating the unit vectors for a cartesia R2
-    space
-    """
+class EulerFields(FluidFields):
+    """ Indexing enum for the state variables of the problem """
 
-    _eye = np.eye(MAX_DIMENSIONALITY)
-
-    X = _eye[:, Direction.X]
-    Y = _eye[:, Direction.Y]
-    # Z = _eye[:, Direction.Z]
+    rho = 0
+    rhoU = 1
+    rhoV = 2
+    rhoE = 3
+    rhoe = 4
+    U = 5
+    V = 6
+    p = 7
+    c = 8

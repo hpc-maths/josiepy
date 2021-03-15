@@ -34,7 +34,7 @@ from meshio import Mesh as MeshIO
 from typing import TYPE_CHECKING
 
 from josie.geometry import PointType
-from josie._dim import MAX_DIMENSIONALITY
+from josie.dimension import MAX_DIMENSIONALITY
 from josie.math import R3
 
 from .cellset import MeshCellSet, NormalDirection
@@ -82,6 +82,12 @@ class Cell(metaclass=abc.ABCMeta):
 
     @classmethod
     @abc.abstractmethod
+    def _generate_ghosts(cls, mesh: Mesh):
+        """ Generate ghost cells centroids"""
+        raise NotImplementedError
+
+    @classmethod
+    @abc.abstractmethod
     def centroid(
         cls, nw: PointType, sw: PointType, se: PointType, ne: PointType
     ) -> PointType:
@@ -113,6 +119,10 @@ class Cell(metaclass=abc.ABCMeta):
         r"""This method creates the connectivity from the given points of
         a mesh. It modifies attributes of the :class:`Mesh` instance.
 
+        By default it just calls :meth:`Mesh.cells.compute_min_length`. When
+        subclassing, create you connectivity first, than call
+        :meth`super().create_connectivity`
+
         It takes into account the nature of the cell composing the
         mesh, e.g. quadrangles.
 
@@ -130,7 +140,9 @@ class Cell(metaclass=abc.ABCMeta):
             connectivity
 
         """
-        raise NotImplementedError
+
+        cls._generate_ghosts(mesh)
+        mesh.cells.compute_min_length()
 
     @classmethod
     @abc.abstractmethod
@@ -138,6 +150,7 @@ class Cell(metaclass=abc.ABCMeta):
         """This method exports the connectivity of the mesh in the format
         accepted by the :class:`~meshio.Mesh`.
         """
+        raise NotImplementedError
 
 
 class SimpleCell(Cell):
@@ -261,7 +274,7 @@ class SimpleCell(Cell):
         r"""This class method computes the normal to a face from its points.
 
         The normal is computed as the ortogonal vector to the vector made
-        by the two given points obtained doing a CW rotation
+        by the two given points obtained doing a CW rotation of 90 degrees
 
         .. todo::
 
@@ -335,67 +348,71 @@ class SimpleCell(Cell):
         # TODO: This can be probably vectorized
         for i in range(nx):
             for j in range(ny):
-                p0 = np.asarray((x[i, j + 1], y[i, j + 1]))
-                p1 = np.asarray((x[i, j], y[i, j]))
-                p2 = np.asarray((x[i + 1, j], y[i + 1, j]))
-                p3 = np.asarray((x[i + 1, j + 1], y[i + 1, j + 1]))
+                nw = np.asarray((x[i, j + 1], y[i, j + 1]))
+                sw = np.asarray((x[i, j], y[i, j]))
+                se = np.asarray((x[i + 1, j], y[i + 1, j]))
+                ne = np.asarray((x[i + 1, j + 1], y[i + 1, j + 1]))
 
                 points[i, j, :, :] = np.vstack(
-                    (p0, p1, p2, p3)
+                    (nw, sw, se, ne)
                 )  # type: ignore # noqa: E501
                 cells.centroids[i, j, :] = cls.centroid(
-                    p0, p1, p2, p3
+                    nw, sw, se, ne
                 )  # type: ignore # noqa: E501
                 cells.volumes[i, j] = cls.volume(
-                    p0, p1, p2, p3
+                    nw, sw, se, ne
                 )  # type: ignore # noqa: E501
 
                 cells.surfaces[i, j, NormalDirection.LEFT] = cls.face_surface(
-                    p0, p1
+                    nw, sw
                 )  # type: ignore # noqa: E501
                 cells.surfaces[
                     i, j, NormalDirection.BOTTOM
                 ] = cls.face_surface(
-                    p1, p2
+                    sw, se
                 )  # type: ignore # noqa: E501
                 cells.surfaces[i, j, NormalDirection.RIGHT] = cls.face_surface(
-                    p2, p3
+                    se, ne
                 )  # type: ignore # noqa: E501
                 cells.surfaces[i, j, NormalDirection.TOP] = cls.face_surface(
-                    p3, p0
+                    ne, nw
                 )  # type: ignore # noqa: E501
 
                 cells.normals[i, j, NormalDirection.LEFT, :] = cls.face_normal(
-                    p0, p1
+                    nw, sw
                 )  # type: ignore # noqa: E501
                 cells.normals[
                     i, j, NormalDirection.BOTTOM, :
                 ] = cls.face_normal(
-                    p1, p2
+                    sw, se
                 )  # type: ignore # noqa: E501
 
                 cells.normals[
                     i, j, NormalDirection.RIGHT, :
                 ] = cls.face_normal(
-                    p2, p3
+                    se, ne
                 )  # type: ignore # noqa: E501
                 cells.normals[i, j, NormalDirection.TOP, :] = cls.face_normal(
-                    p3, p0
+                    ne, nw
                 )  # type: ignore # noqa: E501
 
         # Assign back to mesh object
         mesh.points = points
         mesh.cells = cells
 
-        cls._generate_ghosts(mesh)
+        super().create_connectivity(mesh)
 
     @classmethod
     def _generate_ghosts(cls, mesh: Mesh):
         r"""
         Generate ghost cells centroids ortogonal to
         :math:\hat{\vb{x}},\hat{\vb{y}},\hat{\vb{z}}
+        at unitary distance
 
         """
+
+        mesh.cells.compute_min_length()
+
         for boundary in mesh.boundaries:
             side = boundary.side
             boundary_idx = boundary.cells_idx
@@ -407,7 +424,8 @@ class SimpleCell(Cell):
 
             # Compute the ghost cells centroids
             mesh.cells._centroids[ghost_idx[0], ghost_idx[1]] = (
-                boundary_centroids + cls._side_normal[side.name]
+                boundary_centroids
+                + cls._side_normal[side.name] * mesh.cells.min_length
             )
 
     @classmethod

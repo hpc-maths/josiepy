@@ -97,7 +97,7 @@ class Problem(metaclass=abc.ABCMeta):
         """
         pass
 
-    def D(self, cells: Union[CellSet, MeshCellSet]) -> np.ndarray:
+    def K(self, cells: Union[CellSet, MeshCellSet]) -> np.ndarray:
         r"""This returns the tensor that pre-multiplies the gradient in the
         diffusive term of the problem.
 
@@ -124,7 +124,7 @@ class Problem(metaclass=abc.ABCMeta):
         """
         pass
 
-    def s(self, cells: Union[CellSet, MeshCellSet], t) -> State:
+    def s(self, cells: Union[CellSet, MeshCellSet], t: float) -> State:
         r"""This returns the values of the source terms
 
         A general problem can be written in a compact way:

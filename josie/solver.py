@@ -129,6 +129,7 @@ class Solver:
         """
 
         self.scheme.update(self.mesh, dt, self.t)
+        self.t += dt
 
     def plot(self):
         """Plot the current state of the simulation in a GUI."""

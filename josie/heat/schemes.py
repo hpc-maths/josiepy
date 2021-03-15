@@ -1,5 +1,5 @@
 # josiepy
-# Copyright © 2019 Ruben Di Battista
+# Copyright © 2021 Ruben Di Battista
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -24,35 +24,21 @@
 # The views and conclusions contained in the software and documentation
 # are those of the authors and should not be interpreted as representing
 # official policies, either expressed or implied, of Ruben Di Battista.
-""" General purpose math primitives """
-import numpy as np
-
-from enum import IntEnum
-
-from .dimension import MAX_DIMENSIONALITY
+from __future__ import annotations
 
 
-def map01to(x, a, b):
-    r""" Maps :math:`x` in :math:`[0, 1] \to [a, b]` """
+from josie.mesh.cellset import MeshCellSet
+from josie.scheme.diffusive import DiffusiveScheme
 
-    return (b - a) * x + a
-
-
-class Direction(IntEnum):
-    """An :class:`Enum` encapsulating the coordinates indices"""
-
-    X = 0
-    Y = 1
-    Z = 2
+from .problem import HeatProblem
 
 
-class R3:
-    """An :class:`Enum` encapsulating the unit vectors for a cartesia R2
-    space
-    """
+class HeatScheme(DiffusiveScheme):
+    def __init__(self, problem: HeatProblem):
+        super().__init__(problem)
 
-    _eye = np.eye(MAX_DIMENSIONALITY)
+    def CFL(self, cells: MeshCellSet, CFL_value: float) -> float:
+        # Min mesh dx
+        dx = cells.min_length
 
-    X = _eye[:, Direction.X]
-    Y = _eye[:, Direction.Y]
-    # Z = _eye[:, Direction.Z]
+        return CFL_value * (dx ** 2) / 2

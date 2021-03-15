@@ -15,8 +15,8 @@ from nbconvert.preprocessors import (
 
 @dataclass
 class RegexReplace:
-    """ A :mod:`dataclass` used to store regex patterns and their replacements
-    """
+    """A :mod:`dataclass` used to store regex patterns and their
+    replacements"""
 
     regex: str
     replace: str
@@ -47,8 +47,7 @@ class SkipPreprocessor(Preprocessor):
 
 
 class CleanOutputPreprocessor(TagRemovePreprocessor):
-    """ A pre-processor that removes cells tagged with ``remove_output``
-    """
+    """A pre-processor that removes cells tagged with ``remove_output``"""
 
     remove_all_outputs_tags = set(["remove_output"])
     remove_cell_tags = set(["skip_conversion"])
@@ -78,7 +77,7 @@ class BinderBadgePreprocessor(Preprocessor):
 
 
 class MathFixPreprocessor(Preprocessor):
-    """ This preprocessor fix the markdown for the math formulas using
+    """This preprocessor fix the markdown for the math formulas using
     the :mod`recommonmark` notation
     """
 
@@ -101,7 +100,7 @@ class MathFixPreprocessor(Preprocessor):
 
 
 class MplInlinePreprocessor(MathFixPreprocessor):
-    """ This preprocessors replaces the magic command for matplolib to
+    """This preprocessors replaces the magic command for matplolib to
     :code:`inline`.
     """
 
@@ -109,7 +108,7 @@ class MplInlinePreprocessor(MathFixPreprocessor):
 
 
 class MdBinderExporter(TemplateExporter):
-    """ A :mod:`nbconvert` exporter that exports Notebooks as markdown files
+    """A :mod:`nbconvert` exporter that exports Notebooks as markdown files
     with a Binder badge on top ready to be used in Sphinx documentation
     """
 

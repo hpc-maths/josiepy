@@ -1,5 +1,5 @@
 # josiepy
-# Copyright © 2020 Ruben Di Battista
+# Copyright © 2021 Ruben Di Battista
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -24,39 +24,18 @@
 # The views and conclusions contained in the software and documentation
 # are those of the authors and should not be interpreted as representing
 # official policies, either expressed or implied, of Ruben Di Battista.
-import abc
 import numpy as np
 
-from josie._dim import MAX_DIMENSIONALITY
-from josie.mesh.cellset import MeshCellSet, CellSet
-
-from .scheme import Scheme
+from josie.scheme import Scheme
+from josie.mesh.cellset import MeshCellSet, NeighboursCellSet
 
 
 class DiffusiveScheme(Scheme):
-    r"""A mixin that provides the scheme implementation for the diffusive
-    term"""
+    """A mixin that provides the scheme interface for the diffusive term. The
+    :class:`DiffusiveScheme` needs to implement a strategy to approximate the
+    state gradient at the cell interface with its neighbour"""
 
-    _gradient: np.ndarray
-
-    def post_init(self, cells: MeshCellSet):
-        r"""Initialize the datastructure holding the gradient
-        :math:`\pdeGradient, \ipdeGradient` per each cell
-        """
-
-        nx, ny, num_state = cells.values.shape
-
-        super().post_init(cells)
-
-        self._gradient = np.zeros((nx, ny, num_state, MAX_DIMENSIONALITY))
-
-    def pre_step(self, cells: MeshCellSet):
-        super().pre_step(cells)
-
-        self._gradient.fill(0)
-
-    @abc.abstractmethod
-    def D(self, cells: MeshCellSet, neighs: CellSet) -> np.ndarray:
+    def D(self, cells: MeshCellSet, neighs: NeighboursCellSet) -> np.ndarray:
         r"""This is the diffusive flux implementation of the scheme. See
         :cite:`toro_riemann_2009` for a great overview on numerical methods for
         hyperbolic problems.
@@ -84,8 +63,8 @@ class DiffusiveScheme(Scheme):
             The values of the state fields in each cell
 
         neighs
-            A :class:`CellSet` containing data of neighbour cells corresponding
-            to the :attr:`values`
+            A :class:`NeighboursCellSet` containing data of neighbour cells
+            corresponding to the :attr:`values`
 
         Returns
         -------
@@ -94,8 +73,15 @@ class DiffusiveScheme(Scheme):
             the surface value :math:`\numDiffusive`
         """
 
-        pass
-
-    def accumulate(self, cells: MeshCellSet, neighs: CellSet, t: float):
-
         raise NotImplementedError
+
+    def accumulate(
+        self, cells: MeshCellSet, neighs: NeighboursCellSet, t: float
+    ):
+
+        # Compute fluxes computed eventually by the other terms
+        super().accumulate(cells, neighs, t)
+
+        # Add conservative contribution
+        self._fluxes -= self.D(cells, neighs)
+        #

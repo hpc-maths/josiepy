@@ -29,7 +29,7 @@ from __future__ import annotations
 import abc
 import numpy as np
 
-from typing import Callable, Optional, Tuple, TYPE_CHECKING, Union
+from typing import Callable, Tuple, TYPE_CHECKING, Union
 
 from josie.state import Fields, State
 
@@ -98,7 +98,7 @@ class ScalarBC(abc.ABC):
     def __call__(
         self,
         cells: CellSet,
-        ghost_cells: Optional[np.ndarray],
+        ghost_cells: CellSet,
         field: Fields,
         t: float,
     ) -> np.ndarray:
@@ -106,10 +106,10 @@ class ScalarBC(abc.ABC):
         Parameters
         ----------
         cells:
-            A :class:`MeshCellSet` containing the state of the mesh cells
+            A :class:`CellSet` containing the state of the mesh cells
 
         ghosts_cells
-            A :class:`MeshCellSet` containing the ghost cells associated to the
+            A :class:`CellSet` containing the ghost cells associated to the
             :class:`Boundary` the :class:`BoundaryCondition` is applied to
 
         field
@@ -172,7 +172,7 @@ class Dirichlet(ScalarBC):
     def __call__(
         self,
         cells: CellSet,
-        ghost_cells: Optional[np.ndarray],  # Not used in BC
+        ghost_cells: CellSet,
         field: Fields,
         t: float,
     ) -> np.ndarray:
@@ -211,7 +211,7 @@ class Neumann(Dirichlet):
     def __call__(
         self,
         cells: CellSet,
-        ghost_cells: Optional[np.ndarray],  # Not used in BC
+        ghost_cells: CellSet,
         field: Fields,
         t: float,
     ) -> np.ndarray:
@@ -275,26 +275,26 @@ class NeumannDirichlet(ScalarBC):
     def __call__(
         self,
         cells: CellSet,
-        ghost_cells: Optional[np.ndarray],  # Not used in BC
+        ghost_cells: CellSet,
         field: Fields,
         t: float,
     ) -> np.ndarray:
 
         # First apply Neumann to everything
-        ghost_values = self.neumann(cells, None, field, t)
+        ghost_values = self.neumann(cells, ghost_cells, field, t)
 
         # Then extract the cells where to apply the Dirichlet BC
         dirichlet_cells = self.partition_fun(cells.centroids)
 
         # Apply the Dirichlet BC to the subset of cells
         ghost_values[dirichlet_cells] = self.dirichlet(
-            cells[dirichlet_cells], None, field, t
+            cells[dirichlet_cells], ghost_cells, field, t
         )
 
         return ghost_values
 
 
-class Side(NoAliasEnum):
+class PeriodicSide(NoAliasEnum):
     """A Enum encapsulating the 4 indexing possibilities of a :class:`Periodic`
     :class:`ScalarBC`"""
 
@@ -328,7 +328,7 @@ class Periodic(BoundaryCondition):
         If `side` is not recognized
     """
 
-    def __init__(self, side: Side):
+    def __init__(self, side: PeriodicSide):
         self._side = side
 
     def __call__(self, cells: MeshCellSet, boundary: Boundary, t: float):
@@ -365,11 +365,11 @@ def make_periodic(
     """
 
     if direction is Direction.X:
-        first.bc = Periodic(Side.LEFT)
-        second.bc = Periodic(Side.RIGHT)
+        first.bc = Periodic(PeriodicSide.LEFT)
+        second.bc = Periodic(PeriodicSide.RIGHT)
     elif direction is Direction.Y:
-        first.bc = Periodic(Side.BOTTOM)
-        second.bc = Periodic(Side.TOP)
+        first.bc = Periodic(PeriodicSide.BOTTOM)
+        second.bc = Periodic(PeriodicSide.TOP)
     else:
         raise ValueError(f"Unknown direction. Expecting a {Direction} object")
 

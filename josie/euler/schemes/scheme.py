@@ -32,7 +32,7 @@ from typing import TYPE_CHECKING
 
 from josie.euler.problem import EulerProblem
 from josie.euler.state import Q
-from josie.scheme import ConvectiveScheme
+from josie.scheme.convective import ConvectiveScheme
 
 
 if TYPE_CHECKING:
@@ -126,7 +126,7 @@ class EulerScheme(ConvectiveScheme):
 
         sigma = np.max(np.abs(U) + c[..., np.newaxis])
 
-        # Min face surface
-        dx = np.min(cells.volumes[..., np.newaxis] / cells.surfaces)
+        # Min mesh dx
+        dx = cells.min_length
 
         return CFL_value * dx / sigma

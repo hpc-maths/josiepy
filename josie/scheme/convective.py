@@ -34,7 +34,7 @@ from .scheme import Scheme
 
 
 if TYPE_CHECKING:
-    from josie.mesh.cellset import CellSet, MeshCellSet
+    from josie.mesh.cellset import NeighboursCellSet, MeshCellSet
     from josie.state import State
 
 
@@ -49,7 +49,7 @@ class ConvectiveScheme(Scheme):
     """
 
     @abc.abstractmethod
-    def F(self, cells: MeshCellSet, neighs: CellSet) -> State:
+    def F(self, cells: MeshCellSet, neighs: NeighboursCellSet) -> State:
         r"""This is the convective flux implementation of the scheme. See
         :cite:`toro_riemann_2009` for a great overview on numerical methods for
         hyperbolic problems.
@@ -77,8 +77,8 @@ class ConvectiveScheme(Scheme):
             A :class:`MeshCellSet` containing the state of the mesh cells
 
         neighs
-            A :class:`CellSet` containing data of neighbour cells corresponding
-            to the :attr:`values`
+            A :class:`NeighboursCellSet` containing data of neighbour cells
+            corresponding to the :attr:`values`
 
         Returns
         -------
@@ -89,7 +89,9 @@ class ConvectiveScheme(Scheme):
         """
         raise NotImplementedError
 
-    def accumulate(self, cells: MeshCellSet, neighs: CellSet, t: float):
+    def accumulate(
+        self, cells: MeshCellSet, neighs: NeighboursCellSet, t: float
+    ):
 
         # Compute fluxes computed eventually by the other terms (diffusive,
         # nonconservative, source)
