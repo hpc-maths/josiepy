@@ -88,7 +88,9 @@ class DiffusiveScheme(Scheme):
         # Min mesh dx
         dx = cells.min_length
 
-        new_dt = CFL_value * (dx ** 2) / 2
+        viscosity = np.max(self.problem.K(cells))
+
+        new_dt = CFL_value * (dx ** 2) / 2 / viscosity
 
         return np.min((dt, new_dt))
 
