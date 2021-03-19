@@ -329,6 +329,19 @@ class MeshCellSet(CellSet):
     def values(self, values: State):
         self._values[1:-1, 1:-1, :] = values
 
+    def init_bcs(self, boundaries: Iterable[Boundary]):
+        """Inits the data structures used by the :class:`BoundaryCondition`
+        objects attached to each :class:`Boundary`
+
+        Parameters
+        ----------
+        boundaries
+            The :class:`Boundary` objects holding the
+            :class:`BoundaryCondition` callables
+        """
+        for boundary in boundaries:
+            boundary.init_bc(self)
+
     def update_ghosts(self, boundaries: Iterable[Boundary], t: float):
         """This method updates the ghost cells of the mesh with the current
         values depending on the specified boundary condition
@@ -344,4 +357,4 @@ class MeshCellSet(CellSet):
         """
 
         for boundary in boundaries:
-            boundary.bc(self, t)
+            boundary.apply_bc(self, t)

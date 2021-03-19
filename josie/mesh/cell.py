@@ -366,7 +366,9 @@ class SimpleCell(Cell):
                 cells.surfaces[i, j, NormalDirection.LEFT] = cls.face_surface(
                     nw, sw
                 )  # type: ignore # noqa: E501
-                cells.surfaces[i, j, NormalDirection.BOTTOM] = cls.face_surface(
+                cells.surfaces[
+                    i, j, NormalDirection.BOTTOM
+                ] = cls.face_surface(
                     sw, se
                 )  # type: ignore # noqa: E501
                 cells.surfaces[i, j, NormalDirection.RIGHT] = cls.face_surface(
@@ -385,7 +387,9 @@ class SimpleCell(Cell):
                     sw, se
                 )  # type: ignore # noqa: E501
 
-                cells.normals[i, j, NormalDirection.RIGHT, :] = cls.face_normal(
+                cells.normals[
+                    i, j, NormalDirection.RIGHT, :
+                ] = cls.face_normal(
                     se, ne
                 )  # type: ignore # noqa: E501
                 cells.normals[i, j, NormalDirection.TOP, :] = cls.face_normal(

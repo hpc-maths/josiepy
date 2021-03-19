@@ -120,7 +120,10 @@ class LeastSquareGradient(DiffusiveScheme):
 
             # Weight by the inverse of the relative vector norm squared. Ie
             # the trace of each A matrix per each cell
-            w = 1 / np.trace(A, axis1=-1, axis2=-2)[..., np.newaxis, np.newaxis]
+            w = (
+                1
+                / np.trace(A, axis1=-1, axis2=-2)[..., np.newaxis, np.newaxis]
+            )
 
             # Add to global A
             self._A += A * w
