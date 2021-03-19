@@ -45,20 +45,6 @@ if TYPE_CHECKING:
     ImposedValue = Union[BCCallable, State, Number]
 
 
-class SetValueCallable:
-    """Used to convert the bare float value to a callable returning constant
-    value for all the cells. Used for :class:`Dirichlet` and children classes
-    """
-
-    def __init__(self, value: Number):
-        self._value = value
-
-    def __call__(self, cells: CellSet, t: float) -> np.ndarray:
-        # Dimension of the returned array is the size of 1 field. We take the
-        # first one [0]
-        return np.ones_like(cells.values[..., 0]) * self._value
-
-
 class BoundaryCondition:
     """A :class:`BoundaryCondition` is a collection of
     :class:`ScalarBC`, one per each :attr:`~.State.fields` of
@@ -115,6 +101,20 @@ class BoundaryCondition:
             cells._values[ghost_idx[0], ghost_idx[1], field] = self.bc[field](
                 boundary_cells, ghost_cells, field, t
             )
+
+
+class SetValueCallable:
+    """Used to convert the bare float value to a callable returning constant
+    value for all the cells. Used for :class:`Dirichlet` and children classes
+    """
+
+    def __init__(self, value: Number):
+        self._value = value
+
+    def __call__(self, cells: CellSet, t: float) -> np.ndarray:
+        # Dimension of the returned array is the size of 1 field. We take the
+        # first one [0]
+        return np.ones_like(cells.values[..., 0]) * self._value
 
 
 class ScalarBC(abc.ABC):
@@ -244,7 +244,7 @@ class Dirichlet(ScalarBC):
     set_value: BCCallable
     _const_cls = "_ConstantDirichlet"
 
-    def __new__(cls, value: ImposedValue, constant: bool = False):
+    def __new__(cls, value: ImposedValue, constant: bool = False):  # type: ignore # noqa: E501
 
         # Sorry, this is a bit of black magic to make defining various type of
         # BCs easier on the user side
