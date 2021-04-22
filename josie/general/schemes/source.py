@@ -68,8 +68,8 @@ class ConstantSource(SourceScheme):
         self, cells: MeshCellSet, neighs: NeighboursCellSet, t: float
     ) -> State:
         """We do not use the :meth:`accumulate` method to put source
-        contribution into the fluxes but we do in in :meth:`pre_step`, because
-        we do not need to do it for each face of the cell"""
+        contribution into the fluxes but we do in in :meth:`pre_accumulate`,
+        because we do not need to do it for each face of the cell"""
 
         return np.zeros_like(cells.values)
 
