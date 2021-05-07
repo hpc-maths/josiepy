@@ -9,6 +9,8 @@
 /examples/.ipynb_checkpoints
 /examples/*.py
 /examples/*.rst
+/examples/*.nbconvert.*
+/examples/results/
 
 # Testing stuff
 prof/
