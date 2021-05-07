@@ -27,6 +27,8 @@
 import abc
 import os
 
+import logging
+
 from typing import List
 
 from meshio.xdmf import TimeSeriesWriter
@@ -34,6 +36,8 @@ from meshio.xdmf import TimeSeriesWriter
 from josie.solver import Solver
 
 from .strategy import NoopStrategy, Strategy
+
+logger = logging.getLogger(__name__)
 
 
 class Writer(abc.ABC):
@@ -78,10 +82,12 @@ class Writer(abc.ABC):
         internal state of the Writer and saves current solver state to the file
         if needed
         """
+        logger.info("Solving...")
 
         solver = self.solver
 
         while self.solver.t < self.final_time:
+            logger.info(f"Current time: {self.solver.t}")
 
             dt = solver.scheme.CFL(
                 solver.mesh.cells,
