@@ -374,7 +374,7 @@ class Neumann(Dirichlet):
 
 
 class _ConstantNeumann(_ConstantDirichlet):
-    """An optimized version of :class:`Dirichlet` to be used if the
+    """An optimized version of :class:`Neumann` to be used if the
     :class:`Mesh` is non-dynamic and the value to impose is constant in time.
 
     It avoids to recompute the value at each time step
