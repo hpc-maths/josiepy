@@ -16,12 +16,20 @@ must be installed using `pipenv`.
 pipenv --dev install
 ```
 
+If you want to run the [examples](./examples), you also need to install Jupyter
+
+```
+pip install jupyter
+```
+
+
 ## Developer Notes
 ### Install
 
 ```
 pipenv install --dev
 ```
+
 ### Submodules
 This repository contains `submodules`. Clone it using `--recursive`  or don't
 forget to `git submodule update --init --recursive`
