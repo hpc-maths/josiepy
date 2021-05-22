@@ -25,6 +25,7 @@ sphinx-markdown-tables = "*"
 sphinx-rtd-theme = "*"
 sphinxcontrib-bibtex = "*"
 pytest-profiling = "*"
+jinja2 = "<3.0.0"
 
 [packages]
 josiepy = {path = "."}
