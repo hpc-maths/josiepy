@@ -12,7 +12,7 @@ stages:
 before_script:
     - apt-get update && apt-get install -y build-essential
     - pip install pipenv
-    - pipenv install --system --dev --skip-lock
+    - pipenv install --system --dev 
     - pip install jupyter
 
 
@@ -36,10 +36,11 @@ test:
     script: 
         - git fetch origin master
         - git checkout origin/master
-        - pipenv install --system --dev --skip-lock
+        - pipenv install --system --dev 
         - pytest --bench 
         - git checkout $CI_COMMIT_REF_NAME
-        - pipenv install --system --dev --skip-lock
+        - pipenv clean
+        - pipenv install --system --dev 
         - pytest --bench --benchmark-compare=0001 --benchmark-compare-fail=min:10%
     only:
         - merge_requests
