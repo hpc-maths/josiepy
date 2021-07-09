@@ -116,7 +116,7 @@ def scheme():
 
 @pytest.fixture
 def solver(mesh, Q, scheme, init_fun):
-    """ A dummy solver instance with initiated state """
+    """A dummy solver instance with initiated state"""
 
     solver = NSSolver(mesh, scheme)
     solver.init(init_fun)
@@ -131,7 +131,7 @@ def test_poiseuille(solver, plot):
     final_time = 10
     CFL = 0.5
 
-    write_strategy = TimeStrategy(dt_save=0.05)
+    write_strategy = TimeStrategy(dt_save=0.05, animate=True)
     writer = XDMFWriter("ns.xdmf", write_strategy, solver, final_time, CFL)
     writer.solve()
 
