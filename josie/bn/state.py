@@ -93,8 +93,8 @@ class BaerPhaseState(PhaseState):
     full_state_fields = BaerFields
 
 
-class BaerPhaseConsState(SubsetState):
-    """ State array for conservative part of the state of one single phase """
+class BaerConsState(SubsetState):
+    """ State array for conservative part of the state"""
 
     fields = BaerConsFields
     full_state_fields = BaerFields
@@ -119,11 +119,11 @@ class Q(TwoFluidState):
     :math:`\alpha`"""
 
     fields = BaerFields
-    cons_state = BaerPhaseConsState
+    cons_state = BaerConsState
     phase_state = BaerPhaseState
 
-    def get_conservative(self) -> BaerPhaseConsState:
-        return super().get_conservative().view(BaerPhaseConsState)
+    def get_conservative(self) -> BaerConsState:
+        return super().get_conservative().view(BaerConsState)
 
     def get_phase(self, phase: Phases) -> BaerPhaseState:
         return super().get_phase(phase).view(BaerPhaseState)
