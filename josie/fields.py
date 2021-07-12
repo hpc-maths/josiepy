@@ -51,6 +51,9 @@ class Field(int):
 
         return obj
 
+    def __repr__(self):
+        return f"<{self.name}: {self.value}>"
+
 
 class FieldsMeta(type):
     """This metaclass reproduces in a simpler form the behaviour of
@@ -95,7 +98,7 @@ class FieldsMeta(type):
         clsname: Optional[str] = None,
         fields: Optional[dict] = None,
         *args,
-        **kwargs
+        **kwargs,
     ):
         """ Functional creation """
         metacls = cls.__class__
@@ -112,6 +115,9 @@ class FieldsMeta(type):
                 "This class is used like an `Enum`. "
                 "Can't be directly instantiated"
             )
+
+    def __getitem__(self, idx):
+        return self._field_values[idx]
 
     def __len__(self):
         return self._len

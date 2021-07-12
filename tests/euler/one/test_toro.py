@@ -16,7 +16,7 @@ from josie.mesh.cellset import MeshCellSet
 from josie.euler.eos import PerfectGas
 from josie.euler.exact import Exact
 from josie.euler.solver import EulerSolver
-from josie.euler.state import Q
+from josie.euler.state import EulerState
 
 
 def relative_error(a, b):
@@ -33,10 +33,11 @@ def riemann2Q(state, eos):
     V = state.V
     p = state.p
     rhoe = eos.rhoe(rho, p)
-    E = rhoe / rho + 0.5 * (U ** 2 + V ** 2)
+    e = rhoe / rho
+    E = e + 0.5 * (U ** 2 + V ** 2)
     c = eos.sound_velocity(rho, p)
 
-    return Q(rho, rho * U, rho * V, rho * E, rhoe, U, V, p, c)
+    return EulerState(rho, rho * U, rho * V, rho * E, rhoe, U, V, p, c, e)
 
 
 def test_toro(toro_riemann_state, Scheme, plot, request):
@@ -112,13 +113,13 @@ def test_toro(toro_riemann_state, Scheme, plot, request):
         x = cells.centroids[..., Direction.X]
         x = x.reshape(x.size)
 
-        rho = cells.values[..., Q.fields.rho]
+        rho = cells.values[..., EulerState.fields.rho]
         rho = rho.reshape(rho.size)
 
-        U = cells.values[..., Q.fields.U]
+        U = cells.values[..., EulerState.fields.U]
         U = U.reshape(U.size)
 
-        p = cells.values[..., Q.fields.p]
+        p = cells.values[..., EulerState.fields.p]
         p = p.reshape(p.size)
 
         (im1,) = ax1.plot(x, rho, "-", label="Numerical")

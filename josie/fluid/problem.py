@@ -26,12 +26,15 @@
 # official policies, either expressed or implied, of Ruben Di Battista.
 from __future__ import annotations
 
-
-from josie.scheme.diffusive import DiffusiveScheme
-
-from .problem import HeatProblem
+from josie.problem import Problem
+from josie.transport import Transport
 
 
-class HeatScheme(DiffusiveScheme):
-    def __init__(self, problem: HeatProblem):
-        super().__init__(problem)
+class DiffusiveProblem(Problem):
+    """A :class:`Problem` providing a :class:`Transport` attribute to compute
+    transport coefficients"""
+
+    def __init__(self, transport: Transport, **kwargs):
+        super().__init__(**kwargs)
+
+        self.transport = transport

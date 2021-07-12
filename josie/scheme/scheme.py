@@ -125,7 +125,8 @@ class Scheme(abc.ABC):
             CFL number
         """
 
-        raise NotImplementedError
+        # Return big value to allow super() calls for children classes
+        return 1e6
 
     @abc.abstractmethod
     def step(
@@ -241,6 +242,9 @@ class Scheme(abc.ABC):
         cells
             A :class:`MeshCellSet` containing the state of the mesh cells
         """
+
+        # TODO: The fluxes is too big. It should only be the number of
+        # equations without the auxiliary states
 
         # Initialize the datastructure containing the fluxes
         self._fluxes: State = np.empty_like(cells.values)

@@ -47,6 +47,10 @@ class EOS(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @abc.abstractmethod
+    def rho(self, p: ArrayAndScalar, e: ArrayAndScalar) -> ArrayAndScalar:
+        raise NotImplementedError
+
+    @abc.abstractmethod
     def sound_velocity(
         self, rho: ArrayAndScalar, p: ArrayAndScalar
     ) -> ArrayAndScalar:
@@ -71,7 +75,7 @@ class PerfectGas(EOS):
     def __init__(self, gamma: float = 1.4):
         self.gamma = gamma
 
-    def rhoe(self, rho: ArrayAndScalar, p: ArrayAndScalar):
+    def rhoe(self, rho: ArrayAndScalar, p: ArrayAndScalar) -> ArrayAndScalar:
         """This returns the internal energy multiplied by the density
 
         Parameters
@@ -93,7 +97,7 @@ class PerfectGas(EOS):
 
         return p / (self.gamma - 1)
 
-    def p(self, rho: ArrayAndScalar, e: ArrayAndScalar):
+    def p(self, rho: ArrayAndScalar, e: ArrayAndScalar) -> ArrayAndScalar:
         """This returns the pressure from density and internal energy
 
         Parameters
@@ -114,7 +118,32 @@ class PerfectGas(EOS):
         """
         return (self.gamma - 1) * np.multiply(rho, e)
 
-    def sound_velocity(self, rho: ArrayAndScalar, p: ArrayAndScalar):
+    def rho(self, p: ArrayAndScalar, e: ArrayAndScalar) -> ArrayAndScalar:
+        """This returns the sound velocity from density and pressure
+
+        Parameters
+        ----------
+        p
+            A :class:`ArrayAndScalar` containing the values of the pressure
+            on the mesh cells
+
+        e
+            A :class:`ArrayAndScalar` containing the values of the internal
+            energy on the mesh cells
+
+
+        Returns
+        -------
+        rho
+            A :class:`ArrayAndScalar` containing the values of the density on
+            the mesh cells
+        """
+
+        return p / (self.gamma - 1) / e
+
+    def sound_velocity(
+        self, rho: ArrayAndScalar, p: ArrayAndScalar
+    ) -> ArrayAndScalar:
         """This returns the sound velocity from density and pressure
 
         Parameters
@@ -149,6 +178,9 @@ class StiffenedGas(PerfectGas):
     def p(self, rho: ArrayAndScalar, e: ArrayAndScalar) -> ArrayAndScalar:
 
         return (self.gamma - 1) * np.multiply(rho, e) - self.p0 * self.gamma
+
+    def rho(self, p: ArrayAndScalar, e: ArrayAndScalar) -> ArrayAndScalar:
+        return (p + self.p0 * self.gamma) / (self.gamma - 1) / e
 
     def sound_velocity(
         self, rho: ArrayAndScalar, p: ArrayAndScalar

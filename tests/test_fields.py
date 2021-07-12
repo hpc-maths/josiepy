@@ -42,3 +42,11 @@ def test_field_value(fields):
 
 def test_field_names(fields):
     assert fields.names() == [f.name for f in fields]
+
+
+def test_field_getitem():
+    fields = Fields("Test", {"a": 0, "b": 1, "c": 2, "d": 3})
+
+    result = (fields[2], fields[3])
+
+    assert set(fields[2:4]) == set(result)

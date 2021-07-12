@@ -26,12 +26,51 @@
 # official policies, either expressed or implied, of Ruben Di Battista.
 from __future__ import annotations
 
+import abc
+import numpy as np
 
-from josie.scheme.diffusive import DiffusiveScheme
+from typing import TYPE_CHECKING, Union
 
-from .problem import HeatProblem
+from josie.transport import Transport
+
+if TYPE_CHECKING:
+    from josie.mesh.cellset import CellSet, MeshCellSet
 
 
-class HeatScheme(DiffusiveScheme):
-    def __init__(self, problem: HeatProblem):
-        super().__init__(problem)
+class HeatTransport(Transport):
+    """ A class providing the thermal diffusivity for the temperature """
+
+    @abc.abstractmethod
+    def thermal_diffusivity(
+        self, cells: Union[MeshCellSet, CellSet]
+    ) -> np.ndarray:
+        r"""Thermal diffusivity :math:`\thermalDiffusivity`.
+        Units: :math:`\qty[\si{\meter \per \square \second}]`
+
+        .. math::
+
+            \alpha =
+            \frac{\thermalConductivity}{\density \specificHeat_\pressure}
+        """
+        raise NotImplementedError
+
+
+class ConstantHeatTransport(HeatTransport):
+    r"""A :class:`HeatTransport` providing constant
+    :math:`\thermalDiffusivity`
+
+    Parameters
+    ----------
+    thermal_diffusivity
+        The constant value of the thermal diffusivity
+    """
+
+    def __init__(self, thermal_diffusivity: float):
+        self._thermal_diffusivity = thermal_diffusivity
+
+    def thermal_diffusivity(
+        self, cells: Union[MeshCellSet, CellSet]
+    ) -> np.ndarray:
+        nx, ny, num_fields = cells.values.shape
+
+        return np.ones((nx, ny)) * self._thermal_diffusivity

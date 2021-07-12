@@ -8,26 +8,35 @@ from josie.state import State, SubsetState
 from .fields import FluidFields
 
 
-class ConsSubsetState(SubsetState, abstract=True):
-    """A :class:`SubsetState` holding the conservative subset of a
-    system"""
-
-    pass
-
-
 class ConsState(State):
     """A mixin providing methods to retrieve the conservative part of a
     :class:`State`"""
 
-    cons_state: Type[ConsSubsetState]
+    cons_state: Type[SubsetState]
 
-    def get_conservative(self) -> State:
+    def get_conservative(self) -> SubsetState:
         """ Returns the conservative part of the state """
         return self[..., self.cons_state._subset_fields_map]
 
     def set_conservative(self, values: State):
         """ Set the conservative part of the state """
         self[..., self.cons_state._subset_fields_map] = values
+
+
+class DiffState(State):
+    """A mixin providing methods to retrieve the diffusive part of a
+    :class:`State`
+    """
+
+    diff_state: Type[SubsetState]
+
+    def get_diffusive(self) -> SubsetState:
+        """ Returns the diffusive part of the state """
+        return self[..., self.diff_state._subset_fields_map]
+
+    def set_diffusive(self, values: State):
+        """ Set the diffusive part of the state """
+        self[..., self.diff_state._subset_fields_map] = values
 
 
 class SingleFluidState(ConsState):

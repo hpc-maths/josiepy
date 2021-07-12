@@ -31,7 +31,7 @@ import numpy as np
 from typing import Tuple, TYPE_CHECKING
 
 from josie.math import Direction
-from josie.euler.state import Q
+from josie.euler.state import EulerState
 
 from .scheme import EulerScheme
 
@@ -105,10 +105,10 @@ class HLL(EulerScheme):
 
     def F(self, cells: MeshCellSet, neighs: NeighboursCellSet):
 
-        values: Q = cells.values.view(Q)
+        values: EulerState = cells.values.view(EulerState)
 
-        FS = np.zeros_like(values).view(Q)
-        Q_L, Q_R = values, neighs.values.view(Q)
+        FS = np.zeros_like(values).view(EulerState)
+        Q_L, Q_R = values, neighs.values.view(EulerState)
         fields = values.fields
 
         # Get normal velocities
@@ -161,12 +161,12 @@ class HLLC(HLL):
 
     def F(self, cells: MeshCellSet, neighs: NeighboursCellSet):
 
-        values: Q = cells.values.view(Q)
+        values: EulerState = cells.values.view(EulerState)
 
-        FS = np.zeros_like(values).view(Q)
+        FS = np.zeros_like(values).view(EulerState)
         F = np.zeros_like(values.get_conservative())
-        fields = Q.fields
-        Q_L, Q_R = values, neighs.values.view(Q)
+        fields = EulerState.fields
+        Q_L, Q_R = values, neighs.values.view(EulerState)
 
         # Get density
         rho_L = Q_L[..., np.newaxis, fields.rho]

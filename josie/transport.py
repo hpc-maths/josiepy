@@ -26,112 +26,11 @@
 # official policies, either expressed or implied, of Ruben Di Battista.
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Union
 
 import abc
-import numpy as np
-
-if TYPE_CHECKING:
-    from josie.mesh.cellset import CellSet, MeshCellSet
 
 
 class Transport(abc.ABC):
-    """A class providing the transport coefficients
+    """A class providing the transport coefficients"""
 
-    Parameters
-    ----------
-    cells
-        A reference to :class:`MeshCellSet`
-    """
-
-    @abc.abstractmethod
-    def momentum_diffusivity(self, cells: Union[MeshCellSet, CellSet]):
-        r"""Momentum diffusivity also called kinematic viscosity
-        :math:`\kinematicViscosity`.  Units: :math:`\qty[\si{\meter \per
-        \square \second}]`
-
-        .. math::
-
-            \kinematicViscosity = \frac{\viscosity}{\density}
-
-        being :math:`\viscosity` the dynamic viscosity
-
-        """
-        raise NotImplementedError
-
-    @abc.abstractmethod
-    def thermal_diffusivity(self, cells: Union[MeshCellSet, CellSet]):
-        r"""Thermal diffusivity :math:`\thermalDiffusivity`.
-        Units: :math:`\qty[\si{\meter \per \square \second}]`
-
-        .. math::
-
-            \alpha =
-            \frac{\thermalConductivity}{\density \specificHeat_\pressure}
-        """
-        raise NotImplementedError
-
-
-class ConstantTransport(Transport):
-    """A :class:`Transport` providing constant coefficients
-
-    Parameters
-    ----------
-    momentum_diffusivity
-        The constant value of the momentum diffusivity
-
-    thermal_diffusivity
-        The constant value of the thermal diffusivity
-    """
-
-    def __init__(
-        self,
-        momentum_diffusivity: float,
-        thermal_diffusivity: float,
-    ):
-        self._momentum_diffusivity = momentum_diffusivity
-        self._thermal_diffusivity = thermal_diffusivity
-
-    def momentum_diffusivity(self, cells: Union[MeshCellSet, CellSet]):
-        nx, ny, num_fields = cells.values.shape
-        dimensionality = cells.dimensionality
-
-        # FIXME: num_fields can be different from the number of fields in the
-        # state (`num_state`)
-
-        return (
-            np.ones(
-                (
-                    nx,
-                    ny,
-                    num_fields,
-                    num_fields,
-                    dimensionality,
-                    dimensionality,
-                )
-            )
-            * self._momentum_diffusivity
-        )
-
-    def thermal_diffusivity(self, cells: Union[MeshCellSet, CellSet]):
-        nx, ny, num_fields = cells.values.shape
-
-        nx, ny, num_fields = cells.values.shape
-        dimensionality = cells.dimensionality
-
-        # FIXME: num_fields can be different from the number of fields in the
-        # state (`num_state`)
-
-        return (
-            np.ones(
-                (
-                    nx,
-                    ny,
-                    num_fields,
-                    num_fields,
-                    dimensionality,
-                    dimensionality,
-                )
-            )
-            * self._thermal_diffusivity
-        )
+    pass

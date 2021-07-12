@@ -51,15 +51,16 @@ class CentralDifferenceGradient(DiffusiveScheme):
             \delta x = \norm{\vb{r_R} - \vb{r_L}}
         """
 
-        nx, ny, num_points = cells.values.shape
+        # TODO: Add num_dofs into the size to allow for multiple dofs in a
+        # single cell
+        nx, ny, _ = cells.values.shape
         dimensionality = cells.dimensionality
+        num_neighbours = 2 * dimensionality
 
         super().post_init(cells)
 
         # Norm of the relative distance
-        self._r = np.zeros(
-            (nx, ny, num_points, 2 * dimensionality, dimensionality)
-        )
+        self._r = np.zeros((nx, ny, num_neighbours))
 
         # Store a mapping between the index of the neighbour cell set and its
         # direction
@@ -74,23 +75,22 @@ class CentralDifferenceGradient(DiffusiveScheme):
                 - cells.centroids[..., :dimensionality]
             )
 
-            dx = np.linalg.norm(r, axis=-1, keepdims=True)
+            dx = np.linalg.norm(r, axis=-1)
 
-            # Store relative vector
-            self._r[..., idx, :] = dx
+            # Store relative vector norm
+            self._r[..., idx, np.newaxis] = dx
 
             # Store the position of the neighbour set, indexed by its direction
             self._directions[neighs.direction] = idx
 
     def D(self, cells: MeshCellSet, neighs: NeighboursCellSet):
         nx, ny, num_state = cells.values.shape
-        dimensionality = cells.dimensionality
 
         # Retrieve neighbour index
         idx = self._directions[neighs.direction]
 
         # Retrieve length of the relative vector between cell and neighbour
-        r = self._r[..., idx, :].reshape(nx, ny, dimensionality)
+        r = self._r[..., idx, np.newaxis]
 
         # Estimate the gradient in normal direction
         dQ = (neighs.values - cells.values) / r

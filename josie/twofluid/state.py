@@ -4,7 +4,7 @@ import re
 
 from typing import Any, Optional, Type
 
-from josie.fluid.state import ConsState, ConsSubsetState, SingleFluidState
+from josie.fluid.state import ConsState, SingleFluidState
 from josie.state import SubsetState
 from josie.twofluid import fields
 
@@ -69,10 +69,6 @@ class PhaseState(SubsetState, SingleFluidState, abstract=True):
                         phase_fields[fields.Phases.PHASE2].append(field)
 
             cls._subset_fields_map.update(phase_fields)
-
-
-class PhaseConsState(ConsSubsetState, abstract=True):
-    pass
 
 
 class TwoFluidState(ConsState):

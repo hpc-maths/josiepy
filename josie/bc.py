@@ -31,7 +31,7 @@ import numpy as np
 
 from typing import Callable, Tuple, TYPE_CHECKING, Union
 
-from josie.state import Fields, State
+from josie.state import State
 
 from .boundary import Boundary, BoundaryCurve
 from .data import NoAliasEnum
@@ -39,6 +39,24 @@ from .math import Direction
 
 if TYPE_CHECKING:
     from josie.mesh.cellset import CellSet, MeshCellSet
+
+    Number = Union[int, float]
+    BCCallable = Callable[[CellSet, float], np.ndarray]
+    ImposedValue = Union[BCCallable, State, Number]
+
+
+class SetValueCallable:
+    """Used to convert the bare float value to a callable returning constant
+    value for all the cells. Used for :class:`Dirichlet` and children classes
+    """
+
+    def __init__(self, value: Number):
+        self._value = value
+
+    def __call__(self, cells: CellSet, t: float) -> np.ndarray:
+        # Dimension of the returned array is the size of 1 field. We take the
+        # first one [0]
+        return np.ones_like(cells.values[..., 0]) * self._value
 
 
 class BoundaryCondition:
@@ -59,6 +77,17 @@ class BoundaryCondition:
 
     def __init__(self, bc: State):
         self.bc = bc
+
+    def init(self, cells: MeshCellSet, boundary: Boundary):
+        """Used to initialize the individual :class:`ScalarBC` per each
+        field"""
+
+        boundary_idx = boundary.cells_idx
+        boundary_cells = cells[boundary_idx]
+
+        # Apply init BC for each field
+        for field in self.bc.fields:
+            self.bc[field].init(boundary_cells)
 
     def __call__(self, cells: MeshCellSet, boundary: Boundary, t: float):
         """
@@ -83,7 +112,6 @@ class BoundaryCondition:
 
         # Apply BC for each field
         for field in self.bc.fields:
-
             cells._values[ghost_idx[0], ghost_idx[1], field] = self.bc[field](
                 boundary_cells, ghost_cells, field, t
             )
@@ -92,14 +120,36 @@ class BoundaryCondition:
 class ScalarBC(abc.ABC):
     """A :class:`ScalarBC` is implemented as a callable that sets the
     equivalent cell value for the ghost cells for the specific field
+
     """
+
+    def init(self, cells: CellSet):
+        """This method is used to initialize the datastructures used to store
+        the ghost values and avoid multiple allocations.
+
+        It's useful for constant :class:`ScalarBC` to avoid to recompute the
+        same value at each time step: you just store it ones here
+
+        By default it does nothing
+
+        Parameters
+        ----------
+        cells
+            The boundary cells to which this :class:`ScalarBC` is applied
+
+        field
+            The field on which this :class:`ScalarBC` is applied (i.e.
+            velocity)
+        """
+
+        pass
 
     @abc.abstractmethod
     def __call__(
         self,
         cells: CellSet,
         ghost_cells: CellSet,
-        field: Fields,
+        field: int,
         t: float,
     ) -> np.ndarray:
         """
@@ -149,11 +199,55 @@ class Dirichlet(ScalarBC):
     Parameters
     ----------
     value
-        The value of the field to be imposed on the boundary
-    """
-    _value: float
+        The value of the field to be imposed on the boundary. It can have
+        different types:
 
-    def __new__(cls, value: Union[State, float]):  # type: ignore
+        * A :class:`float`. Then it's the scalar constant value for the
+        individual field for which we want to apply the BC for. In this case
+        the object returned is of type :class:`_ConstantDirichlet` in order to
+        optimize since we know it's constant
+
+        * A :class:`BCCallable`. It is called on the cells of the boundary in
+        order to provide a non-constant boundary condition
+
+        * A :class:`State` of size :math:`\numberof{fields}`, each element is
+        one of the two previous options. Used as a shortcut to impose the same
+        :class:`ScalarBC` for all the fields
+
+    constant
+        Set this flag to ``True`` to explicitly force the creation of a
+        constant boundary condition. A constant BC is optimized to reduce the
+        number of calls.
+
+        :class:`Dirichlet` normally is capable to understand automatically if
+        you are providing a constant imposed value: if you provide a constant
+        scalar :class:`float` or :class:`int` (or a :class:`State` containing a
+        scalar value for each field). If you provide a :class:`BCCallable` then
+        it cannot automatically infer it your callable is actually only a
+        function of space (i.e. it does not change at every time step) or not.
+        If you want to optimize the call, you need to explicitly set
+        ``constant`` to ``True``.
+
+    Attributes
+    ----------
+    set_value
+        A :class:`SetValueCallable` that can be used to provide a specific
+        value the :class:`ScalarBC` needs to impose.
+        E.g.
+        * In the case of :class:`Dirichlet`, the :attr:`set_value` gives the
+        value of the fields to impose on the boundary.
+
+        * In the case of :class:`Neumann` it provides a callable that returns
+        the value of the gradient to impose on the boundary
+    """
+
+    set_value: BCCallable
+    _const_cls = "_ConstantDirichlet"
+
+    def __new__(cls, value: ImposedValue, constant: bool = False):
+
+        # Sorry, this is a bit of black magic to make defining various type of
+        # BCs easier on the user side
         if isinstance(value, State):
             # An entire state was provided as value of the Dirichlet BC, so
             # we return a BoundaryCondition with a Dirichlet BC for each
@@ -164,16 +258,58 @@ class Dirichlet(ScalarBC):
                 bcs.append(cls.__new__(cls, value[field]))
 
             return BoundaryCondition(np.array(bcs).view(type(value)))
+
+        elif isinstance(value, (int, float)):
+            # We transform the value to a callable that returns constant value
+            set_value: BCCallable = SetValueCallable(value)
+            constant = True
+
         else:
-            obj = super().__new__(cls)
-            obj._value = value
+            # value is already a BCCallable
+            set_value = value
+
+        if constant:
+            # We return the optimized constant variant
+            obj = super().__new__(globals()[cls._const_cls])
+            obj.set_value = set_value
             return obj
+
+        # Non-constant variant
+        obj = super().__new__(cls)
+        obj.set_value = set_value
+
+        return obj
 
     def __call__(
         self,
         cells: CellSet,
         ghost_cells: CellSet,
-        field: Fields,
+        field: int,
+        t: float,
+    ) -> np.ndarray:
+
+        # FIXME: Ignoring type because of this:
+        # https://github.com/python/mypy/issues/708
+        return 2 * self.set_value(cells, t) - cells.values[..., field]  # type: ignore # noqa: E501
+
+
+class _ConstantDirichlet(Dirichlet):
+    """An optimized version of :class:`Dirichlet` to be used if the
+    :class:`Mesh` is non-dynamic and the value to impose is constant in time.
+
+    It avoids to recompute the value at each time step
+    """
+
+    def init(self, cells: CellSet):
+        # FIXME: Ignoring type because of this:
+        # https://github.com/python/mypy/issues/708
+        self._value = self.set_value(cells, 0)  # type: ignore
+
+    def __call__(
+        self,
+        cells: CellSet,
+        ghost_cells: CellSet,
+        field: int,
         t: float,
     ) -> np.ndarray:
 
@@ -205,16 +341,53 @@ class Neumann(Dirichlet):
     Parameters
     ----------
     value
-        The value of the gradient of the field to be imposed on the boundary
+        The value of the field to be imposed on the boundary. It can have
+        different types:
+
+        * A :class:`float`. Then it's the scalar constant value for the
+        individual field for which we want to apply the BC for
+
+        * A :class:`Callable[[CellSet, t], np.ndarray]`. It is called on the
+        cells of the boundary in order to provide a non-constant boundary
+        condition
+
+        * A :class:`State` of size :math:`\numberof{fields}`, each element is
+        one of the two previous options. Used as a shortcut to impose the same
+        :class:`ScalarBC` for all the fields
+    """
+    _const_cls = "_ConstantNeumann"
+
+    def __call__(
+        self,
+        cells: CellSet,
+        ghost_cells: CellSet,
+        field: int,
+        t: float,
+    ) -> np.ndarray:
+
+        # TODO: Fix for non-zero gradient (need to add dx between the two
+        # cells, maybe pre-storing at the beginning if a Neumann BC is given
+
+        # FIXME: Ignoring type because of this:
+        # https://github.com/python/mypy/issues/708
+        return cells.values[..., field] - self.set_value(cells, t)  # type: ignore # noqa: E501
+
+
+class _ConstantNeumann(_ConstantDirichlet):
+    """An optimized version of :class:`Dirichlet` to be used if the
+    :class:`Mesh` is non-dynamic and the value to impose is constant in time.
+
+    It avoids to recompute the value at each time step
     """
 
     def __call__(
         self,
         cells: CellSet,
         ghost_cells: CellSet,
-        field: Fields,
+        field: int,
         t: float,
     ) -> np.ndarray:
+
         return cells.values[..., field] - self._value
 
 
@@ -242,8 +415,8 @@ class NeumannDirichlet(ScalarBC):
 
     def __new__(
         cls,
-        neumann_value: Union[State, float],
-        dirichlet_value: Union[State, float],
+        neumann_value: ImposedValue,
+        dirichlet_value: ImposedValue,
         partition_fun: Callable[[np.ndarray], np.ndarray],
     ):
         if isinstance(neumann_value, State) and isinstance(
@@ -272,23 +445,33 @@ class NeumannDirichlet(ScalarBC):
             obj.partition_fun = partition_fun
             return obj
 
+    def init(self, cells: CellSet):
+        # Store the partition of cells on which a Diriclet condition is imposed
+        self.dirichlet_cells = self.partition_fun(cells.centroids)
+
+        # Init internal state for the Neumann BC first on all the cells
+        self.neumann.init(cells)
+
+        # Override only the Dirichlet cells
+        self.dirichlet.init(cells[self.dirichlet_cells])
+
     def __call__(
         self,
         cells: CellSet,
         ghost_cells: CellSet,
-        field: Fields,
+        field: int,
         t: float,
     ) -> np.ndarray:
 
         # First apply Neumann to everything
         ghost_values = self.neumann(cells, ghost_cells, field, t)
 
-        # Then extract the cells where to apply the Dirichlet BC
-        dirichlet_cells = self.partition_fun(cells.centroids)
-
         # Apply the Dirichlet BC to the subset of cells
-        ghost_values[dirichlet_cells] = self.dirichlet(
-            cells[dirichlet_cells], ghost_cells, field, t
+        ghost_values[self.dirichlet_cells] = self.dirichlet(
+            cells[self.dirichlet_cells],
+            ghost_cells[self.dirichlet_cells],
+            field,
+            t,
         )
 
         return ghost_values
@@ -330,6 +513,10 @@ class Periodic(BoundaryCondition):
 
     def __init__(self, side: PeriodicSide):
         self._side = side
+
+    def init(self, cells: MeshCellSet, boundary: Boundary):
+        # Not needed for  Periodic to init anything
+        pass
 
     def __call__(self, cells: MeshCellSet, boundary: Boundary, t: float):
 

@@ -31,7 +31,7 @@ import numpy as np
 from typing import TYPE_CHECKING
 
 from josie.euler.problem import EulerProblem
-from josie.euler.state import Q
+from josie.euler.state import EulerState
 from josie.scheme.convective import ConvectiveScheme
 
 
@@ -56,7 +56,7 @@ class EulerScheme(ConvectiveScheme):
         :class:`~.EOS`
         """
 
-        values: Q = cells.values.view(Q)
+        values: EulerState = cells.values.view(EulerState)
 
         fields = values.fields
 
@@ -79,6 +79,7 @@ class EulerScheme(ConvectiveScheme):
         values[..., fields.V] = V
         values[..., fields.p] = p
         values[..., fields.c] = c
+        values[..., fields.e] = e
 
     @staticmethod
     def compute_U_norm(values: SingleFluidState, normals: np.ndarray):
@@ -114,7 +115,9 @@ class EulerScheme(ConvectiveScheme):
 
     def CFL(self, cells: MeshCellSet, CFL_value: float) -> float:
 
-        values: Q = cells.values.view(Q)
+        dt = super().CFL(cells, CFL_value)
+
+        values: EulerState = cells.values.view(EulerState)
         fields = values.fields
 
         # Get the velocity components
@@ -129,4 +132,6 @@ class EulerScheme(ConvectiveScheme):
         # Min mesh dx
         dx = cells.min_length
 
-        return CFL_value * dx / sigma
+        new_dt = CFL_value * dx / sigma
+
+        return np.min((dt, new_dt))

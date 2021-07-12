@@ -105,6 +105,7 @@ class Solver:
         # Note: Corner values are unused
 
         self.mesh.create_neighbours()
+        self.mesh.init_bcs()
         self.mesh.update_ghosts(self.t)
 
         # Initialize the scheme datastructures (notably the fluxes)

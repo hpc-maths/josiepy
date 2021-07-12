@@ -35,7 +35,7 @@ from josie.mesh.cellset import CellSet
 from josie.problem import Problem
 
 from .eos import EOS
-from .state import Q
+from .state import EulerState
 from .fields import ConsFields
 
 
@@ -48,7 +48,9 @@ class EulerProblem(Problem):
         An instance of :class:`~.EOS`, an equation of state for the fluid
     """
 
-    def __init__(self, eos: EOS):
+    def __init__(self, eos: EOS, **kwargs):
+        super().__init__(**kwargs)
+
         self.eos = eos
 
     def F(self, cells: CellSet) -> np.ndarray:
@@ -87,7 +89,7 @@ class EulerProblem(Problem):
                     (\rho E + p)U & (\rho E + p)V
                 \end{bmatrix}
         """
-        values: Q = cells.values.view(Q)
+        values: EulerState = cells.values.view(EulerState)
         fields = values.fields
 
         num_cells_x, num_cells_y, _ = values.shape

@@ -27,9 +27,10 @@ from __future__ import annotations
 
 from josie.fluid.fields import FluidFields
 from josie.twofluid.fields import Phases
-from josie.twofluid.state import TwoFluidState, PhaseState, PhaseConsState
+from josie.twofluid.state import TwoFluidState, PhaseState
 
-from josie.state import Fields
+from josie.fields import Fields
+from josie.state import SubsetState
 
 
 class BaerFields(Fields):
@@ -92,8 +93,8 @@ class BaerPhaseState(PhaseState):
     full_state_fields = BaerFields
 
 
-class BaerPhaseConsState(PhaseConsState):
-    """ State array for conservative part of the state of one single phase """
+class BaerConsState(SubsetState):
+    """ State array for conservative part of the state"""
 
     fields = BaerConsFields
     full_state_fields = BaerFields
@@ -118,11 +119,11 @@ class Q(TwoFluidState):
     :math:`\alpha`"""
 
     fields = BaerFields
-    cons_state = BaerPhaseConsState
+    cons_state = BaerConsState
     phase_state = BaerPhaseState
 
-    def get_conservative(self) -> BaerPhaseConsState:
-        return super().get_conservative().view(BaerPhaseConsState)
+    def get_conservative(self) -> BaerConsState:
+        return super().get_conservative().view(BaerConsState)
 
     def get_phase(self, phase: Phases) -> BaerPhaseState:
         return super().get_phase(phase).view(BaerPhaseState)

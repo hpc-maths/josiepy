@@ -30,7 +30,7 @@ import numpy as np
 
 from typing import TYPE_CHECKING
 
-from josie.euler.state import Q
+from josie.euler.state import EulerState
 
 from .scheme import EulerScheme
 
@@ -102,12 +102,12 @@ class Rusanov(EulerScheme):
 
     def F(self, cells: MeshCellSet, neighs: NeighboursCellSet):
 
-        Q_L: Q = cells.values.view(Q)
-        Q_R: Q = neighs.values.view(Q)
+        Q_L: EulerState = cells.values.view(EulerState)
+        Q_R: EulerState = neighs.values.view(EulerState)
 
-        fields = Q.fields
+        fields = EulerState.fields
 
-        FS = np.zeros_like(Q_L).view(Q)
+        FS = np.zeros_like(Q_L).view(EulerState)
 
         # Get normal velocities
         U_L = self.compute_U_norm(Q_L, neighs.normals)

@@ -177,10 +177,10 @@ class Mesh:
         """ This methods copies the :class:`Mesh` object into another """
 
         mesh = Mesh(
-            self.left,
-            self.bottom,
-            self.right,
-            self.top,
+            self.left.curve,
+            self.bottom.curve,
+            self.right.curve,
+            self.top.curve,
             self.cell_type,
             type(self.backend),
         )
@@ -288,6 +288,11 @@ class Mesh:
         that creates the internal connectivity for cell neighbours"""
 
         self.cells.create_neighbours()
+
+    def init_bcs(self):
+        """ Initializes :class:`BoundaryCondition` """
+
+        self.cells.init_bcs(self.boundaries)
 
     def update_ghosts(self, t: float):
         """This method updates the ghost cells of the mesh with the current

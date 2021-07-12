@@ -24,14 +24,14 @@
 # The views and conclusions contained in the software and documentation
 # are those of the authors and should not be interpreted as representing
 # official policies, either expressed or implied, of Ruben Di Battista.
+""" Navier-Stokes Equations take much of the implementations from :mod:`euler`
+"""
 from __future__ import annotations
 
-
-from josie.scheme.diffusive import DiffusiveScheme
-
-from .problem import HeatProblem
+from josie.fields import Fields
 
 
-class HeatScheme(DiffusiveScheme):
-    def __init__(self, problem: HeatProblem):
-        super().__init__(problem)
+class NSGradientFields(Fields):
+    U = 0
+    V = 1
+    rhoe = 2

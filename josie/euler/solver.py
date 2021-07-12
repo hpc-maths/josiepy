@@ -30,7 +30,7 @@ from typing import TYPE_CHECKING
 
 from josie.solver import Solver
 
-from .state import Q
+from .state import EulerState
 from .schemes import EulerScheme
 
 if TYPE_CHECKING:
@@ -42,4 +42,4 @@ class EulerSolver(Solver):
 
     def __init__(self, mesh: Mesh, scheme: EulerScheme):
 
-        super().__init__(mesh, Q, scheme)
+        super().__init__(mesh, EulerState, scheme)

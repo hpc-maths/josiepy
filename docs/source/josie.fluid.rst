@@ -12,6 +12,14 @@ josie.fluid.fields module
    :undoc-members:
    :show-inheritance:
 
+josie.fluid.problem module
+--------------------------
+
+.. automodule:: josie.fluid.problem
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 josie.fluid.state module
 ------------------------
 

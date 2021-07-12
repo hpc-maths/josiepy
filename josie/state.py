@@ -137,6 +137,8 @@ class State(np.ndarray):
         """Initialize an empty class:`State` object of the right dimensiosn
         for the given class:`Mesh`"""
 
+        # TODO: Add num_dofs into the size to allow for multiple dofs in a
+        # single cell
         nx = mesh.num_cells_x
         ny = mesh.num_cells_y
         state_size = len(cls.fields)
@@ -200,6 +202,8 @@ class SubsetState(State):
         super.__init_subclass__(**kwargs)
 
         if not (abstract):
+            # FIXME: Using an array to subset the full state crease a copy of
+            # the array, while using a slice generaates a view
             cls._subset_fields_map = np.array(
                 [
                     field

@@ -189,6 +189,51 @@ imgmath_latex_preamble = r"""
     \rho, \rho u, \rho u, \rho E, \rho e, u, v, p, c
 )}
 
+% :: Navier-Stokes ::
+\newcommand{\nsState}{\qty(%
+    \rho, \rho u, \rho u, \rho E, \rho e, u, v, e, p, c
+)}
+
+\newcommand{\nsDiffusiveMultiplierXX}{%
+    \left[
+    \begin{array}{*{3}c}
+    2\viscosity + \lambda & 0 & 0 \\
+    0 & \viscosity & 0 \\
+    0 & 0 & \thermalDiffusivity
+    \end{array}
+    \right]
+}
+\newcommand{\nsDiffusiveMultiplierXY}{%
+    \left[
+    \begin{array}{*{3}c}
+    0 & \bulkViscosity & 0 \\
+    \viscosity & 0 & 0  \\
+    0 & 0 & 0
+    \end{array}
+    \right]
+}
+
+\newcommand{\nsDiffusiveMultiplierYX}{%
+    \left[
+    \begin{array}{*{3}c}
+    0 & \viscosity & 0 \\
+    \bulkViscosity & 0 & 0 \\
+    0 & 0 & 0
+    \end{array}
+    \right]
+}
+
+\newcommand{\nsDiffusiveMultiplierYY}{%
+    \left[
+    \begin{array}{*{3}c}
+    \viscosity & 0 & 0 \\
+    0 & 2\viscosity + \bulkViscosity & 0 \\
+    0 & 0 & \thermalDiffusivity
+    \end{array}
+    \right]
+}
+
+
 % :: RK ::
 \newcommand{\rungeKutta}{\ensuremath{%
     \pdeState^{k+1} = \pdeState^{k} + \Delta t \sum_i^s b_i k_i
@@ -205,6 +250,10 @@ imgmath_latex_preamble = r"""
     \rho
 }}
 
+\providecommand{\volume}{\ensuremath{%
+    \mathsf{V}
+}}
+
 \newcommand{\pressure}{\ensuremath{%
     p
 }}
@@ -214,10 +263,15 @@ imgmath_latex_preamble = r"""
 }}
 
 \newcommand{\viscosity}{\ensuremath{%
+    \mu
 }}
 
 \newcommand{\kinematicViscosity}{\ensuremath{%
     \nu
+}}
+
+\newcommand{\bulkViscosity}{\ensuremath{%
+    \lambda
 }}
 
 \newcommand{\thermalConductivity}{\ensuremath{%
@@ -225,7 +279,7 @@ imgmath_latex_preamble = r"""
 }}
 
 \newcommand{\thermalDiffusivity}{\ensuremath{%
-    \alpha
+    \alpha_T
 }}
 
 """

@@ -26,12 +26,19 @@
 # official policies, either expressed or implied, of Ruben Di Battista.
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
 
+from josie.euler.schemes import EulerScheme
+from josie.ns.problem import NSProblem
 from josie.scheme.diffusive import DiffusiveScheme
 
-from .problem import HeatProblem
+if TYPE_CHECKING:
+    from josie.euler.eos import EOS
+    from josie.ns.transport import NSTransport
 
 
-class HeatScheme(DiffusiveScheme):
-    def __init__(self, problem: HeatProblem):
-        super().__init__(problem)
+class NSScheme(EulerScheme, DiffusiveScheme):
+    problem: NSProblem
+
+    def __init__(self, eos: EOS, transport: NSTransport):
+        self.problem = NSProblem(eos, transport)
