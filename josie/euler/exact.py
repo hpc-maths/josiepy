@@ -354,7 +354,7 @@ class Exact:
     def sample_rarefaction(
         self, U_c: float, V_k: float, wave: Wave
     ) -> EulerState:
-        r""" Return the state within the rarefaction fan """
+        r"""Return the state within the rarefaction fan"""
 
         if wave is Wave.LEFT:
             interps = self._interpolators[Wave.LEFT.name]
@@ -383,14 +383,14 @@ class Exact:
         U_R = Q_R[..., fields.U]
 
         def f_L(p):
-            """ The velocity after the left wave """
+            """The velocity after the left wave"""
             if p > p_L:
                 return self.shock(p, Q_L, Wave.LEFT)
             else:
                 return self.rarefaction(p, Q_L, Wave.LEFT)
 
         def f_R(p):
-            """ The velocity after the right wave """
+            """The velocity after the right wave"""
             if p > p_R:
                 return self.shock(p, Q_R, Wave.RIGHT)
             else:

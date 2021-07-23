@@ -32,7 +32,7 @@ from josie.state import Fields
 
 
 class ConsFields(Fields):
-    """ Indexing enum for the conservative state variables of the problem """
+    """Indexing enum for the conservative state variables of the problem"""
 
     rho = 0
     rhoU = 1
@@ -41,7 +41,7 @@ class ConsFields(Fields):
 
 
 class EulerFields(FluidFields):
-    """ Indexing enum for the state variables of the problem """
+    """Indexing enum for the state variables of the problem"""
 
     rho = 0
     rhoU = 1

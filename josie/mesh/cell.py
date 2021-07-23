@@ -83,7 +83,7 @@ class Cell(metaclass=abc.ABCMeta):
     @classmethod
     @abc.abstractmethod
     def _generate_ghosts(cls, mesh: Mesh):
-        """ Generate ghost cells centroids"""
+        """Generate ghost cells centroids"""
         raise NotImplementedError
 
     @classmethod
@@ -91,7 +91,7 @@ class Cell(metaclass=abc.ABCMeta):
     def centroid(
         cls, nw: PointType, sw: PointType, se: PointType, ne: PointType
     ) -> PointType:
-        """ Compute the centroid of the cell """
+        """Compute the centroid of the cell"""
 
     @classmethod
     @abc.abstractmethod

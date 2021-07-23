@@ -68,7 +68,7 @@ class CellSet:
     min_length: float = np.nan
 
     def __getitem__(self, key: MeshIndex) -> CellSet:
-        """ Slice the :class:`CellSet` as a whole """
+        """Slice the :class:`CellSet` as a whole"""
 
         return CellSet(
             volumes=self.volumes[key],
@@ -80,7 +80,7 @@ class CellSet:
         )
 
     def copy(self) -> CellSet:
-        """ Implement a fast copy to avoid using :mod:`copy.deepcopy` """
+        """Implement a fast copy to avoid using :mod:`copy.deepcopy`"""
 
         return CellSet(
             volumes=self.volumes.copy(),
@@ -100,7 +100,7 @@ class CellSet:
 
 
 class NeighboursCellSet(CellSet):
-    """ A :class:`CellSet` that stores also the neighbours direction """
+    """A :class:`CellSet` that stores also the neighbours direction"""
 
     def __init__(
         self,
@@ -239,7 +239,7 @@ class MeshCellSet(CellSet):
         )
 
     def copy(self) -> MeshCellSet:
-        """ Implement a fast copy to avoid using :mod:`copy.deepcopy` """
+        """Implement a fast copy to avoid using :mod:`copy.deepcopy`"""
         cells = MeshCellSet(
             centroids=self._centroids.copy(),
             volumes=self._volumes.copy(),

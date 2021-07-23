@@ -38,7 +38,7 @@ if TYPE_CHECKING:
 
 
 class HeatTransport(Transport):
-    """ A class providing the thermal diffusivity for the temperature """
+    """A class providing the thermal diffusivity for the temperature"""
 
     @abc.abstractmethod
     def thermal_diffusivity(

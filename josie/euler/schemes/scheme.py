@@ -42,7 +42,7 @@ if TYPE_CHECKING:
 
 
 class EulerScheme(ConvectiveScheme):
-    """ A general base class for Euler schemes """
+    """A general base class for Euler schemes"""
 
     problem: EulerProblem
 

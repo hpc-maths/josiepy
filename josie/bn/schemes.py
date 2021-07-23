@@ -42,7 +42,7 @@ from .state import Q
 
 
 class BaerScheme(Scheme):
-    """ A base class for a twophase scheme """
+    """A base class for a twophase scheme"""
 
     problem: TwoPhaseProblem
 

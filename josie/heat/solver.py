@@ -38,7 +38,7 @@ if TYPE_CHECKING:
 
 
 class HeatSolver(Solver):
-    """ A solver for a system governed by the heat equation """
+    """A solver for a system governed by the heat equation"""
 
     def __init__(self, mesh: Mesh, scheme: HeatScheme):
         super().__init__(mesh, Q, scheme)

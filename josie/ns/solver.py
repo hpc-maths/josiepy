@@ -38,7 +38,7 @@ if TYPE_CHECKING:
 
 
 class NSSolver(Solver):
-    """ A solver for the Euler system """
+    """A solver for the Euler system"""
 
     def __init__(self, mesh: Mesh, scheme: NSScheme):
 

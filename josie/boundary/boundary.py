@@ -102,12 +102,12 @@ class Boundary:
     ghost_cells_idx: MeshIndex
 
     def init_bc(self, cells: MeshCellSet):
-        """ Proxy method to :meth:`BoundaryCurve.init` """
+        """Proxy method to :meth:`BoundaryCurve.init`"""
 
         self.curve.bc.init(cells, self)
 
     def apply_bc(self, cells: MeshCellSet, t: float):
-        """ Proxy method to :meth:`BoundaryCurve.bc` """
+        """Proxy method to :meth:`BoundaryCurve.bc`"""
 
         self.curve.bc(cells, self, t)
 

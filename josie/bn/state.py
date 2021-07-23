@@ -58,7 +58,7 @@ class BaerFields(Fields):
 
 
 class BaerConsFields(Fields):
-    """ Indexing fields for the consevative part of the full state """
+    """Indexing fields for the consevative part of the full state"""
 
     alpha = 0
     arho1 = 1
@@ -73,7 +73,7 @@ class BaerConsFields(Fields):
 
 
 class BaerPhaseFields(FluidFields):
-    """ Indexing fields for a substate associated to a phase """
+    """Indexing fields for a substate associated to a phase"""
 
     arho = 0
     arhoU = 1
@@ -87,14 +87,14 @@ class BaerPhaseFields(FluidFields):
 
 
 class BaerPhaseState(PhaseState):
-    """ State array for one single phase """
+    """State array for one single phase"""
 
     fields = BaerPhaseFields
     full_state_fields = BaerFields
 
 
 class BaerConsState(SubsetState):
-    """ State array for conservative part of the state"""
+    """State array for conservative part of the state"""
 
     fields = BaerConsFields
     full_state_fields = BaerFields

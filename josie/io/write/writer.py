@@ -107,7 +107,7 @@ class Writer(abc.ABC):
 
 
 class NoopWriter(Writer):
-    """ A :class:`Writer` that does not write anything """
+    """A :class:`Writer` that does not write anything"""
 
     def __init__(self, solver: Solver, final_time: float, CFL: float):
         super().__init__(NoopStrategy(), solver, final_time, CFL)

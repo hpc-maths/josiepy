@@ -29,7 +29,7 @@ def unpickle_noaliasenum(cls, name):
 
 
 class NoAliasEnum(Enum, settings=NoAlias):
-    """ Allow pickling of NoAlias IntEnum """
+    """Allow pickling of NoAlias IntEnum"""
 
     def __reduce_ex__(self, proto):
         return (unpickle_noaliasenum, (self.__class__, self.name))

@@ -112,7 +112,7 @@ class Solver:
         self.scheme.post_init(self.mesh.cells)
 
     def copy(self) -> Solver:
-        """ This methods copies the :class:`Solver` object into another """
+        """This methods copies the :class:`Solver` object into another"""
 
         solver = Solver(self.mesh.copy(), self.Q, self.scheme)
         solver.t = self.t

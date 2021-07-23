@@ -68,7 +68,7 @@ class BoxMesh(BoundarySet):
 
 
 class Cube(BoxMesh):
-    """ A :class:`BoxMesh` with equal lenght and height """
+    """A :class:`BoxMesh` with equal lenght and height"""
 
     def __init__(
         self,
@@ -79,7 +79,7 @@ class Cube(BoxMesh):
 
 
 class UnitCube(Cube):
-    """ :class:`Cube` with length equal to 1 """
+    """:class:`Cube` with length equal to 1"""
 
     def __init__(
         self,

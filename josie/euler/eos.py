@@ -36,7 +36,7 @@ ArrayAndScalar = Union[np.ndarray, float]
 
 
 class EOS(metaclass=abc.ABCMeta):
-    """ An Abstract Base Class representing an EOS for an Euler System """
+    """An Abstract Base Class representing an EOS for an Euler System"""
 
     @abc.abstractmethod
     def rhoe(self, rho: ArrayAndScalar, p: ArrayAndScalar) -> ArrayAndScalar:

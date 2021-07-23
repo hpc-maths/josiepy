@@ -34,7 +34,7 @@ from .state import Q
 
 
 class BaerSolver(Solver):
-    """ A solver for the TwoPhase system """
+    """A solver for the TwoPhase system"""
 
     def __init__(self, mesh: Mesh, scheme: BaerScheme):
         super().__init__(mesh, Q, scheme)

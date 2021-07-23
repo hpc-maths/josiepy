@@ -100,7 +100,7 @@ class FieldsMeta(type):
         *args,
         **kwargs,
     ):
-        """ Functional creation """
+        """Functional creation"""
         metacls = cls.__class__
 
         if fields is not None:
@@ -123,7 +123,7 @@ class FieldsMeta(type):
         return self._len
 
     def names(self) -> List[str]:
-        """ Returns a list of field names """
+        """Returns a list of field names"""
 
         return self._field_names
 

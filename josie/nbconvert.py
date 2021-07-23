@@ -23,7 +23,7 @@ class RegexReplace:
 
 
 class SkipPreprocessor(Preprocessor):
-    """ A Preprocessor that removes cell tagged as "skip" """
+    """A Preprocessor that removes cell tagged as "skip" """
 
     def preprocess(self, nb, resources):
         # Filter out cells that meet the conditions
@@ -54,7 +54,7 @@ class CleanOutputPreprocessor(TagRemovePreprocessor):
 
 
 class BinderBadgePreprocessor(Preprocessor):
-    """ This preprocessor adds a BinderBadge on top of the notebook """
+    """This preprocessor adds a BinderBadge on top of the notebook"""
 
     BINDER_URL = "https://mybinder.org"
 

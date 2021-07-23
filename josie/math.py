@@ -33,7 +33,7 @@ from .dimension import MAX_DIMENSIONALITY
 
 
 def map01to(x, a, b):
-    r""" Maps :math:`x` in :math:`[0, 1] \to [a, b]` """
+    r"""Maps :math:`x` in :math:`[0, 1] \to [a, b]`"""
 
     return (b - a) * x + a
 

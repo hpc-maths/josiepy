@@ -100,11 +100,11 @@ class PlotBackend(metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
     def show_grid(self):
-        """ Show the grid on screen """
+        """Show the grid on screen"""
         raise NotImplementedError
 
     @abc.abstractmethod
     def show_all(self):
-        """ Show on screen all the fields """
+        """Show on screen all the fields"""
 
         raise NotImplementedError

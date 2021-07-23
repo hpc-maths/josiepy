@@ -174,7 +174,7 @@ class Mesh:
         self.dimensionality = Dimensionality(self.bcs_count // 2)
 
     def copy(self):
-        """ This methods copies the :class:`Mesh` object into another """
+        """This methods copies the :class:`Mesh` object into another"""
 
         mesh = Mesh(
             self.left.curve,
@@ -290,7 +290,7 @@ class Mesh:
         self.cells.create_neighbours()
 
     def init_bcs(self):
-        """ Initializes :class:`BoundaryCondition` """
+        """Initializes :class:`BoundaryCondition`"""
 
         self.cells.init_bcs(self.boundaries)
 
@@ -316,7 +316,7 @@ class Mesh:
         self.cell_type.create_connectivity(self)
 
     def export(self) -> MeshIO:
-        """ Export the mesh to a :class:`meshio.Mesh` object """
+        """Export the mesh to a :class:`meshio.Mesh` object"""
 
         return self.cell_type.export_connectivity(self)
 
@@ -333,7 +333,7 @@ class Mesh:
         meshio.write(filepath, self.export())
 
     def plot(self):
-        """ This method shows the mesh in a GUI """
+        """This method shows the mesh in a GUI"""
 
         self.backend.plot(self)
         self.backend.show_grid()

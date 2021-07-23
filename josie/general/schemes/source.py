@@ -82,5 +82,5 @@ class ConstantSource(SourceScheme):
     def s(
         self, cells: MeshCellSet, neighs: NeighboursCellSet, t: float
     ) -> State:
-        """ Use :meth:`volume_s` instead """
+        """Use :meth:`volume_s` instead"""
         raise NotImplementedError
