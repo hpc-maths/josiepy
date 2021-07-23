@@ -171,7 +171,7 @@ class Mesh:
 
         self.bcs_count = len(self.boundaries)
 
-        self.dimensionality = Dimensionality(self.bcs_count / 2)
+        self.dimensionality = Dimensionality(self.bcs_count // 2)
 
     def copy(self):
         """ This methods copies the :class:`Mesh` object into another """

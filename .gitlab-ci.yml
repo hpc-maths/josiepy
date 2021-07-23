@@ -11,16 +11,20 @@ stages:
 
 before_script:
     - apt-get update && apt-get install -y build-essential
-    - pip install pipenv
-    - pipenv install --system --dev 
-    - pip install jupyter
-
+    - pip install poetry
+    - poetry install -E jupyter
 
 test:
+    parallel:
+      matrix:
+          - PYTHON_VERSION:
+              - "3.8"
+              - "3.9"
+    image: python:$PYTHON_VERSION-slim
     stage: test
     script:
-        - pygount --format cloc-xml -o loc.xml josie
-        - pytest
+        - poetry run pygount --format cloc-xml -o loc.xml josie
+        - poetry run pytest
     artifacts:
         paths: 
             - "*.xml"
@@ -51,7 +55,7 @@ pages:
         - |
             apt-get update && apt-get -y install texlive texlive-science \
             texlive-latex-extra
-        - invoke docs
+        - poetry run invoke docs
     artifacts:
         paths:
             - public
@@ -59,6 +63,7 @@ pages:
         - master
 
 badges:
+    image: python:slim
     stage: post
     dependencies:
         - test
