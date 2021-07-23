@@ -8,26 +8,23 @@
 
 ### [Documentation](https://josiepy.rdb.is)
 
-### Install 
-Since for the moment there are some [vendored](vendor) libraries, the library
-must be installed using `pipenv`. 
-
-```
-pipenv --dev install
-```
-
-If you want to run the [examples](./examples), you also need to install Jupyter
-
-```
-pip install jupyter
-```
-
 
 ## Developer Notes
 ### Install
+We use [`poetry`](https://python-poetry.org/docs/basic-usage/) to manage the
+dependencies of the package. 
+
+To install everything in order to be able to develop on the package
 
 ```
-pipenv install --dev
+poetry install
+```
+
+If you want to run the [examples](./examples), you need to include the jupyter 
+extra
+
+```
+poetry install -E jupyter
 ```
 
 ### Submodules
