@@ -75,7 +75,7 @@ badges:
         - badgey LOCBadge loc.xml
         - badgey CoverageBadge cov.xml
         - badgey GitVersionBadge .
-        - badgey PythonBadge "3.8,3.9"
+        - badgey PythonBadge "3.8+"
     artifacts:
         paths:
             - "*.svg"
