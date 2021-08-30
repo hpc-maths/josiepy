@@ -42,6 +42,7 @@ pytest-profiling = "^1.7.0"
 commonmark = { path = "./vendor/commonmark.py" }
 recommonmark = { path = "./vendor/recommonmark" }
 pytest-cov = "^2.12.1"
+ipdb = "^0.13.9"
 
 [tool.poetry.extras]
 jupyter = ["jupyter", "ipywidgets", "ipywidgets", "RISE"]
