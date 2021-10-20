@@ -62,7 +62,8 @@ class ConstantSource(SourceScheme):
 
         super().pre_accumulate(cells, t)
 
-        self._fluxes += self.volume_s(cells, t)
+        # FIXME: Ignoring typing: https://github.com/numpy/numpy/issues/20072
+        self._fluxes += self.volume_s(cells, t)  # type: ignore
 
     def accumulate(
         self, cells: MeshCellSet, neighs: NeighboursCellSet, t: float
@@ -77,7 +78,10 @@ class ConstantSource(SourceScheme):
         """The source flux computed only for the cells, without taking into
         consideration the neighbours since they're not needed
         """
-        return self.problem.s(cells, t) * cells.volumes[..., np.newaxis]
+        return (
+            self.problem.s(cells, t)
+            * cells.volumes[..., np.newaxis, np.newaxis]
+        )
 
     def s(
         self, cells: MeshCellSet, neighs: NeighboursCellSet, t: float

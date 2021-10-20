@@ -161,10 +161,10 @@ class RK(TimeScheme):
 
         super().post_init(cells)
 
-        nx, ny, num_fields = cells.values.shape
+        nx, ny, num_dofs, num_fields = cells.values.shape
 
         self._ks: np.ndarray = np.empty(
-            (nx, ny, num_fields, self.num_steps - 1)
+            (nx, ny, num_dofs, num_fields, self.num_steps - 1)
         )
 
     def pre_step(self, cells: MeshCellSet):

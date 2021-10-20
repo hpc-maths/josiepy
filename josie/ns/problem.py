@@ -30,7 +30,6 @@ import numpy as np
 
 from typing import TYPE_CHECKING, Union
 
-from josie.dimension import MAX_DIMENSIONALITY
 from josie.fluid.problem import DiffusiveProblem
 from josie.euler.problem import EulerProblem
 from josie.math import Direction
@@ -67,7 +66,8 @@ class NSProblem(EulerProblem, DiffusiveProblem):
 
         """
 
-        nx, ny, _ = cells.values.shape
+        nx, ny, num_dofs, _ = cells.values.shape
+        dimensionality = cells.dimensionality
 
         fields = NSGradientFields
 
@@ -77,10 +77,11 @@ class NSProblem(EulerProblem, DiffusiveProblem):
             (
                 nx,
                 ny,
+                num_dofs,
                 num_gradient_fields,
                 num_gradient_fields,
-                MAX_DIMENSIONALITY,
-                MAX_DIMENSIONALITY,
+                dimensionality,
+                dimensionality,
             )
         )
 

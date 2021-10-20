@@ -13,16 +13,12 @@ from josie.general.schemes.diffusive.lstsq import LeastSquareGradient
 
 @pytest.fixture
 def gradient_one_boundaries(boundaries, Q):
-    """ Change the BCs to enforce the gradient == 1 also on ghost cells """
+    """Change the BCs to enforce the gradient == 1 also on ghost cells"""
 
     class GradientOneBC(ScalarBC):
         def __call__(self, cells, ghost_cells, field, t):
             num_ghosts_x, num_ghosts_y, _ = ghost_cells.centroids.shape
-            return (
-                np.sum(ghost_cells.centroids, axis=-1)
-                .reshape(num_ghosts_x * num_ghosts_y)
-                .view(Q)
-            )
+            return np.sum(ghost_cells.centroids, axis=-1).view(Q)
 
     left, bottom, right, top = boundaries
 
@@ -69,7 +65,12 @@ def init_fun(Q):
     """
 
     def init_fun(cells: MeshCellSet):
-        cells.values = np.sum(cells.centroids, axis=-1).view(Q)
+
+        # The np.newaxis to take into account the num_dofs dimension of the
+        # array
+        cells.values = np.sum(cells.centroids, axis=-1)[..., np.newaxis].view(
+            Q
+        )
 
     yield init_fun
 

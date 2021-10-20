@@ -155,7 +155,7 @@ class MatplotlibBackend(PlotBackend):
         for i, field in [
             (field.value, field.name) for field in solver.Q.fields
         ]:
-            values = copy.deepcopy(solver.mesh.cells.values[:, :, i].ravel())
+            values = copy.deepcopy(solver.mesh.cells.values[..., i].ravel())
             state_data[field] = values
 
         return state_data

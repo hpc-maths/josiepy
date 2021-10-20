@@ -67,17 +67,17 @@ class Cell(metaclass=abc.ABCMeta):
 
     @property
     @abc.abstractmethod
-    def num_points(self):
+    def num_points(self) -> int:
         raise NotImplementedError
 
     @property
     @abc.abstractmethod
-    def num_dofs(self):
+    def num_dofs(self) -> int:
         raise NotImplementedError
 
     @property
     @abc.abstractmethod
-    def _meshio_cell_type(self):
+    def _meshio_cell_type(self) -> str:
         raise NotImplementedError
 
     @classmethod

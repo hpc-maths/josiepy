@@ -657,7 +657,7 @@ def test_toro(riemann_states, request, plot, write):
         num_fields += 1
         gs = GridSpec(num_fields, 2)
         ax: plt.Axes = fig.add_subplot(gs[0, :])
-        alpha = solver.mesh.cells.values[..., fields.alpha]
+        alpha = solver.mesh.cells.values[..., fields.alpha].ravel()
         (line,) = ax.plot(x, alpha, label=r"$\alpha$")
         ax.legend(loc="best")
         time_annotation = fig.text(
@@ -670,7 +670,7 @@ def test_toro(riemann_states, request, plot, write):
             # Indices in the plot grid
             idx, idy = np.unravel_index(i, (num_fields, 2))
             ax: plt.Axes = fig.add_subplot(gs[idx, idy])
-            field_value = solver.mesh.cells.values[..., field]
+            field_value = solver.mesh.cells.values[..., field].ravel()
             (line,) = ax.plot(x, field_value, label=field.name)
             ax.legend(loc="best")
             artists.append(line)
