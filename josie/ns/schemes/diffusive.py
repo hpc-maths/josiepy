@@ -49,26 +49,25 @@ class CentralDifferenceGradient(_CDG):
     def D(self, cells: MeshCellSet, neighs: NeighboursCellSet):
         values: NSState = cells.values.view(NSState)
 
-        nx, ny, num_state = values.shape
         fields = values.fields
 
         # Retrieve neighbour index
         idx = self._directions[neighs.direction]
 
         # Retrieve length of the relative vector between cell and neighbour
-        r = self._r[..., idx]
+        r = self._r[..., idx, np.newaxis, np.newaxis]
 
         # Estimate the gradient in normal direction acting only on the gradient
         # variables
         Q_L = cells.values.view(NSState).get_diffusive().view(NSGradientState)
         Q_R = neighs.values.view(NSState).get_diffusive().view(NSGradientState)
 
-        dQ = (Q_R - Q_L) / r[..., np.newaxis]
+        dQ = (Q_R - Q_L) / r
 
         KdQ = np.einsum("...ijkl,...j->...i", self.problem.K(cells), dQ)
 
         # Multiply by the surface
-        KdQS = KdQ * neighs.surfaces[..., np.newaxis]
+        KdQS = KdQ * neighs.surfaces[..., np.newaxis, np.newaxis]
 
         # The diffusive contribution to the flux concerns only the equations on
         # rhoU and rhoV

@@ -109,7 +109,7 @@ class EulerScheme(ConvectiveScheme):
         UV = values[..., np.newaxis, UV_slice]
 
         # Find the normal velocity
-        U = np.einsum("...kl,...l->...k", UV, normals)
+        U = np.einsum("...mkl,...l->...mk", UV, normals)
 
         return U
 

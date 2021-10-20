@@ -47,8 +47,7 @@ class HeatProblem(DiffusiveProblem):
 
     """
 
-    if TYPE_CHECKING:
-        transport: HeatTransport
+    transport: HeatTransport
 
     def __init__(self, transport: HeatTransport):
         super().__init__(transport=transport)
@@ -56,9 +55,17 @@ class HeatProblem(DiffusiveProblem):
     def K(self, cells: Union[CellSet, MeshCellSet]) -> np.ndarray:
         """This is a scalar value, but :class:`DiffusiveProblem` expects a 4th
         rank tensor"""
-        nx, ny, num_fields = cells.values.shape
+        nx, ny, num_dofs, num_fields = cells.values.shape
         dimensionality = cells.dimensionality
 
         return self.transport.thermal_diffusivity(cells).reshape(
-            (nx, ny, num_fields, num_fields, dimensionality, dimensionality)
+            (
+                nx,
+                ny,
+                num_dofs,
+                num_fields,
+                num_fields,
+                dimensionality,
+                dimensionality,
+            )
         )

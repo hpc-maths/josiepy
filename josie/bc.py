@@ -112,9 +112,9 @@ class BoundaryCondition:
 
         # Apply BC for each field
         for field in self.bc.fields:
-            cells._values[ghost_idx[0], ghost_idx[1], field] = self.bc[field](
-                boundary_cells, ghost_cells, field, t
-            )
+            cells._values[ghost_idx[0], ghost_idx[1], :, field] = self.bc[
+                field
+            ](boundary_cells, ghost_cells, field, t)
 
 
 class ScalarBC(abc.ABC):
@@ -223,7 +223,7 @@ class Dirichlet(ScalarBC):
         you are providing a constant imposed value: if you provide a constant
         scalar :class:`float` or :class:`int` (or a :class:`State` containing a
         scalar value for each field). If you provide a :class:`BCCallable` then
-        it cannot automatically infer it your callable is actually only a
+        it cannot automatically infer if your callable is actually only a
         function of space (i.e. it does not change at every time step) or not.
         If you want to optimize the call, you need to explicitly set
         ``constant`` to ``True``.

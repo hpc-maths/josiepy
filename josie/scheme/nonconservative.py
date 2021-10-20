@@ -46,8 +46,11 @@ class NonConservativeScheme(Scheme):
 
         B = self.problem.B(cells)
         G = self.G(cells, neighs)
-        BG = np.einsum("...ijk,...jk->...i", B, G)
-        self._fluxes += BG
+
+        BG = np.einsum("...ikl,...kl->...i", B, G)
+
+        # FIXME: Ignoring typing: https://github.com/numpy/numpy/issues/20072
+        self._fluxes += BG  # type: ignore
 
     @abc.abstractmethod
     def G(self, cells: MeshCellSet, neighs: NeighboursCellSet) -> np.ndarray:

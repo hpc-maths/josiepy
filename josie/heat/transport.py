@@ -71,6 +71,6 @@ class ConstantHeatTransport(HeatTransport):
     def thermal_diffusivity(
         self, cells: Union[MeshCellSet, CellSet]
     ) -> np.ndarray:
-        nx, ny, num_fields = cells.values.shape
+        nx, ny, num_dofs, _ = cells.values.shape
 
-        return np.ones((nx, ny)) * self._thermal_diffusivity
+        return np.ones((nx, ny, num_dofs)) * self._thermal_diffusivity

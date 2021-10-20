@@ -106,12 +106,15 @@ class TwoPhaseProblem(Problem):
         """
         values = cells.values.view(Q)
 
-        num_cells_x, num_cells_y, num_fields = values.shape
+        num_cells_x, num_cells_y, num_dofs, num_fields = values.shape
 
+        # TODO: This is too big. It should only be num_equations instead of
+        # num_fields. It's the same for the convective flux
         B = np.zeros(
             (
                 num_cells_x,
                 num_cells_y,
+                num_dofs,
                 num_fields,
                 len(BaerGradFields),
                 MAX_DIMENSIONALITY,
@@ -235,13 +238,14 @@ class TwoPhaseProblem(Problem):
                 \end{bmatrix}
         """
         values: Q = cells.values.view(Q)
-        num_cells_x, num_cells_y, _ = values.shape
+        num_cells_x, num_cells_y, num_dofs, _ = values.shape
 
         # Flux tensor
         F = np.zeros(
             (
                 num_cells_x,
                 num_cells_y,
+                num_dofs,
                 len(BaerConsFields),
                 MAX_DIMENSIONALITY,
             )

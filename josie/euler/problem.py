@@ -92,13 +92,14 @@ class EulerProblem(Problem):
         values: EulerState = cells.values.view(EulerState)
         fields = values.fields
 
-        num_cells_x, num_cells_y, _ = values.shape
+        num_cells_x, num_cells_y, num_dofs, _ = values.shape
 
         # Flux tensor
         F = np.empty(
             (
                 num_cells_x,
                 num_cells_y,
+                num_dofs,
                 len(ConsFields),
                 MAX_DIMENSIONALITY,
             )

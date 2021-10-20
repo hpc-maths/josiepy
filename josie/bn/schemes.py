@@ -106,9 +106,9 @@ class Upwind(NonConservativeScheme, BaerScheme):
 
         values: Q = cells.values.view(Q)
 
-        nx, ny, _ = values.shape
+        nx, ny, num_dofs, _ = values.shape
 
-        alpha_face = np.zeros((nx, ny, 1))
+        alpha_face = np.zeros((nx, ny, num_dofs, 1))
 
         # Get vector of uI
         UI_VI = self.problem.closure.uI(values)
@@ -117,9 +117,9 @@ class Upwind(NonConservativeScheme, BaerScheme):
         UI_VI_face = 0.5 * (UI_VI + UI_VI_neigh)
 
         # Normal uI
-        U_face = np.einsum(
-            "...k,...kl->...l", UI_VI_face, neighs.normals[..., np.newaxis]
-        )
+        U_face = np.einsum("...kl,...l->...k", UI_VI_face, neighs.normals)[
+            ..., np.newaxis
+        ]
 
         alpha = values[..., [Q.fields.alpha]]
         alpha_neigh = neighs.values[..., [Q.fields.alpha]]
@@ -127,9 +127,15 @@ class Upwind(NonConservativeScheme, BaerScheme):
         np.copyto(alpha_face, alpha, where=U_face >= 0)
         np.copyto(alpha_face, alpha_neigh, where=U_face < 0)
 
-        alphan_face = np.einsum("...i,...j->...ij", alpha_face, neighs.normals)
+        alphan_face = np.einsum(
+            "...mk,...l->...mkl", alpha_face, neighs.normals
+        )
 
-        G = neighs.surfaces[..., np.newaxis, np.newaxis] * alphan_face
+        # surfaces need to be broadcasted to comply with the alphan structure
+        G = (
+            neighs.surfaces[..., np.newaxis, np.newaxis, np.newaxis]
+            * alphan_face
+        )
 
         return G
 
@@ -207,7 +213,7 @@ class Rusanov(ConvectiveScheme, BaerScheme):
         DeltaF = 0.5 * (self.problem.F(cells) + self.problem.F(neighs))
 
         # This is the flux tensor dot the normal
-        DeltaF = np.einsum("...kl,...l->...k", DeltaF, neighs.normals)
+        DeltaF = np.einsum("...mkl,...l->...mk", DeltaF, neighs.normals)
 
         values_cons = values.get_conservative()
         neigh_values_cons = neighs.values.view(Q).get_conservative()
@@ -215,7 +221,7 @@ class Rusanov(ConvectiveScheme, BaerScheme):
         DeltaQ = 0.5 * sigma * (neigh_values_cons - values_cons)
 
         FS.set_conservative(
-            neighs.surfaces[..., np.newaxis] * (DeltaF - DeltaQ)
+            neighs.surfaces[..., np.newaxis, np.newaxis] * (DeltaF - DeltaQ)
         )
 
         return FS

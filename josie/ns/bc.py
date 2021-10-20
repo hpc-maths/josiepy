@@ -128,6 +128,7 @@ class Inlet(BoundaryCondition):
         # Compute all the derived ghost values
         U_ghost = self.U_bc(boundary_cells, ghost_cells, fields.U, t)
         V_ghost = self.V_bc(boundary_cells, ghost_cells, fields.V, t)
+
         rhoe_ghost = rho_ghost * e_ghost
         rhoE_ghost = rho_ghost * (e_ghost + (U_ghost ** 2 + V_ghost ** 2) / 2)
         rhoU_ghost = rho_ghost * U_ghost
@@ -146,7 +147,7 @@ class Inlet(BoundaryCondition):
             (fields.c, c_ghost),
         ):
 
-            cells._values[ghost_idx[0], ghost_idx[1], field] = ghost_value
+            cells._values[ghost_idx[0], ghost_idx[1], :, field] = ghost_value
 
 
 class Outflow(BoundaryCondition):
@@ -217,7 +218,7 @@ class Outflow(BoundaryCondition):
             (fields.c, c_ghost),
         ):
 
-            cells._values[ghost_idx[0], ghost_idx[1], field] = ghost_value
+            cells._values[ghost_idx[0], ghost_idx[1], :, field] = ghost_value
 
 
 class NoSlip(BoundaryCondition):
@@ -279,4 +280,4 @@ class NoSlip(BoundaryCondition):
             (fields.c, c_ghost),
         ):
 
-            cells._values[ghost_idx[0], ghost_idx[1], field] = ghost_value
+            cells._values[ghost_idx[0], ghost_idx[1], :, field] = ghost_value

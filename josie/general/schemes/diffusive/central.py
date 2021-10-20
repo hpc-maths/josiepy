@@ -53,7 +53,7 @@ class CentralDifferenceGradient(DiffusiveScheme):
 
         # TODO: Add num_dofs into the size to allow for multiple dofs in a
         # single cell
-        nx, ny, _ = cells.values.shape
+        nx, ny, _, _ = cells.values.shape
         dimensionality = cells.dimensionality
         num_neighbours = 2 * dimensionality
 
@@ -66,6 +66,7 @@ class CentralDifferenceGradient(DiffusiveScheme):
         # direction
         self._directions = {}
 
+        # TODO: Store neighbours in numpy array
         for idx, neighs in enumerate(cells.neighbours):
             # Compute relative vector between cells and neighbour
             # using only the components associated to the problem
@@ -84,18 +85,17 @@ class CentralDifferenceGradient(DiffusiveScheme):
             self._directions[neighs.direction] = idx
 
     def D(self, cells: MeshCellSet, neighs: NeighboursCellSet):
-        nx, ny, num_state = cells.values.shape
 
         # Retrieve neighbour index
         idx = self._directions[neighs.direction]
 
         # Retrieve length of the relative vector between cell and neighbour
-        r = self._r[..., idx, np.newaxis]
+        r = self._r[..., idx, np.newaxis, np.newaxis]
 
         # Estimate the gradient in normal direction
         dQ = (neighs.values - cells.values) / r
 
-        KdQ = np.einsum("...ijkl,...j->...i", self.problem.K(cells), dQ)
+        KdQ = np.einsum("...mijkl,...mj->...mi", self.problem.K(cells), dQ)
 
         # Multiply by the surface
-        return KdQ * neighs.surfaces[..., np.newaxis]
+        return KdQ * neighs.surfaces[..., np.newaxis, np.newaxis]
