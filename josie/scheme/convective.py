@@ -113,5 +113,5 @@ class ConvectiveScheme(Scheme):
         super().accumulate(cells, neighs, t)
 
         # Add conservative contribution
-        # FIXME: Ignoring typing: https://github.com/numpy/numpy/issues/20072
-        self._fluxes += self.F(cells, neighs)  # type: ignore
+        self._fluxes += self.F(cells, neighs)
+        # self._fluxes += self.massEdge[neighs.direction]*self.F(cells, neighs)

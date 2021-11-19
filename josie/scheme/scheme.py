@@ -28,6 +28,7 @@ from __future__ import annotations
 
 import abc
 import numpy as np
+import ipdb
 
 from typing import TYPE_CHECKING
 
@@ -156,9 +157,7 @@ class Scheme(abc.ABC):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def accumulate(
-        self, cells: MeshCellSet, neighs: NeighboursCellSet, t: float
-    ):
+    def accumulate(self, cells: MeshCellSet, neighs: NeighboursCellSet, t: float):
         r"""This method implements the accumulation of all fluxes between
         each cell and its neighbour.
 
@@ -219,12 +218,26 @@ class Scheme(abc.ABC):
         # Accumulate all the fluxes (in multiple steps if required by the time
         # scheme). This modifies self._fluxes in-place
         self.step(mesh, dt, t)
+        # invM = np.ones((num_dofs, num_dofs))
+        # K = np.ones((num_dofs, num_dofs))
+        # initialiser M et K dans cell.py
+        # np.diag pour stocker juste un bloc de la matrice
+        # passage maille de référence [-1,1] vers maille quelconque
+
+        #    print(cells.values.shape)
+        #    print(self._fluxes.shape)
+        #    print(cells.volumes[..., np.newaxis].shape)
 
         # Update the cell values
-        cells.values = cells.values - (
-            self._fluxes * dt / cells.volumes[..., np.newaxis, np.newaxis]
-        )
-
+        # ipdb.set_trace()
+        # cells.values -= self._fluxes * dt / cells.volumes[..., np.newaxis, np.newaxis]
+        nx, ny, num_dofs, _ = cells.values.shape
+        if num_dofs != 1:
+            cells.values -= self._fluxes * dt
+        else:
+            cells.values -= (
+                self._fluxes * dt / cells.volumes[..., np.newaxis, np.newaxis]
+            )
         # Let's put here an handy post step if needed after the values update
         self.post_step(cells.values)
 

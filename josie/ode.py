@@ -95,9 +95,7 @@ class OdeSolver(Solver):
         for boundary in domain:
             boundary.bc = None
 
-        mesh = Mesh(
-            domain.left, domain.bottom, domain.right, domain.top, SimpleCell
-        )
+        mesh = Mesh(domain.left, domain.bottom, domain.right, domain.top, SimpleCell)
         mesh.interpolate(1, 1)
         mesh.generate()
 
@@ -114,9 +112,7 @@ class OdeSolver(Solver):
 
         self.init(init_fun)
 
-    def solve(
-        self, final_time: float, WriterClass: Type[Writer] = MemoryWriter
-    ):
+    def solve(self, final_time: float, WriterClass: Type[Writer] = MemoryWriter):
         """This method solves the ODE system using a
 
         Parameters
@@ -130,6 +126,7 @@ class OdeSolver(Solver):
 
         strategy = TimeStrategy(dt_save=self.dt)
         writer = WriterClass(strategy, self, final_time, CFL=1.0)
+        # writer = WriterClass(strategy, self, final_time, CFL=0.5)
 
         writer.solve()
 

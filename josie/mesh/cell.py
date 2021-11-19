@@ -29,6 +29,8 @@ from __future__ import annotations
 import abc
 
 import numpy as np
+import scipy.special as sp
+import ipdb
 
 from meshio import Mesh as MeshIO
 from typing import TYPE_CHECKING
@@ -339,9 +341,7 @@ class SimpleCell(Cell):
         )
 
         volumes = np.full((nx + 2, ny + 2), np.nan)
-        normals = np.full(
-            (nx + 2, ny + 2, cls.num_points, MAX_DIMENSIONALITY), np.nan
-        )
+        normals = np.full((nx + 2, ny + 2, cls.num_points, MAX_DIMENSIONALITY), np.nan)
         surfaces = np.full((nx + 2, ny + 2, cls.num_points), np.nan)
 
         cells = MeshCellSet(
@@ -359,9 +359,7 @@ class SimpleCell(Cell):
         ne = np.transpose(np.asarray((x[1:, 1:], y[1:, 1:])), (1, 2, 0))
 
         mesh.points = np.stack((nw, sw, se, ne), axis=-2)
-        cells.centroids = np.asarray(cls.centroid(nw, sw, se, ne))[
-            ..., np.newaxis, :
-        ]
+        cells.centroids = np.asarray(cls.centroid(nw, sw, se, ne))
         cells.volumes = cls.volume(nw, sw, se, ne)
         cells.surfaces[..., NormalDirection.LEFT] = cls.face_surface(nw, sw)
         cells.surfaces[..., NormalDirection.BOTTOM] = cls.face_surface(sw, se)
@@ -393,14 +391,11 @@ class SimpleCell(Cell):
             boundary_idx = boundary.cells_idx
             ghost_idx = boundary.ghost_cells_idx
 
-            boundary_centroids = mesh.cells._centroids[
-                boundary_idx[0], boundary_idx[1]
-            ]
+            boundary_centroids = mesh.cells._centroids[boundary_idx[0], boundary_idx[1]]
 
             # Compute the ghost cells centroids
             mesh.cells._centroids[ghost_idx[0], ghost_idx[1]] = (
-                boundary_centroids
-                + cls._side_normal[side.name] * mesh.cells.min_length
+                boundary_centroids + cls._side_normal[side.name] * mesh.cells.min_length
             )
 
     @classmethod
@@ -423,3 +418,243 @@ class SimpleCell(Cell):
         io_cells = np.split(np.arange(rows), num_chunks)
 
         return MeshIO(io_pts, {cls._meshio_cell_type: np.array(io_cells)})
+
+
+class DGCell(SimpleCell):
+    """This class describes the classical type of 2D quadrangular cell that
+    stores the :class:`State` value in its centroid. The cell needs 4 points
+    to be defined and has 4 degrees of freedom.
+
+    .. code-block::
+
+        nw     ne
+        *-------*
+        |       |
+        |   *   |
+        |   c   |
+        *-------*
+        sw     se
+
+    """
+
+    order = 2
+    num_dofs = order * order  # 1
+    num_points = order * order
+    _meshio_cell_type = "quad"
+
+    _side_normal = {"LEFT": -R3.X, "RIGHT": R3.X, "TOP": R3.Y, "BOTTOM": -R3.Y}
+
+    @classmethod
+    def vandermonde2D(cls):
+        V = np.empty((cls.order,) * 4)
+
+        # Compute the Gauss-Lobatto nodes on [-1, 1]
+        quad_points_1D = np.concatenate(
+            ([-1], sp.legendre(cls.order - 1).deriv().roots, [1])
+        )
+
+        # Normalization
+        def sqrtgamma(n):
+            return 1.0 / np.sqrt(2 / (2 * n + 1))
+
+        # Pseudo-Vandermonde matrix
+        with np.nditer(V, flags=["multi_index"], op_flags=["writeonly"]) as it:
+            for x in it:
+                i, j, n, m = it.multi_index
+                x[...] = (
+                    sqrtgamma(n)
+                    * sp.legendre(n)(quad_points_1D[i])
+                    * sqrtgamma(m)
+                    * sp.legendre(m)(quad_points_1D[j])
+                )
+
+        # Flattening of dimensions
+        V = V.reshape(-1, *V.shape[-2:])
+        V = V.reshape(V.shape[0], -1)
+
+        return V
+
+    @classmethod
+    def vandermonde1D(cls):
+        V = np.empty((cls.order,) * 2)
+
+        # Compute the Gauss-Lobatto nodes on [-1, 1]
+        quad_points_1D = np.concatenate(
+            ([-1], sp.legendre(cls.order - 1).deriv().roots, [1])
+        )
+
+        # Normalization
+        def sqrtgamma(n):
+            return 1.0 / np.sqrt(2 / (2 * n + 1))
+
+        # Pseudo-Vandermonde matrix
+        with np.nditer(V, flags=["multi_index"], op_flags=["writeonly"]) as it:
+            for x in it:
+                i, n = it.multi_index
+                x[...] = sqrtgamma(n) * sp.legendre(n)(quad_points_1D[i])
+
+        return V
+
+    @classmethod
+    def getIndicesFromDirection(cls, dir):
+        quad_points_1D = np.concatenate(
+            ([-1], sp.legendre(cls.order - 1).deriv().roots, [1])
+        )
+
+        # Add 2D quad points array
+
+        # Find the points for each side
+        # if dir == NormalDirection.LEFT:
+        #     return np.argwhere(quad_points_2D)
+
+    @classmethod
+    def refMass(cls, V=None):
+        if V is None:
+            V = cls.vandermonde2D()
+
+        return np.linalg.inv(np.matmul(V, V.T))
+
+    @classmethod
+    def refMassEdge(cls, V=None, M=None):
+        if M is None:
+            M = cls.refMass(V)
+
+        invM = np.linalg.inv(M)
+
+        if V is None:
+            V = cls.vandermonde1D()
+
+        edge1D = np.linalg.inv(np.matmul(V, V.T))
+        refMassEdge_tab = []
+        # Left
+
+        mat = np.zeros((cls.order * 2, cls.order * 2))
+        mat[0:2, 0:2] = edge1D
+        # refMassEdge_tab.append(np.matmul(invM, mat))
+        refMassEdge_tab.append(mat)
+
+        # Bottom
+        mat = np.zeros((cls.order * 2, cls.order * 2))
+        mat[0, 0] = edge1D[0, 0]
+        mat[0, 2] = edge1D[0, 1]
+        mat[2, 0] = edge1D[1, 0]
+        mat[2, 2] = edge1D[1, 1]
+        # refMassEdge_tab.append(np.matmul(invM, mat))
+        refMassEdge_tab.append(mat)
+
+        # Right
+        mat = np.zeros((cls.order * 2, cls.order * 2))
+        mat[2:4, 2:4] = edge1D
+        # refMassEdge_tab.append(np.matmul(invM, mat))
+        refMassEdge_tab.append(mat)
+
+        # Top
+        mat = np.zeros((cls.order * 2, cls.order * 2))
+        mat[1, 1] = edge1D[0, 0]
+        mat[1, 3] = edge1D[0, 1]
+        mat[3, 1] = edge1D[1, 0]
+        mat[3, 3] = edge1D[1, 1]
+        # refMassEdge_tab.append(np.matmul(invM, mat))
+        refMassEdge_tab.append(mat)
+
+        return refMassEdge_tab
+
+    @classmethod
+    def refStiff(cls, V=None, M=None):
+        if V is None:
+            V = cls.vandermonde2D()
+        if M is None:
+            M = cls.refMass(V)
+
+        Vx = np.empty((cls.order,) * 4)
+        Vy = np.empty((cls.order,) * 4)
+
+        # Compute the Gauss-Lobatto nodes on [-1, 1]
+        quad_points_1D = np.concatenate(
+            ([-1], sp.legendre(cls.order - 1).deriv().roots, [1])
+        )
+
+        # Normalization
+        def sqrtgamma(n):
+            return 1.0 / np.sqrt(2 / (2 * n + 1))
+
+        # X derivative of Pseudo-Vandermonde matrix
+        with np.nditer(Vx, flags=["multi_index"], op_flags=["writeonly"]) as it:
+            for x in it:
+                i, j, n, m = it.multi_index
+                x[...] = (
+                    sqrtgamma(n)
+                    * sp.legendre(n).deriv()(quad_points_1D[i])
+                    * sqrtgamma(m)
+                    * sp.legendre(m)(quad_points_1D[j])
+                )
+
+        # Y derivative of Pseudo-Vandermonde matrix
+        with np.nditer(Vy, flags=["multi_index"], op_flags=["writeonly"]) as it:
+            for x in it:
+                i, j, n, m = it.multi_index
+                x[...] = (
+                    sqrtgamma(n)
+                    * sp.legendre(n)(quad_points_1D[i])
+                    * sqrtgamma(m)
+                    * sp.legendre(m).deriv()(quad_points_1D[j])
+                )
+
+        # Flattening of dimensions
+        Vx = Vx.reshape(-1, *Vx.shape[-2:])
+        Vx = Vx.reshape(Vx.shape[0], -1)
+        Vy = Vy.reshape(-1, *Vy.shape[-2:])
+        Vy = Vy.reshape(Vy.shape[0], -1)
+
+        Dx = np.matmul(Vx, np.linalg.inv(V))
+        Dy = np.matmul(Vy, np.linalg.inv(V))
+
+        mat1 = np.matmul(M, Dx)
+        mat2 = np.matmul(M, Dy)
+
+        return np.stack((mat1.transpose(), mat2.transpose()), axis=-1)
+
+    @classmethod
+    def centroid(
+        cls, nw: PointType, sw: PointType, se: PointType, ne: PointType
+    ) -> PointType:
+        """This class method computes the centroid of a cell from its points.
+
+        The centroid is computed as the mean value of the for points
+
+
+        Parameters
+        ----------
+        nw
+            The North-West point of the cell
+        sw
+            The South-West point of the cell
+        se
+            The South-East point of the cell
+        ne
+            The North-East point of the cell
+
+
+        Returns
+        -------
+        centroid
+            The centroid coordinates
+
+        """
+        #        nw = np.asarray(nw)
+        #        sw = np.asarray(sw)
+        #        se = np.asarray(se)
+        #        ne = np.asarray(ne)
+        #        return (nw + sw + se + ne) / 4
+
+        nw = np.asarray(nw)
+        sw = np.asarray(sw)
+        se = np.asarray(se)
+        ne = np.asarray(ne)
+        
+        # initialiser tableau centroid en fonction de num_dofs
+
+        return np.stack(
+            [nw, sw, ne, se],
+            axis=-2,
+        )

@@ -46,13 +46,10 @@ def scheme(request):
         def intercellFlux(
             self, Q_L: Q, Q_R: Q, normals: np.ndarray, surfaces: np.ndarray
         ):
-
             nx, ny, num_dofs, num_fields = Q_L.shape
 
             FS = np.zeros_like(Q_L)
-            F = np.zeros(
-                (nx, ny, num_dofs, num_fields, MAX_DIMENSIONALITY)
-            )
+            F = np.zeros((nx, ny, num_dofs, num_fields, MAX_DIMENSIONALITY))
 
             # Dot product of each normal in `norm` by the advection velocity
             # Equivalent to: un = np.sum(Advection.V*(normals), axis=-1)
@@ -80,7 +77,6 @@ def scheme(request):
             cells: MeshCellSet,
             CFL_value: float,
         ) -> float:
-
             U_abs = np.linalg.norm(V)
             dx = np.min(cells.surfaces)
 
