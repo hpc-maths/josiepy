@@ -308,7 +308,7 @@ class SimpleCell(Cell):
 
         r = p1 - p0
 
-        normal = np.array([r[1], -r[0]])
+        normal = np.transpose(np.array([r[..., 1], -r[..., 0]]), (1, 2, 0))
 
         return normal / np.linalg.norm(normal)
 
@@ -322,9 +322,6 @@ class SimpleCell(Cell):
 
         # TODO Get mesh.dimensionality as input and adapt the size of the
         # containers accordingly
-
-        # Init internal data structures
-        points = np.empty((nx, ny, cls.num_points, MAX_DIMENSIONALITY))
 
         # Create basic :class:`MeshCellSet` data structure that contains data
         # also for the ghost cells. Init with NaN since some of the entries are
@@ -356,59 +353,26 @@ class SimpleCell(Cell):
         )
 
         # Loop to build connectivity
-        # TODO: This can be probably vectorized
-        for i in range(nx):
-            for j in range(ny):
-                nw = np.asarray((x[i, j + 1], y[i, j + 1]))
-                sw = np.asarray((x[i, j], y[i, j]))
-                se = np.asarray((x[i + 1, j], y[i + 1, j]))
-                ne = np.asarray((x[i + 1, j + 1], y[i + 1, j + 1]))
+        nw = np.transpose(np.asarray((x[:-1, 1:], y[:-1, 1:])), (1, 2, 0))
+        sw = np.transpose(np.asarray((x[:-1, :-1], y[:-1, :-1])), (1, 2, 0))
+        se = np.transpose(np.asarray((x[1:, :-1], y[1:, :-1])), (1, 2, 0))
+        ne = np.transpose(np.asarray((x[1:, 1:], y[1:, 1:])), (1, 2, 0))
 
-                points[i, j, :, :] = np.vstack(
-                    (nw, sw, se, ne)
-                )  # type: ignore # noqa: E501
-                cells.centroids[i, j, :] = cls.centroid(
-                    nw, sw, se, ne
-                )  # type: ignore # noqa: E501
-                cells.volumes[i, j] = cls.volume(
-                    nw, sw, se, ne
-                )  # type: ignore # noqa: E501
-
-                cells.surfaces[i, j, NormalDirection.LEFT] = cls.face_surface(
-                    nw, sw
-                )  # type: ignore # noqa: E501
-                cells.surfaces[
-                    i, j, NormalDirection.BOTTOM
-                ] = cls.face_surface(
-                    sw, se
-                )  # type: ignore # noqa: E501
-                cells.surfaces[i, j, NormalDirection.RIGHT] = cls.face_surface(
-                    se, ne
-                )  # type: ignore # noqa: E501
-                cells.surfaces[i, j, NormalDirection.TOP] = cls.face_surface(
-                    ne, nw
-                )  # type: ignore # noqa: E501
-
-                cells.normals[i, j, NormalDirection.LEFT, :] = cls.face_normal(
-                    nw, sw
-                )  # type: ignore # noqa: E501
-                cells.normals[
-                    i, j, NormalDirection.BOTTOM, :
-                ] = cls.face_normal(
-                    sw, se
-                )  # type: ignore # noqa: E501
-
-                cells.normals[
-                    i, j, NormalDirection.RIGHT, :
-                ] = cls.face_normal(
-                    se, ne
-                )  # type: ignore # noqa: E501
-                cells.normals[i, j, NormalDirection.TOP, :] = cls.face_normal(
-                    ne, nw
-                )  # type: ignore # noqa: E501
+        mesh.points = np.stack((nw, sw, se, ne), axis=-2)
+        cells.centroids = np.asarray(cls.centroid(nw, sw, se, ne))[
+            ..., np.newaxis, :
+        ]
+        cells.volumes = cls.volume(nw, sw, se, ne)
+        cells.surfaces[..., NormalDirection.LEFT] = cls.face_surface(nw, sw)
+        cells.surfaces[..., NormalDirection.BOTTOM] = cls.face_surface(sw, se)
+        cells.surfaces[..., NormalDirection.RIGHT] = cls.face_surface(se, ne)
+        cells.surfaces[..., NormalDirection.TOP] = cls.face_surface(ne, nw)
+        cells.normals[..., NormalDirection.LEFT, :] = cls.face_normal(nw, sw)
+        cells.normals[..., NormalDirection.BOTTOM, :] = cls.face_normal(sw, se)
+        cells.normals[..., NormalDirection.RIGHT, :] = cls.face_normal(se, ne)
+        cells.normals[..., NormalDirection.TOP, :] = cls.face_normal(ne, nw)
 
         # Assign back to mesh object
-        mesh.points = points
         mesh.cells = cells
 
         super().create_connectivity(mesh)
