@@ -99,7 +99,9 @@ class TwoFluidState(ConsState):
             of the system associated to the requested phase
         """
 
-        return self[..., self.phase_state._subset_fields_map[phase]]
+        return self[..., self.phase_state._subset_fields_map[phase]].view(
+            PhaseState
+        )
 
     def set_phase(self, phase: fields.Phases, values: SingleFluidState):
         """Sets the part of the system associated to the specified ``phase``

@@ -47,7 +47,7 @@ class OdeProblem(Problem):
         self.f = f
 
     def s(self, cells: Union[MeshCellSet, CellSet], t: float) -> State:
-        return -self.f(cells.values, t)
+        return -self.f(cells.values, t)  # type: ignore
 
 
 class OdeSolver(Solver):

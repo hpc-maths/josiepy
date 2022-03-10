@@ -33,8 +33,6 @@ from typing import Union
 
 from josie.mesh.cellset import CellSet, MeshCellSet
 
-from josie.state import State
-
 
 class Problem(metaclass=abc.ABCMeta):
     r"""A class representing a physical problem to be solved (governed by
@@ -127,7 +125,7 @@ class Problem(metaclass=abc.ABCMeta):
         """
         pass
 
-    def s(self, values, t: float) -> State:
+    def s(self, values, t: float) -> np.ndarray:
         r"""This returns the values of the source terms
 
         A general problem can be written in a compact way:

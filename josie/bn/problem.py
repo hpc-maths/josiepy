@@ -234,7 +234,6 @@ class TwoPhaseProblem(Problem):
                     \alpha_2(\rho_2 E_2 + p_2)u_2 & \alpha_2 (\rho_2 E + p)v_2
                 \end{bmatrix}
         """
-        values: Q = cells.values.view(Q)
         num_cells_x, num_cells_y, num_dofs, _ = values.shape
 
         # Flux tensor

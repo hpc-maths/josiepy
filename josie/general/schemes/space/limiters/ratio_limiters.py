@@ -36,7 +36,7 @@ class MUSCL_Hancock_ratio_limiters(MUSCL_Hancock):
     # beta_L and beta_R set to their limit 1
     beta_L, beta_R = 1.0, 1.0
 
-    @abc.abstractclassmethod
+    @abc.abstractmethod
     def xi(self, r: np.ndarray):
         raise NotImplementedError
 
@@ -62,8 +62,8 @@ class MUSCL_Hancock_ratio_limiters(MUSCL_Hancock):
             neigh_L = cells.neighbours[dir_L]
             neigh_R = cells.neighbours[dir_R]
 
-            slope_L = cells.values - neigh_L.values
-            slope_R = neigh_R.values - cells.values
+            slope_L: np.ndarray = cells.values - neigh_L.values
+            slope_R: np.ndarray = neigh_R.values - cells.values
 
             # Add a tolerance to avoid null slopes when computing the ratio
             np.copyto(

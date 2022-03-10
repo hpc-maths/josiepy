@@ -35,8 +35,12 @@ from josie.scheme.convective import ConvectiveScheme
 
 from josie.mesh.cellset import DimensionPair
 
+from josie.fluid.state import ConsState
+
 
 class MUSCL_Hancock(ConvectiveScheme):
+
+    _values: ConsState
 
     slopes: np.ndarray
 
@@ -87,24 +91,25 @@ class MUSCL_Hancock(ConvectiveScheme):
             Q_L = self.values_face.values[..., dir_L]
             Q_R = self.values_face.values[..., dir_R]
 
-            F_L = np.einsum("...kl,...l->...k", self.problem.F(Q_L), n_L)
-            F_R = np.einsum("...kl,...l->...k", self.problem.F(Q_R), n_R)
+            F_L = np.einsum("...mkl,...l->...mk", self.problem.F(Q_L), n_L)
+            F_R = np.einsum("...mkl,...l->...mk", self.problem.F(Q_R), n_R)
 
-            Q_L.set_conservative(
-                Q_L.get_conservative()
+            state_cls = cells._values.__class__
+            Q_L.view(state_cls).set_conservative(  # type: ignore
+                Q_L.view(state_cls).get_conservative()  # type: ignore
                 - 0.5
                 * dt
-                / cells.volumes[..., np.newaxis]
-                * cells.surfaces[..., [dir_L]]
+                / cells.volumes[..., np.newaxis, np.newaxis]
+                * cells.surfaces[..., np.newaxis, [dir_L]]
                 * (F_L + F_R)
             )
 
-            Q_R.set_conservative(
-                Q_R.get_conservative()
+            Q_R.view(state_cls).set_conservative(  # type: ignore
+                Q_R.view(state_cls).get_conservative()  # type: ignore
                 - 0.5
                 * dt
-                / cells.volumes[..., np.newaxis]
-                * cells.surfaces[..., [dir_R]]
+                / cells.volumes[..., np.newaxis, np.newaxis]
+                * cells.surfaces[..., np.newaxis, [dir_R]]
                 * (F_L + F_R)
             )
 
@@ -156,7 +161,7 @@ class MUSCL_Hancock(ConvectiveScheme):
 
         self.slopes = np.empty(
             cells.values.shape + (2 ** cells.dimensionality,)
-        ).view(cells.values.__class__)
+        ).view(cells._values.__class__)
 
         self.values_face._values = np.empty(
             cells._values.shape + (2 ** cells.dimensionality,)

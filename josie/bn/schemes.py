@@ -61,7 +61,7 @@ class BaerScheme(Scheme):
         alphas = PhasePair(alpha, 1 - alpha)
 
         for phase in Phases:
-            phase_values = values.get_phase(phase)
+            phase_values = values.view(Q).get_phase(phase)
             alpha = alphas[phase]
             fields = phase_values.fields
 
@@ -85,7 +85,7 @@ class BaerScheme(Scheme):
             phase_values[..., fields.p] = p
             phase_values[..., fields.c] = c
 
-            values.set_phase(
+            values.view(Q).set_phase(
                 phase,
                 phase_values,
             )
@@ -101,7 +101,9 @@ class Upwind(BaerScheme, NonConservativeScheme):
     Check also :class:`~twofluid.problem.TwoPhaseProblem.B`.
     """
 
-    def G(self, cells: MeshCellSet, neighs: NeighboursCellSet) -> np.ndarray:
+    def G(
+        self, cells: MeshCellSet, neighs: NeighboursCellSet
+    ) -> np.ndarray:
 
         Q_L: Q = cells.values.view(Q)
         Q_R: Q = neighs.values.view(Q)
@@ -207,7 +209,7 @@ class Rusanov(BaerScheme, ConvectiveScheme):
         DeltaF = 0.5 * (self.problem.F(Q_L) + self.problem.F(Q_R))
 
         # This is the flux tensor dot the normal
-        DeltaF = np.einsum("...mkl,...l->...mk", DeltaF, neighs.normals)
+        DeltaF = np.einsum("...mkl,...l->...mk", DeltaF, normals)
 
         Qc_L = Q_L.view(Q).get_conservative()
         Qc_R = Q_R.view(Q).get_conservative()
@@ -215,7 +217,7 @@ class Rusanov(BaerScheme, ConvectiveScheme):
         DeltaQ = 0.5 * sigma * (Qc_R - Qc_L)
 
         FS.set_conservative(
-            neighs.surfaces[..., np.newaxis, np.newaxis] * (DeltaF - DeltaQ)
+            surfaces[..., np.newaxis, np.newaxis] * (DeltaF - DeltaQ)
         )
 
         return FS

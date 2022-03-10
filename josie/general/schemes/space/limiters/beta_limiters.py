@@ -48,8 +48,8 @@ class MUSCL_Hancock_no_limiter(MUSCL_Hancock):
             neigh_L = cells.neighbours[dir_L]
             neigh_R = cells.neighbours[dir_R]
 
-            slope_L = cells.values - neigh_L.values
-            slope_R = neigh_R.values - cells.values
+            slope_L: np.ndarray = cells.values - neigh_L.values
+            slope_R: np.ndarray = neigh_R.values - cells.values
 
             # Without limiters
             self.slopes[..., dir_R] = (
@@ -115,24 +115,21 @@ class MUSCL_Hancock_Beta_limiters(MUSCL_Hancock):
             neigh_L = cells.neighbours[dir_L]
             neigh_R = cells.neighbours[dir_R]
 
-            slope_L = cells.values - neigh_L.values
-            slope_R = neigh_R.values - cells.values
+            slope_L: np.ndarray = cells.values - neigh_L.values
+            slope_R: np.ndarray = neigh_R.values - cells.values
 
-            slope = (
-                self.array_max_min_min(
-                    beta * slope_L,
-                    slope_R,
-                    slope_L,
-                    beta * slope_R,
-                )
-                * (slope_R > 0)
-                + self.array_min_max_max(
-                    beta * slope_L,
-                    slope_R,
-                    slope_L,
-                    beta * slope_R,
-                )
-                * (slope_R < 0)
+            slope = self.array_max_min_min(
+                beta * slope_L,
+                slope_R,
+                slope_L,
+                beta * slope_R,
+            ) * (slope_R > 0) + self.array_min_max_max(
+                beta * slope_L,
+                slope_R,
+                slope_L,
+                beta * slope_R,
+            ) * (
+                slope_R < 0
             )
 
             self.slopes[..., dir_L] = -slope

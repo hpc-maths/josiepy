@@ -24,7 +24,7 @@ class Q(State):
 
 
 def flux(state_array: Q) -> np.ndarray:
-    return np.einsum("k,...ab->...abk", V, state_array)
+    return np.einsum("j,...i->...ij", V, state_array)
 
 
 class AdvectionProblem(Problem):
@@ -50,7 +50,9 @@ def scheme(request):
             nx, ny, num_dofs, num_fields = Q_L.shape
 
             FS = np.zeros_like(Q_L)
-            F = np.zeros((nx, ny, num_dofs, num_fields, MAX_DIMENSIONALITY))
+            F = np.zeros(
+                (nx, ny, num_dofs, num_fields, MAX_DIMENSIONALITY)
+            )
 
             # Dot product of each normal in `norm` by the advection velocity
             # Equivalent to: un = np.sum(Advection.V*(normals), axis=-1)
@@ -71,7 +73,7 @@ def scheme(request):
                 * surfaces[..., np.newaxis, np.newaxis]
             )
 
-            return FS[..., np.newaxis]
+            return FS
 
         def CFL(
             self,
