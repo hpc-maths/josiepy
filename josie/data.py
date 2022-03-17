@@ -35,5 +35,8 @@ class NoAliasEnum(Enum, settings=NoAlias):
         return (unpickle_noaliasenum, (self.__class__, self.name))
 
 
-class NoAliasIntEnum(NoAliasEnum, IntEnum):
-    pass
+class NoAliasIntEnum(IntEnum, settings=NoAlias):
+    """Allow pickling of NoAlias IntEnum"""
+
+    def __reduce_ex__(self, proto):
+        return (unpickle_noaliasenum, (self.__class__, self.name))

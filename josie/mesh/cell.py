@@ -97,13 +97,13 @@ class Cell(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def volume(
         cls, nw: PointType, sw: PointType, se: PointType, ne: PointType
-    ) -> float:
+    ) -> np.ndarray:
         """Compute the volume of a cell from its points."""
         raise NotImplementedError
 
     @classmethod
     @abc.abstractmethod
-    def face_surface(cls, p0: PointType, p1: PointType) -> float:
+    def face_surface(cls, p0: PointType, p1: PointType) -> np.ndarray:
         """Compute the surface of a face from its points."""
         raise NotImplementedError
 
@@ -208,12 +208,12 @@ class SimpleCell(Cell):
         se = np.asarray(se)
         ne = np.asarray(ne)
 
-        return (nw + sw + se + ne) / 4
+        return np.asarray(nw + sw + se + ne) / 4
 
     @classmethod
     def volume(
         cls, nw: PointType, sw: PointType, se: PointType, ne: PointType
-    ) -> float:
+    ) -> np.ndarray:
         """This class method computes the volume of a cell from its points.
 
         The surface is computed calculating the surface of the two triangles
@@ -241,14 +241,25 @@ class SimpleCell(Cell):
         se = np.asarray(se)
         ne = np.asarray(ne)
 
-        volume = np.linalg.norm(np.cross(sw - nw, se - sw)) / 2
+        volume = (
+            np.linalg.norm(
+                np.cross(sw - nw, se - sw)[..., np.newaxis], axis=-1
+            )
+            / 2
+        )
 
-        volume = volume + np.linalg.norm(np.cross(se - ne, ne - nw)) / 2
+        volume = (
+            volume
+            + np.linalg.norm(
+                np.cross(se - ne, ne - nw)[..., np.newaxis], axis=-1
+            )
+            / 2
+        )
 
         return volume
 
     @classmethod
-    def face_surface(cls, p0: PointType, p1: PointType) -> float:
+    def face_surface(cls, p0: PointType, p1: PointType) -> np.ndarray:
         """This class method computes the surface of a face from its points.
 
         The surface is simply the norm of the vector that is made by the two
@@ -267,7 +278,7 @@ class SimpleCell(Cell):
         p0 = np.asarray(p0)
         p1 = np.asarray(p1)
 
-        return np.linalg.norm(p0 - p1)
+        return np.linalg.norm(p0 - p1, axis=-1)
 
     @classmethod
     def face_normal(cls, p0: PointType, p1: PointType) -> np.ndarray:
@@ -444,7 +455,7 @@ class SimpleCell(Cell):
         # Now a cell is made by chunks of `num_points` rows of the io_pts
         # array
         rows, _ = io_pts.shape
-        num_chunks = rows / cls.num_points
+        num_chunks = int(rows / cls.num_points)
         io_cells = np.split(np.arange(rows), num_chunks)
 
         return MeshIO(io_pts, {cls._meshio_cell_type: np.array(io_cells)})

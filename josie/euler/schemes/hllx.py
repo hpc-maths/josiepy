@@ -166,7 +166,7 @@ class HLLC(HLL):
 
     def F(self, cells: MeshCellSet, neighs: NeighboursCellSet):
 
-        values: EulerState = cells.values.view(EulerState)
+        values = cells.values.view(EulerState)
 
         FS = np.zeros_like(values).view(EulerState)
         F = np.zeros_like(values.get_conservative())
@@ -250,8 +250,12 @@ class HLLC(HLL):
             S_star - U_L
         ) * (S_star + np.divide(p_L, rho_L * (sigma_L - U_L)))
 
-        Q_star_R *= rho_R * np.divide(sigma_R - U_R, sigma_R - S_star)
-        Q_star_L *= rho_L * np.divide(sigma_L - U_L, sigma_L - S_star)
+        Q_star_R = Q_star_R * (
+            rho_R * np.divide(sigma_R - U_R, sigma_R - S_star)
+        )
+        Q_star_L = Q_star_L * (
+            rho_L * np.divide(sigma_L - U_L, sigma_L - S_star)
+        )
 
         # Right supersonic flow
         np.copyto(F, F_L, where=(sigma_L >= 0))
@@ -273,6 +277,8 @@ class HLLC(HLL):
             where=(S_star < 0) * (0 <= sigma_R),
         )
 
-        FS.set_conservative(neighs.surfaces[..., np.newaxis, np.newaxis] * F)
+        FS.set_conservative(
+            (neighs.surfaces[..., np.newaxis, np.newaxis] * F).view(EulerState)
+        )
 
         return FS

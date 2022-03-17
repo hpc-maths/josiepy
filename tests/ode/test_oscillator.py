@@ -18,7 +18,8 @@ class OscillatorRHS:
         self.k = k
         self.m = m
 
-    def __call__(self, values, t) -> State:
+    def __call__(self, values: State, t) -> State:
+        values = values.view(Q)
         fields = values.fields
         source = values.copy()
 

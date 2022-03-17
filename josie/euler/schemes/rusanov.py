@@ -129,7 +129,7 @@ class Rusanov(EulerScheme):
         Q_L_cons = Q_L.get_conservative()
         Q_R_cons = Q_R.get_conservative()
 
-        DeltaQ: EulerState = 0.5 * sigma * (Q_R_cons - Q_L_cons)
+        DeltaQ = 0.5 * sigma * (Q_R_cons - Q_L_cons)
 
         FS.set_conservative(
             neighs.surfaces[..., np.newaxis, np.newaxis] * (DeltaF - DeltaQ)

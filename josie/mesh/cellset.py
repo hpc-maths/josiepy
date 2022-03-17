@@ -10,7 +10,7 @@ from josie.geometry import MeshIndex
 if TYPE_CHECKING:
     from josie.boundary import Boundary
     from josie.dimension import Dimensionality
-    from josie.state import State
+from josie.state import State
 
 
 class NormalDirection(IntEnum):
@@ -75,7 +75,7 @@ class CellSet:
             surfaces=self.surfaces[key],
             normals=self.normals[key],
             centroids=self.centroids[key],
-            values=self.values[key],
+            values=self.values[key].view(State),
             dimensionality=self.dimensionality,
         )
 
@@ -234,7 +234,7 @@ class MeshCellSet(CellSet):
             surfaces=self._volumes[key],
             normals=self._normals[key],
             centroids=self._centroids[key],
-            values=self._values[key],
+            values=self._values[key].view(State),
             dimensionality=self.dimensionality,
         )
 
@@ -323,7 +323,7 @@ class MeshCellSet(CellSet):
 
     @property  # type: ignore
     def values(self) -> State:  # type: ignore
-        return self._values[1:-1, 1:-1]
+        return self._values[1:-1, 1:-1].view(State)
 
     @values.setter
     def values(self, values: State):
