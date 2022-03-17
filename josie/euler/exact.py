@@ -194,9 +194,9 @@ class Exact:
         The value of the non linear function after the shock
         """
         fields = Q_k.fields
-        rho_k = Q_k[..., fields.rho]
+        rho_k = Q_k.item(fields.rho)
         tau_k = 1 / rho_k
-        p_k = Q_k[..., fields.p].item()
+        p_k = Q_k.item(fields.p)
 
         rho_star_k = self._solve_rankine_hugoniot(p, rho_k, p_k)
 
@@ -340,9 +340,9 @@ class Exact:
         :math:`u^* = U_k \pm f_k(p^*)`
         """
         fields = Q_k.fields
-        rho_k = Q_k[..., fields.rho]
-        p_k = Q_k[..., fields.p]
-        U_k = Q_k[..., fields.U]
+        rho_k = Q_k.item(fields.rho)
+        p_k = Q_k.item(fields.p)
+        U_k = Q_k.item(fields.U)
 
         ode_sol = self._solve_rarefaction_ode((p_k, p), (U_k, rho_k), wave)
 
@@ -425,15 +425,15 @@ class Exact:
         Q_L = self.Q_L
         Q_R = self.Q_R
 
-        p_L = Q_L[..., fields.p]
-        rho_L = Q_L[..., fields.rho]
-        U_L = Q_L[..., fields.U]
-        V_L = Q_L[..., fields.V]
+        p_L = Q_L.item(fields.p)
+        rho_L = Q_L.item(fields.rho)
+        U_L = Q_L.item(fields.U)
+        V_L = Q_L.item(fields.V)
 
-        p_R = Q_R[..., fields.p]
-        rho_R = Q_R[..., fields.rho]
-        U_R = Q_R[..., fields.U]
-        V_R = Q_R[..., fields.V]
+        p_R = Q_R.item(fields.p)
+        rho_R = Q_R.item(fields.rho)
+        U_R = Q_R.item(fields.U)
+        V_R = Q_R.item(fields.V)
 
         # Left Star State
         if p_star > p_L:
@@ -490,7 +490,7 @@ class Exact:
             The state solution at the requested :math:`(x, t)`
         """
         fields = self.Q_star_L.fields
-        U_star = self.Q_star_L[..., fields.U]
+        U_star = self.Q_star_L.item(fields.U)
 
         speed = (x - origin) / t
 
@@ -504,11 +504,11 @@ class Exact:
                 if speed > self.left_shock_speed and speed <= U_star:
                     return self.Q_star_L
             else:
-                U_L = self.Q_L[..., fields.U]
-                V_L = self.Q_L[..., fields.V]
-                c_L = self.Q_L[..., fields.c]
+                U_L = self.Q_L.item(fields.U)
+                V_L = self.Q_L.item(fields.V)
+                c_L = self.Q_L.item(fields.c)
 
-                c_star_L = self.Q_star_L[..., fields.c]
+                c_star_L = self.Q_star_L.item(fields.c)
 
                 rarefaction_head = U_L - c_L
                 rarefaction_tail = U_star - c_star_L
@@ -533,11 +533,11 @@ class Exact:
                 if speed < self.right_shock_speed and speed >= U_star:
                     return self.Q_star_R
             else:
-                U_R = self.Q_R[..., fields.U]
-                V_R = self.Q_R[..., fields.V]
-                c_R = self.Q_R[..., fields.c]
+                U_R = self.Q_R.item(fields.U)
+                V_R = self.Q_R.item(fields.V)
+                c_R = self.Q_R.item(fields.c)
 
-                c_star_R = self.Q_star_R[..., fields.c]
+                c_star_R = self.Q_star_R.item(fields.c)
 
                 rarefaction_head = U_R + c_R
                 rarefaction_tail = U_star + c_star_R

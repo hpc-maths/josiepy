@@ -197,7 +197,7 @@ class RK(TimeScheme):
 
         t += c * dt
         step_cells = mesh.cells.copy()
-        step_cells.values -= dt * np.einsum(
+        step_cells.values = step_cells.values - dt * np.einsum(
             "...i,...j->...", a_s, self._ks[..., :step]
         )
         step_cells.update_ghosts(mesh.boundaries, t)
@@ -211,10 +211,10 @@ class RK(TimeScheme):
         self.k(mesh, dt, t, self.num_steps - 1)
         # Now self._fluxes contains the last k value. So we multiply the
         # corresponding b
-        self._fluxes *= self.butcher.b_s[-1]
+        self._fluxes = self._fluxes * self.butcher.b_s[-1]
 
         # Let's sum all the other contributions from 0 to s-1
-        self._fluxes += np.einsum(
+        self._fluxes = self._fluxes + np.einsum(
             "i,...i->...", self.butcher.b_s[:-1], self._ks
         )
 

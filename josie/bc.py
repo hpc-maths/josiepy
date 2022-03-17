@@ -442,7 +442,7 @@ class NeumannDirichlet(ScalarBC):
             obj = super().__new__(cls)
             obj.neumann = Neumann(neumann_value)
             obj.dirichlet = Dirichlet(dirichlet_value)
-            obj.partition_fun = partition_fun
+            obj.partition_fun = partition_fun  # type: ignore
             return obj
 
     def init(self, cells: CellSet):

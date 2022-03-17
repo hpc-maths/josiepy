@@ -134,7 +134,7 @@ class State(np.ndarray):
 
     @classmethod
     def from_mesh(cls, mesh: Mesh) -> State:
-        """Initialize an empty class:`State` object of the right dimensiosn
+        """Initialize an empty class:`State` object of the right dimensions
         for the given class:`Mesh`"""
 
         # TODO: Add num_dofs into the size to allow for multiple dofs in a

@@ -221,7 +221,7 @@ class MatplotlibBackend(PlotBackend):
             ax: Axes
 
             fig, ax = plt.subplots()
-            fig.colorbar(patch_coll)
+            fig.colorbar(patch_coll, ax=ax)
 
             ax.set_aspect("equal")
             ax.add_collection(patch_coll, autolim=True)

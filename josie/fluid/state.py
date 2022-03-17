@@ -16,7 +16,7 @@ class ConsState(State):
 
     def get_conservative(self) -> SubsetState:
         """Returns the conservative part of the state"""
-        return self[..., self.cons_state._subset_fields_map]
+        return self[..., self.cons_state._subset_fields_map]  # type: ignore
 
     def set_conservative(self, values: State):
         """Set the conservative part of the state"""
@@ -32,7 +32,7 @@ class DiffState(State):
 
     def get_diffusive(self) -> SubsetState:
         """Returns the diffusive part of the state"""
-        return self[..., self.diff_state._subset_fields_map]
+        return self[..., self.diff_state._subset_fields_map]  # type: ignore
 
     def set_diffusive(self, values: State):
         """Set the diffusive part of the state"""
