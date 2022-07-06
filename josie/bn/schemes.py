@@ -101,9 +101,7 @@ class Upwind(BaerScheme, NonConservativeScheme):
     Check also :class:`~twofluid.problem.TwoPhaseProblem.B`.
     """
 
-    def G(
-        self, cells: MeshCellSet, neighs: NeighboursCellSet
-    ) -> np.ndarray:
+    def G(self, cells: MeshCellSet, neighs: NeighboursCellSet) -> np.ndarray:
 
         Q_L: Q = cells.values.view(Q)
         Q_R: Q = neighs.values.view(Q)

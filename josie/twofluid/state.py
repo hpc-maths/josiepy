@@ -4,7 +4,7 @@ import re
 
 from typing import Any, Optional, Type
 
-from josie.fluid.state import ConsState, SingleFluidState
+from josie.fluid.state import ConsState
 from josie.state import SubsetState
 from josie.twofluid import fields
 
@@ -41,7 +41,7 @@ class PhasePair(dict):
         return super().__getitem__(fields.Phases.PHASE1)
 
 
-class PhaseState(SubsetState, SingleFluidState, abstract=True):
+class PhaseState(SubsetState, abstract=True):
     """This :class:`ConsSubsetState` stores two sets of indices, one per
     phase, and it matches the field names with a regex in order to detect the
     phase they are member of. This is needed to support out-of-order listing of
@@ -103,7 +103,7 @@ class TwoFluidState(ConsState):
             PhaseState
         )
 
-    def set_phase(self, phase: fields.Phases, values: SingleFluidState):
+    def set_phase(self, phase: fields.Phases, values: PhaseState):
         """Sets the part of the system associated to the specified ``phase``
         with the provided `values`
 

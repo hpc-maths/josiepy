@@ -23,6 +23,15 @@ def pytest_addoption(parser):
     )
 
     parser.addoption(
+        "--animate",
+        action="store_true",
+        help=(
+            "Some tests can animate the mesh. Set to true if you want to"
+            "see them"
+        ),
+    )
+
+    parser.addoption(
         "--write",
         action="store_true",
         help=(
@@ -84,11 +93,26 @@ def mesh(boundaries):
 
 @pytest.fixture(scope="session", autouse=True)
 def plot(request):
-    if not (request.config.getoption("--plot")):
+    if not (
+        request.config.getoption("--plot")
+        or request.config.getoption("--animate")
+    ):
         import matplotlib
 
         matplotlib.use("SVG")
     yield request.config.getoption("--plot")
+
+
+@pytest.fixture(scope="session", autouse=False)
+def animate(request):
+    if not (
+        request.config.getoption("--plot")
+        or request.config.getoption("--animate")
+    ):
+        import matplotlib
+
+        matplotlib.use("SVG")
+    yield request.config.getoption("--animate")
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -103,7 +127,7 @@ def tol():
 
 @pytest.fixture
 def Q():
-    """ Simple scalar state for easy check """
+    """Simple scalar state for easy check"""
     Q = StateTemplate("u")
 
     yield Q
@@ -111,7 +135,7 @@ def Q():
 
 @pytest.fixture
 def solver(mocker, mesh, Q, init_fun):
-    """ A dummy solver instance with initiated state """
+    """A dummy solver instance with initiated state"""
 
     scheme = mocker.Mock()
 
@@ -123,7 +147,7 @@ def solver(mocker, mesh, Q, init_fun):
 
 @pytest.fixture
 def init_fun(Q):
-    """ Init a step in the state """
+    """Init a step in the state"""
 
     def init_fun(cells: MeshCellSet):
         xc = cells.centroids[..., 0]

@@ -119,7 +119,7 @@ class PerfectGas(EOS):
         return (self.gamma - 1) * np.multiply(rho, e)
 
     def rho(self, p: ArrayAndScalar, e: ArrayAndScalar) -> ArrayAndScalar:
-        """This returns the sound velocity from density and pressure
+        """This returns the density from pressure and internal energy
 
         Parameters
         ----------
