@@ -310,7 +310,7 @@ class SimpleCell(Cell):
 
         normal = np.transpose(np.array([r[..., 1], -r[..., 0]]), (1, 2, 0))
 
-        return normal / np.linalg.norm(normal)
+        return normal / np.linalg.norm(normal, axis=-1, keepdims=True)
 
     @classmethod
     def create_connectivity(cls, mesh: Mesh):
