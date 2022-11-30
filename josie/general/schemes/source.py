@@ -24,7 +24,7 @@ class ConstantSource(SourceScheme):
 
     """
 
-    def pre_accumulate(self, cells: MeshCellSet, t: float):
+    def pre_accumulate(self, cells: MeshCellSet, dt: float, t: float):
         """
         We add the source term flux here since we just need cell info and not
         neighbours info
@@ -38,7 +38,7 @@ class ConstantSource(SourceScheme):
             The current time instant
         """
 
-        super().pre_accumulate(cells, t)
+        super().pre_accumulate(cells, dt, t)
 
         # FIXME: Ignoring typing: https://github.com/numpy/numpy/issues/20072
         self._fluxes += self.volume_s(cells, t)  # type: ignore

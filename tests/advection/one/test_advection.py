@@ -9,22 +9,56 @@ import pytest
 
 from matplotlib.animation import ArtistAnimation
 
-from .adv1d import main as main_1d
 
 import josie.general.schemes.time as time_schemes
-from josie.general.schemes.space import Godunov
+from josie.general.schemes.space.limiters import MUSCL_Hancock_no_limiter
 from josie.dimension import MAX_DIMENSIONALITY
+from josie.bc import Dirichlet
 from josie.mesh.cellset import MeshCellSet
-from josie.state import State
+from josie.fluid.state import ConsState
 from josie.solver import Solver
 from josie.problem import Problem
+from josie.state import SubsetState, State
+from josie.mesh import Mesh
+from josie.mesh.cell import SimpleCell
+from josie.boundary import Line
 
 # Advection velocity in x-direction
 V = np.array([1.0, 0.0])
 
 
-class Q(State):
+def init(x: np.ndarray):
+    """Init function."""
+    u = np.empty(x.shape)
+    a = 0.05
+    b = 0.85
+
+    u = (
+        (
+            np.exp(-1 / (x - a) ** 2)
+            * np.exp(-1 / (x - b) ** 2)
+            / (
+                np.exp(-1 / ((a + b) / 2 - a) ** 2)
+                * np.exp(-1 / ((a + b) / 2 - b) ** 2)
+            )
+        )
+        * (x > a)
+        * (x < b)
+        * (b - a)
+    )
+    # u = (x > 0.4) * (x < 0.6)
+    # u = 0.5 * (1 + erf(20 * (x - 0.5)))
+    return u
+
+
+class AdvectionConsState(SubsetState):
+    full_state_fields = State.list_to_enum(["u"])
     fields = State.list_to_enum(["u"])  # type: ignore
+
+
+class Q(ConsState):
+    fields = State.list_to_enum(["u"])  # type: ignore
+    cons_state = AdvectionConsState
 
 
 def flux(state_array: Q) -> np.ndarray:
@@ -43,7 +77,7 @@ class AdvectionProblem(Problem):
     params=[member[1] for member in inspect.getmembers(time_schemes, inspect.isclass)],
 )
 def scheme(request):
-    class Upwind(Godunov, request.param):
+    class Upwind(MUSCL_Hancock_no_limiter, request.param):
         def intercellFlux(
             self, Q_L: Q, Q_R: Q, normals: np.ndarray, surfaces: np.ndarray
         ):
@@ -86,9 +120,26 @@ def scheme(request):
     yield Upwind(AdvectionProblem())
 
 
+def init_fun(cells: MeshCellSet):
+    xc = cells.centroids[..., [0]]
+
+    cells.values = init(np.array(xc)).view(Q)
+
+
 @pytest.fixture
-def solver(scheme, mesh, init_fun, Q):
-    mesh.interpolate(100, 1)
+def solver(scheme):
+    left = Line([0, 0], [0, 1])
+    bottom = Line([0, 0], [1, 0])
+    right = Line([1, 0], [1, 1])
+    top = Line([0, 1], [1, 1])
+
+    left.bc = Dirichlet(AdvectionConsState(0))
+    right.bc = Dirichlet(AdvectionConsState(0))
+    top.bc = None
+    bottom.bc = None
+
+    mesh = Mesh(left, bottom, right, top, SimpleCell)
+    mesh.interpolate(40, 1)
     mesh.generate()
     solver = Solver(mesh, Q, scheme)
     solver.init(init_fun)
@@ -101,28 +152,34 @@ def test_against_real_1D(solver, plot, tol):
 
     nx = solver.mesh.num_cells_x
 
-    time, x_1d, solution = main_1d(nx, 4, 0.9, plot)
-    dt = time[1] - time[0]
-
     fig = plt.figure()
     ax1 = fig.add_subplot(121)
     ax2 = fig.add_subplot(122)
 
     ims = []
 
-    for i, t in enumerate(time):
-        x = solver.mesh.cells.centroids[..., 0]
-        x = x.reshape(x.size)
+    # CFL condition
+    c = 0.7
+    dx = 1 / nx
+    dt = c * dx
+    T = 0.1
+
+    x = solver.mesh.cells.centroids[..., 0]
+    x = x.reshape(x.size)
+    Nt = int(np.ceil(T / dt))
+    dt = T / Nt
+
+    for t in np.linspace(0, T, Nt + 1):
         u = solver.mesh.cells.values[..., 0]
         u = u.reshape(u.size)
 
-        err = u - solution[i, :]
+        err = u - init(x - t)
 
         if plot:
             (im1,) = ax1.plot(x, u, "ro-")
-            (im2,) = ax1.plot(x_1d, solution[i, :], "ks-")
+            (im2,) = ax1.plot(x, init(x - t), "ks-")
             ims.append([im1, im2])
-            (im_err,) = ax2.plot(x_1d, err, "ks-")
+            (im_err,) = ax2.plot(x, err, "ks-")
             ims.append([im1, im2, im_err])
 
         # Check same solution with 1D-only
@@ -130,5 +187,5 @@ def test_against_real_1D(solver, plot, tol):
         solver.step(dt)
 
     if plot:
-        _ = ArtistAnimation(fig, ims, interval=50)
+        _ = ArtistAnimation(fig, ims, interval=100)
         plt.show()

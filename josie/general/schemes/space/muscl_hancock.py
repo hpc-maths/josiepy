@@ -6,6 +6,7 @@ import numpy as np
 
 import abc
 
+import copy
 from josie.mesh.cellset import MeshCellSet, NeighboursCellSet
 
 from josie.scheme.convective import ConvectiveScheme
@@ -145,15 +146,15 @@ class MUSCL_Hancock(ConvectiveScheme):
 
         self.values_face.create_neighbours()
 
-    def pre_step(self, cells: MeshCellSet, dt: float):
-        super().pre_step(cells, dt)
+    def pre_accumulate(self, cells: MeshCellSet, dt: float, t: float):
+        super().pre_accumulate(cells, dt, t)
 
         self.slopes.fill(0)
 
         # Initialize state values at each face with the state value
         # of the cell
         for dir in range(2**cells.dimensionality):
-            self.values_face._values[..., dir] = cells._values
+            self.values_face._values[..., dir] = cells._values.copy()
 
         # Compute the slope for each direction according to the
         # chosen limiter
@@ -174,8 +175,8 @@ class MUSCL_Hancock(ConvectiveScheme):
 
         # Perform the half-timestep at each interface using cell
         # flux (for the conserved components)
-        self.update_values_face(cells, dt)
+        # self.update_values_face(cells, dt)
 
         # Update the auxiliary components at each face
-        for dir in range(2**cells.dimensionality):
-            self.post_extrapolation(self.values_face._values[..., dir])
+        # for dir in range(2**cells.dimensionality):
+        #     self.post_extrapolation(self.values_face._values[..., dir])

@@ -182,7 +182,7 @@ class RK(TimeScheme):
         )
         step_cells.update_ghosts(mesh.boundaries, t)
 
-        self.pre_accumulate(step_cells, t)
+        self.pre_accumulate(step_cells, dt, t)
 
         for neighs in step_cells.neighbours:
             self.accumulate(step_cells, neighs, t)

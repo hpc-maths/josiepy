@@ -255,10 +255,10 @@ class MeshCellSet(CellSet):
             dimensionality=self.dimensionality,
         )
 
-        cells.neighbours = self.neighbours
-
         if self._values is not None:
             cells._values = self._values.copy()
+
+        cells.create_neighbours()
 
         return cells
 

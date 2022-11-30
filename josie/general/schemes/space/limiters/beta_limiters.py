@@ -25,13 +25,10 @@ class MUSCL_Hancock_no_limiter(MUSCL_Hancock):
             neigh_L = cells.neighbours[dir_L]
             neigh_R = cells.neighbours[dir_R]
 
-            slope_L: np.ndarray = cells.values - neigh_L.values
-            slope_R: np.ndarray = neigh_R.values - cells.values
-
             # Without limiters
-            self.slopes[..., dir_R] = (
-                0.5 * (1 + self.omega) * slope_L + 0.5 * (1 - self.omega) * slope_R
-            )
+            self.slopes[..., dir_R] = 0.5 * (1 + self.omega) * (
+                cells.values - neigh_L.values
+            ) + 0.5 * (1 - self.omega) * (neigh_R.values - cells.values)
 
             self.slopes[..., dir_L] = -self.slopes[..., dir_R]
 
@@ -116,5 +113,5 @@ class MUSCL_Hancock_MinMod(MUSCL_Hancock_Beta_limiters):
     beta = 1.0
 
 
-class MUSCL_Hancock_SuperBee(MUSCL_Hancock_Beta_limiters):
+class MUSCL_Hancock_Superbee(MUSCL_Hancock_Beta_limiters):
     beta = 2.0

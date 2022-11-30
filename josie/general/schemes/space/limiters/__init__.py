@@ -4,7 +4,7 @@
 
 from .beta_limiters import MUSCL_Hancock_no_limiter
 from .beta_limiters import MUSCL_Hancock_MinMod
-from .beta_limiters import MUSCL_Hancock_SuperBee
+from .beta_limiters import MUSCL_Hancock_Superbee
 
 from .ratio_limiters import MUSCL_Hancock_Superbee_r
 from .ratio_limiters import MUSCL_Hancock_Minbee
