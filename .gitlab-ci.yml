@@ -13,6 +13,7 @@ before_script:
     - apt-get update && apt-get install -y build-essential
     - pip install poetry
     - poetry install -E jupyter
+    - poetry run export JUPYTER_PLATFORM_DIRS=1
 
 test:
     parallel:
