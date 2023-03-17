@@ -41,7 +41,6 @@ from josie.mesh.cellset import CellSet, MeshCellSet
 
 from josie.state import State
 from josie.scheme import Scheme
-import ipdb
 
 import numpy as np
 
@@ -132,7 +131,7 @@ class Solver:
         dt
             Time increment of the step
         """
-        # ipdb.set_trace()
+
         self.scheme.update(self.mesh, dt, self.t)
         self.t += dt
 

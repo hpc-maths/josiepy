@@ -36,7 +36,6 @@ from typing import TYPE_CHECKING
 from josie.mesh import Mesh
 from josie.mesh.cellset import MeshCellSet
 from josie.scheme.time import TimeScheme
-import ipdb
 
 if TYPE_CHECKING:
     from josie.problem import Problem
@@ -142,7 +141,8 @@ class RK(TimeScheme):
         # Error checking for coefficients
         if not (len(butcher.c_s) == len(butcher.b_s)):
             raise ValueError(
-                "The number of `c_s` coefficients must be " "the same as the `b_s`"
+                "The number of `c_s` coefficients must be "
+                "the same as the `b_s`"
             )
 
         self.butcher = butcher
@@ -197,7 +197,9 @@ class RK(TimeScheme):
 
         t += c * dt
         step_cells = mesh.cells.copy()
-        step_cells.values -= dt * np.einsum("...i,...j->...", a_s, self._ks[..., :step])
+        step_cells.values -= dt * np.einsum(
+            "...i,...j->...", a_s, self._ks[..., :step]
+        )
         step_cells.update_ghosts(mesh.boundaries, t)
 
         self.pre_accumulate(step_cells, t)
@@ -212,7 +214,9 @@ class RK(TimeScheme):
         self._fluxes *= self.butcher.b_s[-1]
         # ipdb.set_trace()
         # Let's sum all the other contributions from 0 to s-1
-        self._fluxes += np.einsum("i,...i->...", self.butcher.b_s[:-1], self._ks)
+        self._fluxes += np.einsum(
+            "i,...i->...", self.butcher.b_s[:-1], self._ks
+        )
 
 
 class RK2Alpha(RK):

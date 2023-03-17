@@ -28,7 +28,6 @@ from __future__ import annotations
 
 import abc
 import numpy as np
-import ipdb
 
 from typing import TYPE_CHECKING
 
@@ -157,7 +156,9 @@ class Scheme(abc.ABC):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def accumulate(self, cells: MeshCellSet, neighs: NeighboursCellSet, t: float):
+    def accumulate(
+        self, cells: MeshCellSet, neighs: NeighboursCellSet, t: float
+    ):
         r"""This method implements the accumulation of all fluxes between
         each cell and its neighbour.
 
@@ -230,7 +231,8 @@ class Scheme(abc.ABC):
 
         # Update the cell values
         # ipdb.set_trace()
-        # cells.values -= self._fluxes * dt / cells.volumes[..., np.newaxis, np.newaxis]
+        # cells.values -= self._fluxes * dt
+        # / cells.volumes[..., np.newaxis, np.newaxis]
         nx, ny, num_dofs, _ = cells.values.shape
         if num_dofs != 1:
             cells.values -= self._fluxes * dt

@@ -1,38 +1,25 @@
-import inspect
 import abc
-import matplotlib
-import matplotlib.pyplot as plt
-
-from josie.scheme.scheme import Scheme
-
-matplotlib.use("TkAgg")
 import numpy as np
 import pytest
-import math
+import scipy.integrate as integrate
 
+from josie.scheme.scheme import Scheme
 from josie.bc import make_periodic, Direction
 from josie.boundary import Line
 from josie.mesh import Mesh
 from josie.mesh.cell import DGCell
 
-
-from matplotlib.animation import ArtistAnimation
-
-from .adv1d import main as main_1d
-
-import josie.general.schemes.time as time_schemes
 from josie.general.schemes.time.rk import RK, ButcherTableau
-from josie.mesh.cellset import MeshCellSet, CellSet
+from josie.mesh.cellset import MeshCellSet, CellSet, NeighboursCellSet
 from josie.state import State
 from josie.solver import Solver
 from josie.problem import Problem
 
+import matplotlib.pyplot as plt
+from matplotlib import collections as mc
+from matplotlib.animation import ArtistAnimation
+
 from typing import NoReturn, Callable
-import ipdb
-
-# from josie.scheme.convective import ConvectiveScheme
-from josie.mesh.cellset import NeighboursCellSet, MeshCellSet
-
 
 # Advection velocity in x-direction
 V = np.array([1.0, 0.0])
@@ -78,7 +65,9 @@ class RKDG(RK):
 
         t += c * dt
         step_cells = mesh.cells.copy()
-        step_cells.values -= dt * np.einsum("...i,...j->...", a_s, self._ks[..., :step])
+        step_cells.values -= dt * np.einsum(
+            "...i,...j->...", a_s, self._ks[..., :step]
+        )
 
         step_cells.update_ghosts(mesh.boundaries, t)
 
@@ -151,11 +140,11 @@ class SolverDG(Solver):
 
     def jacob(self, mesh):
         x = mesh._x
-        y = mesh._y
         dx = mesh._x[1, 0] - mesh._x[0, 0]
         dy = mesh._y[0, 1] - mesh._y[0, 0]
 
-        # Works only for structured mesh (no rotation, only x-axis and/or y-axis stretch)
+        # Works only for structured mesh (no rotation, only x-axis
+        # and/or y-axis stretch)
         # self.jac = J^{-1}
         self.jac = (4.0 / (dx * dy)) * np.ones(x[1:, :-1].shape)
         return self.jac
@@ -185,8 +174,9 @@ class SchemeAdvDG(Scheme):
     def __init__(self):
         super().__init__(AdvectionProblem())
 
-    def accumulate(self, cells: MeshCellSet, neighs: NeighboursCellSet, t: float):
-
+    def accumulate(
+        self, cells: MeshCellSet, neighs: NeighboursCellSet, t: float
+    ):
         # Compute fluxes computed eventually by the other terms (diffusive,
         # nonconservative, source)
         super().accumulate(cells, neighs, t)
@@ -209,7 +199,6 @@ def flux(state_array: Q) -> np.ndarray:
 
 
 def upwind(cells: MeshCellSet, neighs: CellSet):
-
     values = cells.values
     nx, ny, num_dofs, _ = values.shape
 
@@ -243,7 +232,6 @@ def scheme():
             cells: MeshCellSet,
             CFL_value: float,
         ) -> float:
-
             U_abs = np.linalg.norm(V)
             dx = np.min(cells.surfaces)
             return CFL_value * dx / U_abs
@@ -251,23 +239,36 @@ def scheme():
     yield Upwind()
 
 
+def door(x, t):
+    return (x > 0.2 + V[0] * t) * (x < 0.4 + V[0] * t) * 1
+
+
+def bump(x, t):
+    b = 0.1
+    a = 0.3 + V[0] * t
+    return np.where(
+        np.abs(x - a) < b - 1e-8,
+        np.exp(b**2 / ((x - a) ** 2 - b**2)),
+        0,
+    )
+
+
+def const(x, t):
+    return np.ones_like(x)
+
+
+@pytest.fixture(params=sorted([const, bump, door], key=lambda c: c.__name__))
+def u_exa(request):
+    yield request.param
+
+
 @pytest.fixture
-def solver(scheme, Q):
+def solver(scheme, Q, u_exa):
     """1D problem along x"""
     left = Line([0, 0], [0, 1])
-    bottom = Line([0, 0], [2, 0])
-    right = Line([2, 0], [2, 1])
-    top = Line([0, 1], [2, 1])
-
-    # left = Line([-math.pi, 0], [-math.pi, 1])
-    # bottom = Line([-math.pi, 0], [math.pi, 0])
-    # right = Line([math.pi, 0], [math.pi, 1])
-    # top = Line([-math.pi, 1], [math.pi, 1])
-
-    # left = Line([0, 0], [0, 1])
-    # bottom = Line([0, 0], [2 * math.pi, 0])
-    # right = Line([2 * math.pi, 0], [2 * math.pi, 1])
-    # top = Line([0, 1], [2 * math.pi, 1])
+    bottom = Line([0, 0], [1, 0])
+    right = Line([1, 0], [1, 1])
+    top = Line([0, 1], [1, 1])
 
     left, right = make_periodic(left, right, Direction.X)
     top.bc = None
@@ -280,80 +281,73 @@ def solver(scheme, Q):
     solver = SolverDG(mesh, Q, scheme)
 
     def init_fun(cells: MeshCellSet):
-
-        xc = cells.centroids[..., 0]
-        # sigma = 125.0 * 1000.0 / (33.0 ** 2)
-        # c = 0.5
-        # for i in range(mesh.num_cells_x):
-        #    for j in range(mesh.num_cells_y):
-        #        for k in range(mesh.cell_type.num_dofs):
-        #            cells.values[i, j, k, :] = math.exp(
-        #                -sigma * math.fabs(xc[i, j, k] - c) ** 2
-        #            )
-
-        # for i in range(mesh.num_cells_x):
-        #    for j in range(mesh.num_cells_y):
-        #        for k in range(mesh.cell_type.num_dofs):
-        #            cells.values[i, j, k, :] = math.sin(xc[i, j, k])
-
-        xc_r = np.where(xc >= 0.45)
-        xc_l = np.where(xc < 0.45)
-        cells.values[xc_r[0], xc_r[1], xc_r[2], :] = Q(1)
-        # cells.values[xc_l[0], xc_l[1], xc_l[2], :] = Q(1)
-        cells.values[xc_l[0], xc_l[1], xc_l[2], :] = Q(0)
+        xc = cells.centroids[..., 0, :, 0]
+        u_init = u_exa(xc, 0)
+        cells.values[..., 0, :, 0] = u_init.view(Q)
 
     solver.init(init_fun)
 
     yield solver
 
 
-def test_against_real_1D(solver, plot, tol):
+def test_against_real_1D(solver, plot, tol, u_exa):
     """Testing against the real 1D solver"""
 
     cfl = 2.0 / 3
     dx = 1 / solver.mesh.num_cells_x
     dt = cfl * dx / np.linalg.norm(V)
 
-    tf = 0.5
-    x = np.arange(0 + dx / 2, 1, dx)
+    tf = 0.2
     time = np.arange(0, tf, dt)
-
     fig = plt.figure()
     ax1 = fig.add_subplot(121)
+    ax1.set_ylim([-0.3, 1.3])
 
     ims = []
-    sol_exa = np.zeros(((solver.mesh.num_cells_x, solver.mesh.num_cells_y, len(time))))
-    x = solver.mesh.cells.centroids[..., 1, 0]
-    sigma = 125.0 * 1000.0 / (33.0 ** 2)
-    c = 0.5
-    for i in range(solver.mesh.num_cells_x):
-        for j in range(solver.mesh.num_cells_y):
-            for k in range(len(time)):
-                sol_exa[i, j, k] = math.exp(
-                    -sigma * math.fabs(x[i, j] - time[k] - c) ** 2
-                )
-    erreur = np.zeros(len(time))
-    norme = np.zeros(len(time))
-    for i, t in enumerate(time):
-        x = solver.mesh.cells.centroids[..., 1, 0]
-        x = x.reshape(x.size)
-        u = solver.mesh.cells.values[..., 1, 0]
-        erreur[i] = np.linalg.norm(u - sol_exa[:, :, i])
-        norme[i] = np.linalg.norm(sol_exa[:, :, i])
+    err = 0
 
-        u = u.reshape(u.size)
+    for _, t in enumerate(time):
+        x = solver.mesh.cells.centroids[..., 0, :, 0]
+        u = solver.mesh.cells.values
+
         if plot:
-            (im1,) = ax1.plot(x, u, "ro-")
-            ims.append([im1])
+            lines = np.asarray(
+                # BUG: the linear approx should be reversed LEFT/RIGHT
+                [
+                    [
+                        [x[i, 0], u[i, 0, 2, 0]],
+                        [x[i, 2], u[i, 0, 0, 0]],
+                    ]
+                    for i in range(x.shape[0])
+                ]
+            )
+            (im1,) = ax1.plot(x[..., 0], u_exa(x[..., 0], t), ":k")
+            lc = mc.LineCollection(lines, linewidths=1)
+            DG_lines = ax1.add_collection(lc)
+            ims.append([DG_lines, im1])
 
-        # Check same solution with 1D-only
-        # assert np.sum(err < tol) == len(x)
         solver.step(dt)
 
-    norme_finale = np.linalg.norm(norme, np.inf)
-    erreur_finale = np.linalg.norm(erreur, np.inf) / norme_finale
-    erreur_finale = erreur[-1] / norme[-1]
+    err = sum(
+        [
+            integrate.quad(
+                lambda xx: (
+                    np.interp(
+                        xx,
+                        [x[i, 0], x[i, 2]],
+                        [u[i, 0, 2, 0], u[i, 0, 0, 0]],
+                    )
+                    - u_exa(xx, t)
+                )
+                ** 2,
+                x[i, 0],
+                x[i, 2],
+            )[0]
+            for i in range(x.shape[0])
+        ]
+    )
+    print(np.sqrt(err))
 
     if plot:
-        _ = ArtistAnimation(fig, ims, interval=50)
+        _ = ArtistAnimation(fig, ims, interval=200)
         plt.show()

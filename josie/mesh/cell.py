@@ -30,7 +30,6 @@ import abc
 
 import numpy as np
 import scipy.special as sp
-import ipdb
 
 from meshio import Mesh as MeshIO
 from typing import TYPE_CHECKING
@@ -341,7 +340,9 @@ class SimpleCell(Cell):
         )
 
         volumes = np.full((nx + 2, ny + 2), np.nan)
-        normals = np.full((nx + 2, ny + 2, cls.num_points, MAX_DIMENSIONALITY), np.nan)
+        normals = np.full(
+            (nx + 2, ny + 2, cls.num_points, MAX_DIMENSIONALITY), np.nan
+        )
         surfaces = np.full((nx + 2, ny + 2, cls.num_points), np.nan)
 
         cells = MeshCellSet(
@@ -391,11 +392,14 @@ class SimpleCell(Cell):
             boundary_idx = boundary.cells_idx
             ghost_idx = boundary.ghost_cells_idx
 
-            boundary_centroids = mesh.cells._centroids[boundary_idx[0], boundary_idx[1]]
+            boundary_centroids = mesh.cells._centroids[
+                boundary_idx[0], boundary_idx[1]
+            ]
 
             # Compute the ghost cells centroids
             mesh.cells._centroids[ghost_idx[0], ghost_idx[1]] = (
-                boundary_centroids + cls._side_normal[side.name] * mesh.cells.min_length
+                boundary_centroids
+                + cls._side_normal[side.name] * mesh.cells.min_length
             )
 
     @classmethod
@@ -430,8 +434,8 @@ class DGCell(SimpleCell):
         nw     ne
         *-------*
         |       |
-        |   *   |
-        |   c   |
+        |       |
+        |       |
         *-------*
         sw     se
 
@@ -497,9 +501,10 @@ class DGCell(SimpleCell):
 
     @classmethod
     def getIndicesFromDirection(cls, dir):
-        quad_points_1D = np.concatenate(
-            ([-1], sp.legendre(cls.order - 1).deriv().roots, [1])
-        )
+        # quad_points_1D = np.concatenate(
+        #     ([-1], sp.legendre(cls.order - 1).deriv().roots, [1])
+        # )
+        raise NotImplementedError
 
         # Add 2D quad points array
 
@@ -519,15 +524,16 @@ class DGCell(SimpleCell):
         if M is None:
             M = cls.refMass(V)
 
-        invM = np.linalg.inv(M)
+        # invM = np.linalg.inv(M)
+        # To debug
 
         if V is None:
             V = cls.vandermonde1D()
 
         edge1D = np.linalg.inv(np.matmul(V, V.T))
         refMassEdge_tab = []
-        # Left
 
+        # Left
         mat = np.zeros((cls.order * 2, cls.order * 2))
         mat[0:2, 0:2] = edge1D
         # refMassEdge_tab.append(np.matmul(invM, mat))
@@ -579,7 +585,9 @@ class DGCell(SimpleCell):
             return 1.0 / np.sqrt(2 / (2 * n + 1))
 
         # X derivative of Pseudo-Vandermonde matrix
-        with np.nditer(Vx, flags=["multi_index"], op_flags=["writeonly"]) as it:
+        with np.nditer(
+            Vx, flags=["multi_index"], op_flags=["writeonly"]
+        ) as it:
             for x in it:
                 i, j, n, m = it.multi_index
                 x[...] = (
@@ -590,7 +598,9 @@ class DGCell(SimpleCell):
                 )
 
         # Y derivative of Pseudo-Vandermonde matrix
-        with np.nditer(Vy, flags=["multi_index"], op_flags=["writeonly"]) as it:
+        with np.nditer(
+            Vy, flags=["multi_index"], op_flags=["writeonly"]
+        ) as it:
             for x in it:
                 i, j, n, m = it.multi_index
                 x[...] = (
@@ -651,7 +661,7 @@ class DGCell(SimpleCell):
         sw = np.asarray(sw)
         se = np.asarray(se)
         ne = np.asarray(ne)
-        
+
         # initialiser tableau centroid en fonction de num_dofs
 
         return np.stack(
