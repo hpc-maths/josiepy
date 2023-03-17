@@ -54,7 +54,8 @@ class SourceScheme(Scheme):
         super().accumulate(cells, neighs, t)
 
         # Add conservative contribution
-        self._fluxes += self.s(cells, neighs, t)
+        # FIXME: Ignoring typing: https://github.com/numpy/numpy/issues/20072
+        self._fluxes += self.s(cells, neighs, t)  # type: ignore
 
     @abc.abstractmethod
     def s(

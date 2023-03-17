@@ -91,14 +91,18 @@ class HLL(EulerScheme):
             np.concatenate(
                 (U_L - c_L[..., np.newaxis], U_R - c_R[..., np.newaxis]),
                 axis=-1,
-            )
+            ),
+            axis=-1,
+            keepdims=True,
         )
 
         sigma_R: np.ndarray = np.max(
             np.concatenate(
                 (U_L + c_L[..., np.newaxis], U_R + c_R[..., np.newaxis]),
                 axis=-1,
-            )
+            ),
+            axis=-1,
+            keepdims=True,
         )
 
         return sigma_L, sigma_R
@@ -123,10 +127,11 @@ class HLL(EulerScheme):
         sigma_L, sigma_R = self.compute_sigma(U_L, U_R, c_L, c_R)
 
         F_L = np.einsum(
-            "...kl,...l->...k", self.problem.F(cells), neighs.normals
+            "...mkl,...l->...mk", self.problem.F(cells), neighs.normals
         )
+
         F_R = np.einsum(
-            "...kl,...l->...k", self.problem.F(neighs), neighs.normals
+            "...mkl,...l->...mk", self.problem.F(neighs), neighs.normals
         )
 
         # First four variables of the total state are the conservative
@@ -149,7 +154,7 @@ class HLL(EulerScheme):
             where=(sigma_L <= 0) * (sigma_R >= 0),
         )
 
-        FS.set_conservative(neighs.surfaces[..., np.newaxis] * F)
+        FS.set_conservative(neighs.surfaces[..., np.newaxis, np.newaxis] * F)
 
         return FS
 
@@ -161,7 +166,7 @@ class HLLC(HLL):
 
     def F(self, cells: MeshCellSet, neighs: NeighboursCellSet):
 
-        values: EulerState = cells.values.view(EulerState)
+        values = cells.values.view(EulerState)
 
         FS = np.zeros_like(values).view(EulerState)
         F = np.zeros_like(values.get_conservative())
@@ -186,8 +191,8 @@ class HLLC(HLL):
         UV_R = Q_R[..., np.newaxis, UV_slice]
 
         # Compute the normal velocity components
-        U_L = np.einsum("...kl,...l->...k", UV_L, neighs.normals)
-        U_R = np.einsum("...kl,...l->...k", UV_R, neighs.normals)
+        U_L = np.einsum("...mkl,...l->...mk", UV_L, neighs.normals)
+        U_R = np.einsum("...mkl,...l->...mk", UV_R, neighs.normals)
 
         # Speed of sound
         c_L = Q_L[..., fields.c]
@@ -207,10 +212,10 @@ class HLLC(HLL):
 
         # This is the flux tensor dot the normal
         F_L = np.einsum(
-            "...kl,...l->...k", self.problem.F(cells), neighs.normals
+            "...mkl,...l->...mk", self.problem.F(cells), neighs.normals
         )
         F_R = np.einsum(
-            "...kl,...l->...k", self.problem.F(neighs), neighs.normals
+            "...mkl,...l->...mk", self.problem.F(neighs), neighs.normals
         )
 
         # First four variables of the total state are the conservative
@@ -225,10 +230,10 @@ class HLLC(HLL):
         # FIXME: This can be avoided using direct flux expressions, Toro
         # p325, eq 10.41
         U_star_L = UV_L + np.einsum(
-            "...k,...l->...kl", (S_star - U_L), neighs.normals
+            "...mk,...l->...mkl", (S_star - U_L), neighs.normals
         )
         U_star_R = UV_R + np.einsum(
-            "...k,...l->...kl", (S_star - U_R), neighs.normals
+            "...mk,...l->...mkl", (S_star - U_R), neighs.normals
         )
 
         # Compute the intermediate states
@@ -245,8 +250,12 @@ class HLLC(HLL):
             S_star - U_L
         ) * (S_star + np.divide(p_L, rho_L * (sigma_L - U_L)))
 
-        Q_star_R *= rho_R * np.divide(sigma_R - U_R, sigma_R - S_star)
-        Q_star_L *= rho_L * np.divide(sigma_L - U_L, sigma_L - S_star)
+        Q_star_R = Q_star_R * (
+            rho_R * np.divide(sigma_R - U_R, sigma_R - S_star)
+        )
+        Q_star_L = Q_star_L * (
+            rho_L * np.divide(sigma_L - U_L, sigma_L - S_star)
+        )
 
         # Right supersonic flow
         np.copyto(F, F_L, where=(sigma_L >= 0))
@@ -268,6 +277,8 @@ class HLLC(HLL):
             where=(S_star < 0) * (0 <= sigma_R),
         )
 
-        FS.set_conservative(neighs.surfaces[..., np.newaxis] * F)
+        FS.set_conservative(
+            (neighs.surfaces[..., np.newaxis, np.newaxis] * F).view(EulerState)
+        )
 
         return FS

@@ -56,7 +56,7 @@ def initial_condition(x):
 
 
 def init_fun(cells):
-    cells.values = initial_condition(cells.centroids[..., 0])
+    cells.values = initial_condition(cells.centroids[..., 0])[..., np.newaxis]
 
 
 class CentralHeatScheme(
@@ -72,7 +72,7 @@ def N():
 
 @pytest.fixture
 def boundaries(N):
-    """ 1D problem along x """
+    """1D problem along x"""
 
     # This is needed to have the same centroids coordinates as  for 1D
     # diffusion code here:

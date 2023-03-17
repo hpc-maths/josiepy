@@ -51,6 +51,8 @@ class LeastSquareGradient(DiffusiveScheme):
             \vb{r}_C) - \phi_N
 
     to obtain the value of the gradient in the cell :math:`\nabla \phi_C`
+
+    :cite:`moukalled_finite_2016`
     """
 
     _gradient: np.ndarray
@@ -60,12 +62,14 @@ class LeastSquareGradient(DiffusiveScheme):
         :math:`\pdeGradient, \ipdeGradient` per each cell
         """
 
-        nx, ny, num_state = cells.values.shape
+        nx, ny, num_dofs, num_fields = cells.values.shape
         dimensionality = cells.dimensionality
 
         super().post_init(cells)
 
-        self._gradient = np.zeros((nx, ny, num_state, dimensionality))
+        self._gradient = np.zeros(
+            (nx, ny, num_dofs, num_fields, dimensionality)
+        )
 
     def pre_step(self, cells: MeshCellSet):
         super().pre_step(cells)
@@ -78,7 +82,7 @@ class LeastSquareGradient(DiffusiveScheme):
 
         """
 
-        nx, ny, num_points = cells.values.shape
+        nx, ny, num_dofs, num_fields = cells.values.shape
         dimensionality = cells.dimensionality
 
         super().post_init(cells)
@@ -92,11 +96,11 @@ class LeastSquareGradient(DiffusiveScheme):
         # of neighbour. There are 2*dimensionality neighbours (i.e. 2D -> 4
         # neighbours)
         self._r = np.zeros(
-            (nx, ny, num_points, 2 * dimensionality, dimensionality)
+            (nx, ny, num_fields, 2 * dimensionality, dimensionality)
         )
 
         # Store norm of the relative vectors to be used as weights
-        self._w = np.zeros((nx, ny, num_points, 2 * dimensionality))
+        self._w = np.zeros((nx, ny, num_fields, 2 * dimensionality))
 
         # If the mesh is static, the A matrix does not change. So we can
         # initialize it once and for all here
@@ -115,7 +119,7 @@ class LeastSquareGradient(DiffusiveScheme):
                 - cells.centroids[..., :dimensionality]
             )
 
-            # Compute unweighted A components for this neighbour
+            # Compute unweighted A components for this set of neighbours
             A = np.einsum("...ki,...kj->...ij", r, r)
 
             # Weight by the inverse of the relative vector norm squared. Ie
@@ -144,10 +148,13 @@ class LeastSquareGradient(DiffusiveScheme):
 
             # Compute RHS
             self._RHS += np.einsum(
-                "...i,...kj->...ij",
+                "...mi,...kj->...mij",
                 cells.neighbours[i].values - cells.values,
                 r,
             )
+
+        # The np.newaxis are needed to allow correct broadcasting against RHS
+        # TODO: make less ugly?
         self._gradient = np.linalg.solve(
-            self._A[..., np.newaxis, :, :], self._RHS
+            self._A[..., np.newaxis, np.newaxis, :, :], self._RHS
         )

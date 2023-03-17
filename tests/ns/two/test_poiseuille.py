@@ -44,7 +44,7 @@ def init_state(eos):
 def U_inlet():
     def U_inlet_fun(cells, t):
         nx, _, _ = cells.centroids.shape
-        y = cells.centroids[..., Direction.Y].reshape(nx)
+        y = cells.centroids[..., Direction.Y]
 
         U = -20 * ((y - 0.5) ** 4) + 1.25
 

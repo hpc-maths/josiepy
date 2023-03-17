@@ -8,6 +8,8 @@ from matplotlib.animation import ArtistAnimation
 from .adv1d import main as main_1d
 
 import josie.general.schemes.time as time_schemes
+
+from josie.dimension import MAX_DIMENSIONALITY
 from josie.mesh.cellset import MeshCellSet, CellSet
 from josie.state import State
 from josie.solver import Solver
@@ -23,7 +25,7 @@ class Q(State):
 
 
 def flux(state_array: Q) -> np.ndarray:
-    return np.einsum("j,...i->...j", V, state_array)
+    return np.einsum("k,...ab->...abk", V, state_array)
 
 
 class AdvectionProblem(Problem):
@@ -38,10 +40,10 @@ def upwind(cells: MeshCellSet, neighs: CellSet):
 
     values = cells.values
 
-    nx, ny, _ = values.shape
+    nx, ny, num_dofs, num_fields = values.shape
 
     FS = np.zeros_like(values)
-    F = np.zeros((nx, ny, 2))
+    F = np.zeros((nx, ny, num_dofs, num_fields, MAX_DIMENSIONALITY))
 
     # I do a dot product of each normal in `norm` by the advection velocity
     # Equivalent to: un = np.sum(Advection.V*(normals), axis=-1)
@@ -57,9 +59,12 @@ def upwind(cells: MeshCellSet, neighs: CellSet):
     if np.any(np.nonzero(idx)):
         F[idx] = flux(neighs.values)[idx]
 
-    FS = np.einsum("...j,...j->...", F, neighs.normals) * neighs.surfaces
+    FS = (
+        np.einsum("...mkl,...l->...mk", F, neighs.normals)
+        * neighs.surfaces[..., np.newaxis, np.newaxis]
+    )
 
-    return FS[..., np.newaxis]
+    return FS
 
 
 @pytest.fixture(
@@ -98,9 +103,11 @@ def solver(scheme, mesh, init_fun, Q):
 
 
 def test_against_real_1D(solver, plot, tol):
-    """ Testing against the real 1D solver """
+    """Testing against the real 1D solver"""
 
-    time, x_1d, solution = main_1d(100, 4, 0.9, plot)
+    nx = solver.mesh.num_cells_x
+
+    time, x_1d, solution = main_1d(nx, 4, 0.9, plot)
     dt = time[1] - time[0]
 
     fig = plt.figure()

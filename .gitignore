@@ -3,6 +3,7 @@
 *.xmf
 *.xdmf
 *.mp4
+*.pyc
 
 *.egg-info/
 

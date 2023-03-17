@@ -3,6 +3,7 @@ image: python:3.9-slim
 variables:
     DEBIAN_FRONTEND: noninteractive
     GIT_SUBMODULE_STRATEGY: recursive
+    JUPYTER_PLATFORM_DIRS: 1
 
 stages:
     - test

@@ -87,7 +87,7 @@ class State(np.ndarray):
     fields: Type[Fields]
     _FIELDS_ENUM_NAME = "FieldsEnum"
 
-    def __new__(cls, *args, **kwargs):
+    def __new__(cls, *args, **kwargs) -> State:
         if args and kwargs:
             raise TypeError(
                 "A State can be defined using positional arguments OR "
@@ -96,10 +96,10 @@ class State(np.ndarray):
 
         if kwargs:
             cls.fields = cls.list_to_enum(kwargs.keys())
-            args = list(kwargs.values())
+            args = tuple(kwargs.values())
 
         if isinstance(args[0], (int, float)):
-            dtype = float
+            dtype: Union[Type[float], Type[object]] = float
         else:
             dtype = object
 
@@ -124,7 +124,7 @@ class State(np.ndarray):
         return (unpickle_state, (enum_dict, self.__array__()))
 
     @classmethod
-    def list_to_enum(cls, fields: Collection[str]) -> Fields:
+    def list_to_enum(cls, fields: Collection[str]) -> Type[Fields]:
         """Convert a list of textual fields to the class:`IntEnum` that needs
         to be stored in this class :attr:`fields`"""
 
@@ -134,7 +134,7 @@ class State(np.ndarray):
 
     @classmethod
     def from_mesh(cls, mesh: Mesh) -> State:
-        """Initialize an empty class:`State` object of the right dimensiosn
+        """Initialize an empty class:`State` object of the right dimensions
         for the given class:`Mesh`"""
 
         # TODO: Add num_dofs into the size to allow for multiple dofs in a
@@ -142,8 +142,11 @@ class State(np.ndarray):
         nx = mesh.num_cells_x
         ny = mesh.num_cells_y
         state_size = len(cls.fields)
+        num_dofs = mesh.cell_type.num_dofs
 
-        return np.empty((nx + 2, ny + 2, state_size)).view(cls)
+        # I'm ignoring the type checking here below because it seems a bug:
+        # https://github.com/python/mypy/issues/8993
+        return np.empty((nx + 2, ny + 2, num_dofs, state_size)).view(cls)  # type: ignore # noqa: 501
 
 
 def StateTemplate(*fields: str) -> Type[State]:
@@ -177,7 +180,7 @@ def StateTemplate(*fields: str) -> Type[State]:
     """
     # Dynamically create a class of type "State" (actually a subclass)
     # with the right :attr:`fields`
-    state_fields: Fields = State.list_to_enum(fields)
+    state_fields: Type[Fields] = State.list_to_enum(fields)
     state_cls = type("DerivedState", (State,), {"fields": state_fields})  # type: ignore # noqa: E501
 
     return state_cls
@@ -202,8 +205,8 @@ class SubsetState(State):
         super.__init_subclass__(**kwargs)
 
         if not (abstract):
-            # FIXME: Using an array to subset the full state crease a copy of
-            # the array, while using a slice generaates a view
+            # FIXME: Using an array to subset the full state creates a copy of
+            # the array, while using a slice generates a view
             cls._subset_fields_map = np.array(
                 [
                     field

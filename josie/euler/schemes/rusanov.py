@@ -122,7 +122,7 @@ class Rusanov(EulerScheme):
         DeltaF = 0.5 * (self.problem.F(cells) + self.problem.F(neighs))
 
         # This is the flux tensor dot the normal
-        DeltaF = np.einsum("...kl,...l->...k", DeltaF, neighs.normals)
+        DeltaF = np.einsum("...mkl,...l->...mk", DeltaF, neighs.normals)
 
         # First four variables of the total state are the conservative
         # variables (rho, rhoU, rhoV, rhoE)
@@ -132,7 +132,7 @@ class Rusanov(EulerScheme):
         DeltaQ = 0.5 * sigma * (Q_R_cons - Q_L_cons)
 
         FS.set_conservative(
-            neighs.surfaces[..., np.newaxis] * (DeltaF - DeltaQ)
+            neighs.surfaces[..., np.newaxis, np.newaxis] * (DeltaF - DeltaQ)
         )
 
         return FS

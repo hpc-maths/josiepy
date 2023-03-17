@@ -80,7 +80,7 @@ class DiffusiveScheme(Scheme):
 
         .. math::
 
-            \dd{t} = C_{fl} \dd{x}^2 / 2
+            \dd{t} = C_{fl} \frac{\dd{x}^2}{2 \mu}
 
         """
         dt = super().CFL(cells, CFL_value)
@@ -102,4 +102,5 @@ class DiffusiveScheme(Scheme):
         super().accumulate(cells, neighs, t)
 
         # Add conservative contribution
-        self._fluxes -= self.D(cells, neighs)
+        # FIXME: Ignoring typing: https://github.com/numpy/numpy/issues/20072
+        self._fluxes -= self.D(cells, neighs)  # type: ignore

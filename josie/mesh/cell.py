@@ -67,17 +67,17 @@ class Cell(metaclass=abc.ABCMeta):
 
     @property
     @abc.abstractmethod
-    def num_points(self):
+    def num_points(self) -> int:
         raise NotImplementedError
 
     @property
     @abc.abstractmethod
-    def num_dofs(self):
+    def num_dofs(self) -> int:
         raise NotImplementedError
 
     @property
     @abc.abstractmethod
-    def _meshio_cell_type(self):
+    def _meshio_cell_type(self) -> str:
         raise NotImplementedError
 
     @classmethod
@@ -97,13 +97,13 @@ class Cell(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def volume(
         cls, nw: PointType, sw: PointType, se: PointType, ne: PointType
-    ) -> float:
+    ) -> np.ndarray:
         """Compute the volume of a cell from its points."""
         raise NotImplementedError
 
     @classmethod
     @abc.abstractmethod
-    def face_surface(cls, p0: PointType, p1: PointType) -> float:
+    def face_surface(cls, p0: PointType, p1: PointType) -> np.ndarray:
         """Compute the surface of a face from its points."""
         raise NotImplementedError
 
@@ -208,12 +208,12 @@ class SimpleCell(Cell):
         se = np.asarray(se)
         ne = np.asarray(ne)
 
-        return (nw + sw + se + ne) / 4
+        return np.asarray(nw + sw + se + ne) / 4
 
     @classmethod
     def volume(
         cls, nw: PointType, sw: PointType, se: PointType, ne: PointType
-    ) -> float:
+    ) -> np.ndarray:
         """This class method computes the volume of a cell from its points.
 
         The surface is computed calculating the surface of the two triangles
@@ -241,14 +241,25 @@ class SimpleCell(Cell):
         se = np.asarray(se)
         ne = np.asarray(ne)
 
-        volume = np.linalg.norm(np.cross(sw - nw, se - sw)) / 2
+        volume = (
+            np.linalg.norm(
+                np.cross(sw - nw, se - sw)[..., np.newaxis], axis=-1
+            )
+            / 2
+        )
 
-        volume = volume + np.linalg.norm(np.cross(se - ne, ne - nw)) / 2
+        volume = (
+            volume
+            + np.linalg.norm(
+                np.cross(se - ne, ne - nw)[..., np.newaxis], axis=-1
+            )
+            / 2
+        )
 
         return volume
 
     @classmethod
-    def face_surface(cls, p0: PointType, p1: PointType) -> float:
+    def face_surface(cls, p0: PointType, p1: PointType) -> np.ndarray:
         """This class method computes the surface of a face from its points.
 
         The surface is simply the norm of the vector that is made by the two
@@ -267,7 +278,7 @@ class SimpleCell(Cell):
         p0 = np.asarray(p0)
         p1 = np.asarray(p1)
 
-        return np.linalg.norm(p0 - p1)
+        return np.linalg.norm(p0 - p1, axis=-1)
 
     @classmethod
     def face_normal(cls, p0: PointType, p1: PointType) -> np.ndarray:
@@ -297,9 +308,9 @@ class SimpleCell(Cell):
 
         r = p1 - p0
 
-        normal = np.array([r[1], -r[0]])
+        normal = np.transpose(np.array([r[..., 1], -r[..., 0]]), (1, 2, 0))
 
-        return normal / np.linalg.norm(normal)
+        return normal / np.linalg.norm(normal, axis=-1, keepdims=True)
 
     @classmethod
     def create_connectivity(cls, mesh: Mesh):
@@ -311,9 +322,6 @@ class SimpleCell(Cell):
 
         # TODO Get mesh.dimensionality as input and adapt the size of the
         # containers accordingly
-
-        # Init internal data structures
-        points = np.empty((nx, ny, cls.num_points, MAX_DIMENSIONALITY))
 
         # Create basic :class:`MeshCellSet` data structure that contains data
         # also for the ghost cells. Init with NaN since some of the entries are
@@ -345,59 +353,26 @@ class SimpleCell(Cell):
         )
 
         # Loop to build connectivity
-        # TODO: This can be probably vectorized
-        for i in range(nx):
-            for j in range(ny):
-                nw = np.asarray((x[i, j + 1], y[i, j + 1]))
-                sw = np.asarray((x[i, j], y[i, j]))
-                se = np.asarray((x[i + 1, j], y[i + 1, j]))
-                ne = np.asarray((x[i + 1, j + 1], y[i + 1, j + 1]))
+        nw = np.transpose(np.asarray((x[:-1, 1:], y[:-1, 1:])), (1, 2, 0))
+        sw = np.transpose(np.asarray((x[:-1, :-1], y[:-1, :-1])), (1, 2, 0))
+        se = np.transpose(np.asarray((x[1:, :-1], y[1:, :-1])), (1, 2, 0))
+        ne = np.transpose(np.asarray((x[1:, 1:], y[1:, 1:])), (1, 2, 0))
 
-                points[i, j, :, :] = np.vstack(
-                    (nw, sw, se, ne)
-                )  # type: ignore # noqa: E501
-                cells.centroids[i, j, :] = cls.centroid(
-                    nw, sw, se, ne
-                )  # type: ignore # noqa: E501
-                cells.volumes[i, j] = cls.volume(
-                    nw, sw, se, ne
-                )  # type: ignore # noqa: E501
-
-                cells.surfaces[i, j, NormalDirection.LEFT] = cls.face_surface(
-                    nw, sw
-                )  # type: ignore # noqa: E501
-                cells.surfaces[
-                    i, j, NormalDirection.BOTTOM
-                ] = cls.face_surface(
-                    sw, se
-                )  # type: ignore # noqa: E501
-                cells.surfaces[i, j, NormalDirection.RIGHT] = cls.face_surface(
-                    se, ne
-                )  # type: ignore # noqa: E501
-                cells.surfaces[i, j, NormalDirection.TOP] = cls.face_surface(
-                    ne, nw
-                )  # type: ignore # noqa: E501
-
-                cells.normals[i, j, NormalDirection.LEFT, :] = cls.face_normal(
-                    nw, sw
-                )  # type: ignore # noqa: E501
-                cells.normals[
-                    i, j, NormalDirection.BOTTOM, :
-                ] = cls.face_normal(
-                    sw, se
-                )  # type: ignore # noqa: E501
-
-                cells.normals[
-                    i, j, NormalDirection.RIGHT, :
-                ] = cls.face_normal(
-                    se, ne
-                )  # type: ignore # noqa: E501
-                cells.normals[i, j, NormalDirection.TOP, :] = cls.face_normal(
-                    ne, nw
-                )  # type: ignore # noqa: E501
+        mesh.points = np.stack((nw, sw, se, ne), axis=-2)
+        cells.centroids = np.asarray(cls.centroid(nw, sw, se, ne))[
+            ..., np.newaxis, :
+        ]
+        cells.volumes = cls.volume(nw, sw, se, ne)
+        cells.surfaces[..., NormalDirection.LEFT] = cls.face_surface(nw, sw)
+        cells.surfaces[..., NormalDirection.BOTTOM] = cls.face_surface(sw, se)
+        cells.surfaces[..., NormalDirection.RIGHT] = cls.face_surface(se, ne)
+        cells.surfaces[..., NormalDirection.TOP] = cls.face_surface(ne, nw)
+        cells.normals[..., NormalDirection.LEFT, :] = cls.face_normal(nw, sw)
+        cells.normals[..., NormalDirection.BOTTOM, :] = cls.face_normal(sw, se)
+        cells.normals[..., NormalDirection.RIGHT, :] = cls.face_normal(se, ne)
+        cells.normals[..., NormalDirection.TOP, :] = cls.face_normal(ne, nw)
 
         # Assign back to mesh object
-        mesh.points = points
         mesh.cells = cells
 
         super().create_connectivity(mesh)
@@ -444,7 +419,7 @@ class SimpleCell(Cell):
         # Now a cell is made by chunks of `num_points` rows of the io_pts
         # array
         rows, _ = io_pts.shape
-        num_chunks = rows / cls.num_points
+        num_chunks = int(rows / cls.num_points)
         io_cells = np.split(np.arange(rows), num_chunks)
 
         return MeshIO(io_pts, {cls._meshio_cell_type: np.array(io_cells)})

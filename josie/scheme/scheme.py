@@ -221,7 +221,9 @@ class Scheme(abc.ABC):
         self.step(mesh, dt, t)
 
         # Update the cell values
-        cells.values -= self._fluxes * dt / cells.volumes[..., np.newaxis]
+        cells.values = cells.values - (
+            self._fluxes * dt / cells.volumes[..., np.newaxis, np.newaxis]
+        )
 
         # Let's put here an handy post step if needed after the values update
         self.post_step(cells)
