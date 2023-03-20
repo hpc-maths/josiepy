@@ -63,22 +63,22 @@ pages:
     only:
         - master
 
-badges:
-    image: python:slim
-    stage: post
-    dependencies:
-        - test
-    before_script: 
-        - apt-get update && apt-get -y install git
-    script: 
-        - git fetch --all --tags
-        - pip install badgey
-        - badgey LOCBadge loc.xml
-        - badgey CoverageBadge cov.xml
-        - badgey GitVersionBadge .
-        - badgey PythonBadge "3.8+"
-    artifacts:
-        paths:
-            - "*.svg"
-    only:
-        - master
+# badges:
+#     image: python:slim
+#     stage: post
+#     dependencies:
+#         - test
+#     before_script: 
+#         - apt-get update && apt-get -y install git
+#     script: 
+#         - git fetch --all --tags
+#         - pip install badgey
+#         - badgey LOCBadge loc.xml
+#         - badgey CoverageBadge cov.xml
+#         - badgey GitVersionBadge .
+#         - badgey PythonBadge "3.8+"
+#     artifacts:
+#         paths:
+#             - "*.svg"
+#     only:
+#         - master
