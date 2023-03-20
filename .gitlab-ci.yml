@@ -50,18 +50,18 @@ test:
     only:
         - merge_requests
 
-pages:
-    stage: post
-    script: 
-        - |
-            apt-get update && apt-get -y install texlive texlive-science \
-            texlive-latex-extra
-        - poetry run invoke docs
-    artifacts:
-        paths:
-            - public
-    only:
-        - master
+# pages:
+#     stage: post
+#     script: 
+#         - |
+#             apt-get update && apt-get -y install texlive texlive-science \
+#             texlive-latex-extra
+#         - poetry run invoke docs
+#     artifacts:
+#         paths:
+#             - public
+#     only:
+#         - master
 
 # badges:
 #     image: python:slim
