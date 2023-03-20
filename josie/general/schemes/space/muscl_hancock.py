@@ -39,7 +39,6 @@ from josie.fluid.state import ConsState
 
 
 class MUSCL_Hancock(ConvectiveScheme):
-
     _values: ConsState
 
     slopes: np.ndarray
@@ -128,7 +127,7 @@ class MUSCL_Hancock(ConvectiveScheme):
 
     def linear_extrapolation(self, cells: MeshCellSet):
         # Compute linear extrapolated values at each face
-        for direction in range(2 ** cells.dimensionality):
+        for direction in range(2**cells.dimensionality):
             self.values_face.values[..., direction] = (
                 cells.values + 0.5 * self.slopes[..., direction]
             )
@@ -160,11 +159,11 @@ class MUSCL_Hancock(ConvectiveScheme):
         self.values_face = cells.copy()
 
         self.slopes = np.empty(
-            cells.values.shape + (2 ** cells.dimensionality,)
+            cells.values.shape + (2**cells.dimensionality,)
         ).view(cells._values.__class__)
 
         self.values_face._values = np.empty(
-            cells._values.shape + (2 ** cells.dimensionality,)
+            cells._values.shape + (2**cells.dimensionality,)
         ).view(cells._values.__class__)
 
         self.values_face.create_neighbours()
@@ -176,7 +175,7 @@ class MUSCL_Hancock(ConvectiveScheme):
 
         # Initialize state values at each face with the state value
         # of the cell
-        for dir in range(2 ** cells.dimensionality):
+        for dir in range(2**cells.dimensionality):
             self.values_face._values[..., dir] = cells._values
 
         # Compute the slope for each direction according to the
@@ -193,13 +192,13 @@ class MUSCL_Hancock(ConvectiveScheme):
         self.linear_extrapolation(cells)
 
         # Update the auxiliary components at each face
-        for dir in range(2 ** cells.dimensionality):
-            self.post_step(self.values_face._values[..., dir])
+        for dir in range(2**cells.dimensionality):
+            self.auxilliaryVariableUpdate(self.values_face._values[..., dir])
 
         # Perform the half-timestep at each interface using cell
         # flux (for the conserved components)
         self.update_values_face(cells, dt)
 
         # Update the auxiliary components at each face
-        for dir in range(2 ** cells.dimensionality):
-            self.post_step(self.values_face._values[..., dir])
+        for dir in range(2**cells.dimensionality):
+            self.auxilliaryVariableUpdate(self.values_face._values[..., dir])

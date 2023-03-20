@@ -50,13 +50,7 @@ class EulerScheme(ConvectiveScheme):
     def __init__(self, eos: EOS):
         super().__init__(EulerProblem(eos))
 
-    def post_step(self, values: State):
-        """During the step we update the conservative values. After the
-        step we update the non-conservative variables. This method updates
-        the values of the non-conservative (auxiliary) variables using the
-        :class:`~.EOS`
-        """
-
+    def auxilliaryVariableUpdate(self, values: State):
         fields = EulerState.fields
 
         rho = values[..., fields.rho]
@@ -79,6 +73,15 @@ class EulerScheme(ConvectiveScheme):
         values[..., fields.p] = p
         values[..., fields.c] = c
         values[..., fields.e] = e
+
+    def post_step(self, values: State):
+        """During the step we update the conservative values. After the
+        step we update the non-conservative variables. This method updates
+        the values of the non-conservative (auxiliary) variables using the
+        :class:`~.EOS`
+        """
+
+        self.auxilliaryVariableUpdate(values)
 
     @staticmethod
     def compute_U_norm(values: State, normals: np.ndarray):
@@ -113,7 +116,6 @@ class EulerScheme(ConvectiveScheme):
         return U
 
     def CFL(self, cells: MeshCellSet, CFL_value: float) -> float:
-
         dt = super().CFL(cells, CFL_value)
 
         values: EulerState = cells.values.view(EulerState)

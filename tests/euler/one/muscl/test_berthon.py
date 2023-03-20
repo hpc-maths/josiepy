@@ -41,7 +41,7 @@ def MUSCLScheme(request):
 
 @pytest.fixture
 def Scheme(MUSCLScheme, BScheme):
-    """ Create all the different schemes """
+    """Create all the different schemes"""
     if BScheme is None:
 
         class ToroScheme(MUSCLScheme, ExplicitEuler, HLLC):
@@ -117,7 +117,7 @@ def riemann2Q(state, eos):
     V = state.V
     p = state.p
     rhoe = eos.rhoe(rho, p)
-    E = rhoe / rho + 0.5 * (U ** 2 + V ** 2)
+    E = rhoe / rho + 0.5 * (U**2 + V**2)
     c = eos.sound_velocity(rho, p)
 
     return EulerState(

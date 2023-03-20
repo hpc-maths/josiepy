@@ -299,3 +299,6 @@ class Scheme(abc.ABC):
         """
 
         pass
+
+    def auxilliaryVariableUpdate(self, values):
+        pass

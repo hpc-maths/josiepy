@@ -49,13 +49,7 @@ class BaerScheme(Scheme):
     def __init__(self, eos: TwoPhaseEOS, closure: Closure):
         super().__init__(TwoPhaseProblem(eos, closure))
 
-    def post_step(self, values: Q):
-        """During the step we update the conservative values. After the
-        step we update the non-conservative variables. This method updates
-        the values of the non-conservative (auxiliary) variables using the
-        :class:`~.EOS`
-        """
-
+    def auxilliaryVariableUpdate(self, values):
         alpha = values[..., Q.fields.alpha]
 
         alphas = PhasePair(alpha, 1 - alpha)
@@ -90,6 +84,15 @@ class BaerScheme(Scheme):
                 phase_values,
             )
 
+    def post_step(self, values: Q):
+        """During the step we update the conservative values. After the
+        step we update the non-conservative variables. This method updates
+        the values of the non-conservative (auxiliary) variables using the
+        :class:`~.EOS`
+        """
+
+        self.auxilliaryVariableUpdate(values)
+
 
 class Upwind(BaerScheme, NonConservativeScheme):
     r"""An optimized upwind scheme that reduces the size of the
@@ -102,7 +105,6 @@ class Upwind(BaerScheme, NonConservativeScheme):
     """
 
     def G(self, cells: MeshCellSet, neighs: NeighboursCellSet) -> np.ndarray:
-
         Q_L: Q = cells.values.view(Q)
         Q_R: Q = neighs.values.view(Q)
 
@@ -225,7 +227,6 @@ class Rusanov(BaerScheme, ConvectiveScheme):
         cells: MeshCellSet,
         CFL_value,
     ) -> float:
-
         dt = super().CFL(cells, CFL_value)
 
         dx = cells.min_length
