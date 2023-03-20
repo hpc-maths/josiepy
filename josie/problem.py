@@ -33,8 +33,6 @@ from typing import Union
 
 from josie.mesh.cellset import CellSet, MeshCellSet
 
-from josie.state import State
-
 
 class Problem(metaclass=abc.ABCMeta):
     r"""A class representing a physical problem to be solved (governed by
@@ -56,7 +54,7 @@ class Problem(metaclass=abc.ABCMeta):
     def __init__(self, **kwargs):
         super().__init__()
 
-    def F(self, cells: Union[CellSet, MeshCellSet]) -> np.ndarray:
+    def F(self, values) -> np.ndarray:
         r"""The convective flux operator :math:`\pdeConvective`
 
         Parameters
@@ -73,7 +71,7 @@ class Problem(metaclass=abc.ABCMeta):
         """
         pass
 
-    def B(self, cells: Union[CellSet, MeshCellSet]) -> np.ndarray:
+    def B(self, values) -> np.ndarray:
         r"""This returns the tensor that pre-multiplies the non-conservative
         term of the problem.
 
@@ -127,7 +125,7 @@ class Problem(metaclass=abc.ABCMeta):
         """
         pass
 
-    def s(self, cells: Union[CellSet, MeshCellSet], t: float) -> State:
+    def s(self, values, t: float) -> np.ndarray:
         r"""This returns the values of the source terms
 
         A general problem can be written in a compact way:

@@ -214,7 +214,7 @@ class Scheme(abc.ABC):
         cells = mesh.cells
 
         # Use pre_step to zero-out data arrays
-        self.pre_step(cells)
+        self.pre_step(cells, dt)
 
         # Accumulate all the fluxes (in multiple steps if required by the time
         # scheme). This modifies self._fluxes in-place
@@ -226,7 +226,7 @@ class Scheme(abc.ABC):
         )
 
         # Let's put here an handy post step if needed after the values update
-        self.post_step(cells)
+        self.post_step(cells.values)
 
         # Keep ghost cells updated
         mesh.update_ghosts(t)
@@ -251,7 +251,7 @@ class Scheme(abc.ABC):
         # Initialize the datastructure containing the fluxes
         self._fluxes: State = np.empty_like(cells.values)
 
-    def pre_step(self, cells: MeshCellSet):
+    def pre_step(self, cells: MeshCellSet, dt: float):
         """
         Hook called just before the fluxes accumulation.
 
@@ -286,7 +286,7 @@ class Scheme(abc.ABC):
         """
         pass
 
-    def post_step(self, cells: MeshCellSet):
+    def post_step(self, values):
         r""":class:`Scheme` can implement a post-step hook that is executed by the
         solver after the update step.
         It can be needed, for example, to apply an :class:`~.euler.eos.EOS`

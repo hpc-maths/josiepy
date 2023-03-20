@@ -167,7 +167,7 @@ class RK(TimeScheme):
             (nx, ny, num_dofs, num_fields, self.num_steps - 1)
         )
 
-    def pre_step(self, cells: MeshCellSet):
+    def pre_step(self, cells: MeshCellSet, dt: float):
         """Zero-out the array containing the :math:`k_s` values
 
         Parameters
@@ -176,7 +176,7 @@ class RK(TimeScheme):
             A :class:`MeshCellSet` containing the state of the mesh cells
         """
 
-        super().pre_step(cells)
+        super().pre_step(cells, dt)
 
         self._ks.fill(0)
 

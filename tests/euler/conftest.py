@@ -5,6 +5,7 @@ from dataclasses import dataclass
 
 import josie.general.schemes.time as time_schemes
 from josie.euler.schemes import EulerScheme
+from josie.general.schemes.space import Godunov
 
 # Test Toro
 
@@ -119,15 +120,15 @@ def TimeScheme(request):
 @pytest.fixture(
     params=sorted(EulerScheme._all_subclasses(), key=lambda c: c.__name__)
 )
-def SpaceScheme(request):
+def IntercellFluxScheme(request):
     yield request.param
 
 
 @pytest.fixture
-def Scheme(SpaceScheme, TimeScheme):
+def Scheme(IntercellFluxScheme, TimeScheme):
     """ Create all the different schemes """
 
-    class ToroScheme(SpaceScheme, TimeScheme):
+    class ToroScheme(Godunov, IntercellFluxScheme, TimeScheme):
         pass
 
     return ToroScheme

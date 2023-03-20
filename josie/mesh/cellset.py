@@ -15,9 +15,14 @@ from josie.state import State
 
 class NormalDirection(IntEnum):
     LEFT = 0
-    BOTTOM = 1
-    RIGHT = 2
+    RIGHT = 1
+    BOTTOM = 2
     TOP = 3
+
+
+class DimensionPair(Enum):
+    X = [NormalDirection.LEFT, NormalDirection.RIGHT]
+    Y = [NormalDirection.BOTTOM, NormalDirection.TOP]
 
 
 @dataclass
@@ -265,7 +270,7 @@ class MeshCellSet(CellSet):
 
         if self.dimensionality > 1:
             directions.extend(
-                (NeighbourDirection.TOP, NeighbourDirection.BOTTOM)
+                (NeighbourDirection.BOTTOM, NeighbourDirection.TOP)
             )
 
         # TODO Add 3D

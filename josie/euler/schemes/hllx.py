@@ -28,15 +28,14 @@ from __future__ import annotations
 
 import numpy as np
 
-from typing import Tuple, TYPE_CHECKING
+from typing import Tuple
 
 from josie.math import Direction
+
 from josie.euler.state import EulerState
+from josie.state import State
 
 from .scheme import EulerScheme
-
-if TYPE_CHECKING:
-    from josie.mesh.cellset import NeighboursCellSet, MeshCellSet
 
 
 class HLL(EulerScheme):
@@ -107,17 +106,20 @@ class HLL(EulerScheme):
 
         return sigma_L, sigma_R
 
-    def F(self, cells: MeshCellSet, neighs: NeighboursCellSet):
+    def intercellFlux(
+        self,
+        Q_L: EulerState,
+        Q_R: EulerState,
+        normals: np.ndarray,
+        surfaces: np.ndarray,
+    ):
 
-        values: EulerState = cells.values.view(EulerState)
-
-        FS = np.zeros_like(values).view(EulerState)
-        Q_L, Q_R = values, neighs.values.view(EulerState)
-        fields = values.fields
+        FS = np.zeros_like(Q_L).view(EulerState)
+        fields = EulerState.fields
 
         # Get normal velocities
-        U_L = self.compute_U_norm(Q_L, neighs.normals)
-        U_R = self.compute_U_norm(Q_R, neighs.normals)
+        U_L = self.compute_U_norm(Q_L, normals)
+        U_R = self.compute_U_norm(Q_R, normals)
 
         # Get sound speed
         c_L = Q_L[..., fields.c]
@@ -126,18 +128,14 @@ class HLL(EulerScheme):
         # Compute the values of the wave velocities on every cell
         sigma_L, sigma_R = self.compute_sigma(U_L, U_R, c_L, c_R)
 
-        F_L = np.einsum(
-            "...mkl,...l->...mk", self.problem.F(cells), neighs.normals
-        )
+        F_L = np.einsum("...mkl,...l->...mk", self.problem.F(Q_L), normals)
 
-        F_R = np.einsum(
-            "...mkl,...l->...mk", self.problem.F(neighs), neighs.normals
-        )
+        F_R = np.einsum("...mkl,...l->...mk", self.problem.F(Q_R), normals)
 
         # First four variables of the total state are the conservative
         # variables (rho, rhoU, rhoV, rhoE)
-        Qc_L = Q_L.get_conservative()
-        Qc_R = Q_R.get_conservative()
+        Qc_L = Q_L.view(EulerState).get_conservative()
+        Qc_R = Q_R.view(EulerState).get_conservative()
 
         F = np.zeros_like(F_L)
 
@@ -154,7 +152,7 @@ class HLL(EulerScheme):
             where=(sigma_L <= 0) * (sigma_R >= 0),
         )
 
-        FS.set_conservative(neighs.surfaces[..., np.newaxis, np.newaxis] * F)
+        FS.set_conservative(surfaces[..., np.newaxis, np.newaxis] * F)
 
         return FS
 
@@ -164,14 +162,13 @@ class HLLC(HLL):
     :cite:`toro_riemann_2009` for a detailed view on compressible schemes.
     """
 
-    def F(self, cells: MeshCellSet, neighs: NeighboursCellSet):
+    def intercellFlux(
+        self, Q_L: State, Q_R: State, normals: np.ndarray, surfaces: np.ndarray
+    ):
 
-        values = cells.values.view(EulerState)
-
-        FS = np.zeros_like(values).view(EulerState)
-        F = np.zeros_like(values.get_conservative())
+        FS = np.zeros_like(Q_L).view(EulerState)
+        F = np.zeros_like(Q_L.view(EulerState).get_conservative())
         fields = EulerState.fields
-        Q_L, Q_R = values, neighs.values.view(EulerState)
 
         # Get density
         rho_L = Q_L[..., np.newaxis, fields.rho]
@@ -191,8 +188,8 @@ class HLLC(HLL):
         UV_R = Q_R[..., np.newaxis, UV_slice]
 
         # Compute the normal velocity components
-        U_L = np.einsum("...mkl,...l->...mk", UV_L, neighs.normals)
-        U_R = np.einsum("...mkl,...l->...mk", UV_R, neighs.normals)
+        U_L = np.einsum("...mkl,...l->...mk", UV_L, normals)
+        U_R = np.einsum("...mkl,...l->...mk", UV_R, normals)
 
         # Speed of sound
         c_L = Q_L[..., fields.c]
@@ -211,17 +208,13 @@ class HLLC(HLL):
         )
 
         # This is the flux tensor dot the normal
-        F_L = np.einsum(
-            "...mkl,...l->...mk", self.problem.F(cells), neighs.normals
-        )
-        F_R = np.einsum(
-            "...mkl,...l->...mk", self.problem.F(neighs), neighs.normals
-        )
+        F_L = np.einsum("...mkl,...l->...mk", self.problem.F(Q_L), normals)
+        F_R = np.einsum("...mkl,...l->...mk", self.problem.F(Q_R), normals)
 
         # First four variables of the total state are the conservative
         # variables (rho, rhoU, rhoV, rhoE)
-        Qc_L = Q_L.get_conservative()
-        Qc_R = Q_R.get_conservative()
+        Qc_L = Q_L.view(EulerState).get_conservative()
+        Qc_R = Q_R.view(EulerState).get_conservative()
 
         # Init the intermediate states
         Q_star_R = np.empty_like(Qc_R)
@@ -230,10 +223,10 @@ class HLLC(HLL):
         # FIXME: This can be avoided using direct flux expressions, Toro
         # p325, eq 10.41
         U_star_L = UV_L + np.einsum(
-            "...mk,...l->...mkl", (S_star - U_L), neighs.normals
+            "...mk,...l->...mkl", (S_star - U_L), normals
         )
         U_star_R = UV_R + np.einsum(
-            "...mk,...l->...mkl", (S_star - U_R), neighs.normals
+            "...mk,...l->...mkl", (S_star - U_R), normals
         )
 
         # Compute the intermediate states
@@ -278,7 +271,7 @@ class HLLC(HLL):
         )
 
         FS.set_conservative(
-            (neighs.surfaces[..., np.newaxis, np.newaxis] * F).view(EulerState)
+            (surfaces[..., np.newaxis, np.newaxis] * F).view(EulerState)
         )
 
         return FS

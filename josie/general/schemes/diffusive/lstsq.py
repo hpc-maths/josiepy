@@ -71,8 +71,8 @@ class LeastSquareGradient(DiffusiveScheme):
             (nx, ny, num_dofs, num_fields, dimensionality)
         )
 
-    def pre_step(self, cells: MeshCellSet):
-        super().pre_step(cells)
+    def pre_step(self, cells: MeshCellSet, dt: float):
+        super().pre_step(cells, dt)
 
         self._gradient.fill(0)
 
