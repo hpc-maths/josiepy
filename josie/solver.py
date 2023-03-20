@@ -42,6 +42,8 @@ from josie.mesh.cellset import CellSet, MeshCellSet
 from josie.state import State
 from josie.scheme import Scheme
 
+import numpy as np
+
 
 if TYPE_CHECKING:
     from josie.mesh.mesh import Mesh
@@ -97,6 +99,7 @@ class Solver:
 
         # Init data structure for field values
         self.mesh.cells._values = self.Q.from_mesh(self.mesh)
+        self.mesh.cells._values[:] = np.nan
 
         # First set all the values for the internal cells
         # The actual values are a view of only the internal cells

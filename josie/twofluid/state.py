@@ -23,7 +23,6 @@ class PhasePair(dict):
         super().__init__(_dict)
 
     def __repr__(self):
-
         key1 = fields.Phases.PHASE1
         key2 = fields.Phases.PHASE2
 
@@ -47,7 +46,7 @@ class PhaseState(SubsetState, abstract=True):
     phase they are member of. This is needed to support out-of-order listing of
     fields"""
 
-    _REGEX_PATTERN = re.compile(r"\w+(\d{1})")
+    _REGEX_PATTERN = re.compile(r"^\w+(\d{1})$")
     _subset_fields_map: PhasePair
 
     def __init_subclass__(cls, /, abstract=False, **kwargs):
