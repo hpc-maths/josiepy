@@ -51,7 +51,6 @@ class FourEqScheme(Scheme):
     """Ad hoc relaxation for linearized EOS"""
 
     def relaxForLinearizedEOS(self, values: Q):
-
         fields = Q.fields
 
         arho1 = values[..., fields.arho1]
@@ -62,17 +61,17 @@ class FourEqScheme(Scheme):
         c1 = self.problem.eos[Phases.PHASE1].c0
         c2 = self.problem.eos[Phases.PHASE2].c0
 
-        q = rho20 * c2 ** 2 - rho10 * c1 ** 2
+        q = rho20 * c2**2 - rho10 * c1**2
 
-        qtilde = arho2 * c2 ** 2 - arho1 * c1 ** 2
+        qtilde = arho2 * c2**2 - arho1 * c1**2
 
         betaPos = (
             q
             - qtilde
             + np.sqrt(
-                (q - qtilde) ** 2 + 4.0 * arho1 * c1 ** 2 * arho2 * c2 ** 2
+                (q - qtilde) ** 2 + 4.0 * arho1 * c1**2 * arho2 * c2**2
             )
-        ) / (2.0 * arho2 * c2 ** 2)
+        ) / (2.0 * arho2 * c2**2)
 
         alpha = betaPos / (1.0 + betaPos)
         values[..., fields.alpha] = alpha
@@ -81,7 +80,6 @@ class FourEqScheme(Scheme):
     """General relaxation procedure for all other EOS"""
 
     def relaxation(self, values: Q):
-
         fields = Q.fields
 
         alpha = values[..., fields.alpha]
@@ -101,7 +99,7 @@ class FourEqScheme(Scheme):
             # Note that dp_drho = c^2 for barotropic EOS
             return (
                 -arho1
-                / (alpha ** 2)
+                / (alpha**2)
                 * self.problem.eos[Phases.PHASE1].sound_velocity(arho1 / alpha)
                 ** 2
                 - arho2
@@ -127,7 +125,6 @@ class FourEqScheme(Scheme):
         values[..., fields.arho] = alpha * (arho1 + arho2)
 
     def auxilliaryVariableUpdate(self, values: Q):
-
         fields = Q.fields
 
         arho = values[..., fields.arho]
@@ -137,7 +134,24 @@ class FourEqScheme(Scheme):
         rhoV = values[..., fields.rhoV]
 
         rho = arho1 + arho2
+
+        # alpha guess for relax init
         alpha = arho / rho
+
+        # Relaxation to update the volume fraction
+        if self.do_relaxation:
+            if np.all(
+                [
+                    self.problem.eos[phase].__class__.__name__
+                    == "LinearizedGas"
+                    for phase in Phases
+                ]
+            ):
+                self.relaxForLinearizedEOS(values)
+            else:
+                self.relaxation(values)
+
+        alpha = values[..., fields.alpha]
 
         alphas = PhasePair(alpha, 1.0 - alpha)
         arhos = PhasePair(arho1, arho2)
@@ -167,7 +181,7 @@ class FourEqScheme(Scheme):
                 phase_values,
             )
 
-            c_sq += arho * c ** 2
+            c_sq += arho * c**2
 
         values[..., fields.c] = np.sqrt(c_sq / values[..., fields.rho])
         values[..., fields.P] = (
@@ -181,22 +195,6 @@ class FourEqScheme(Scheme):
         the values of the non-conservative (auxiliary) variables using the
         :class:`~.EOS`
         """
-
-        # auxilliary variables update
-        self.auxilliaryVariableUpdate(values)
-
-        if self.do_relaxation:
-            # Relaxation bto update the volume fraction
-            if np.all(
-                [
-                    self.problem.eos[phase].__class__.__name__
-                    == "LinearizedGas"
-                    for phase in Phases
-                ]
-            ):
-                self.relaxForLinearizedEOS(values)
-            else:
-                self.relaxation(values)
 
         # auxilliary variables update
         self.auxilliaryVariableUpdate(values)
@@ -269,7 +267,6 @@ class Rusanov(ConvectiveScheme, FourEqScheme):
         cells: MeshCellSet,
         CFL_value,
     ) -> float:
-
         dt = super().CFL(cells, CFL_value)
 
         dx = cells.min_length
