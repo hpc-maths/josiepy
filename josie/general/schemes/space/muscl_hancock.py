@@ -193,7 +193,7 @@ class MUSCL_Hancock(ConvectiveScheme):
 
         # Update the auxiliary components at each face
         for dir in range(2**cells.dimensionality):
-            self.auxilliaryVariableUpdate(self.values_face._values[..., dir])
+            self.post_extrapolation(self.values_face._values[..., dir])
 
         # Perform the half-timestep at each interface using cell
         # flux (for the conserved components)
@@ -201,4 +201,4 @@ class MUSCL_Hancock(ConvectiveScheme):
 
         # Update the auxiliary components at each face
         for dir in range(2**cells.dimensionality):
-            self.auxilliaryVariableUpdate(self.values_face._values[..., dir])
+            self.post_extrapolation(self.values_face._values[..., dir])

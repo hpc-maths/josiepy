@@ -1,8 +1,3 @@
-""" Testing the numerical schemes on the solution provided in Toro, Eleuterio
-F. Riemann Solvers and Numerical Methods for Fluid Dynamics: A Practical
-Introduction. 3rd ed. Berlin Heidelberg: Springer-Verlag, 2009.
-https://doi.org/10.1007/b79761, page 129 """
-
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 import numpy as np
@@ -64,7 +59,7 @@ def riemann2Q(state, eos):
     )
 
 
-def test_toro(toro_riemann_state, Scheme, plot, animate, request):
+def test_cvv(riemann_state, Scheme, plot, animate, request):
     left = Line([0, 0], [0, 1])
     bottom = Line([0, 0], [1, 0])
     right = Line([1, 0], [1, 1])
@@ -75,8 +70,8 @@ def test_toro(toro_riemann_state, Scheme, plot, animate, request):
         phase2=LinearizedGas(p0=1e5, rho0=1e3, c0=15.0),
     )
 
-    Q_left = riemann2Q(toro_riemann_state.left, eos)
-    Q_right = riemann2Q(toro_riemann_state.right, eos)
+    Q_left = riemann2Q(riemann_state.left, eos)
+    Q_right = riemann2Q(riemann_state.right, eos)
 
     left.bc = Dirichlet(Q_left)
     right.bc = Dirichlet(Q_right)
@@ -90,16 +85,16 @@ def test_toro(toro_riemann_state, Scheme, plot, animate, request):
     def init_fun(cells: MeshCellSet):
         xc = cells.centroids[..., 0]
 
-        cells.values[np.where(xc > toro_riemann_state.xd), ...] = Q_right
-        cells.values[np.where(xc <= toro_riemann_state.xd), ...] = Q_left
+        cells.values[np.where(xc > riemann_state.xd), ...] = Q_right
+        cells.values[np.where(xc <= riemann_state.xd), ...] = Q_left
 
     scheme = Scheme(eos, do_relaxation=True)
     solver = FourEqSolver(mesh, scheme)
     solver.init(init_fun)
 
-    final_time = toro_riemann_state.final_time
+    final_time = riemann_state.final_time
     t = 0.0
-    CFL = toro_riemann_state.CFL
+    CFL = riemann_state.CFL
 
     cells = solver.mesh.cells
     dt = scheme.CFL(cells, CFL)
@@ -131,7 +126,7 @@ def test_toro(toro_riemann_state, Scheme, plot, animate, request):
             ax1.set_ylabel(r"$\alpha$")
 
             ax2.set_xlim(0, 1)
-            if toro_riemann_state.xd == 0.25:
+            if riemann_state.xd == 0.25:
                 ax2.set_ylim(-5, 155)
             else:
                 ax2.set_ylim(-5, 65)
@@ -139,7 +134,7 @@ def test_toro(toro_riemann_state, Scheme, plot, animate, request):
             ax2.set_ylabel(r"$\rho U$")
 
             ax3.set_xlim(0, 1)
-            if toro_riemann_state.xd == 0.25:
+            if riemann_state.xd == 0.25:
                 ax3.set_ylim(-0.05, 1.05)
             else:
                 ax3.set_ylim(-5, 105)
@@ -147,7 +142,7 @@ def test_toro(toro_riemann_state, Scheme, plot, animate, request):
             ax3.set_ylabel(r"$\alpha_1\rho_1$")
 
             ax4.set_xlim(0, 1)
-            if toro_riemann_state.xd == 0.25:
+            if riemann_state.xd == 0.25:
                 ax4.set_ylim(-50, 1050)
             else:
                 ax4.set_ylim(-50, 1250)
@@ -171,7 +166,7 @@ def test_toro(toro_riemann_state, Scheme, plot, animate, request):
     if animate:
         nFrames = 30
         allFrames = True
-        time_interval = toro_riemann_state.final_time / nFrames
+        time_interval = riemann_state.final_time / nFrames
 
     # TODO: Use josie.io.strategy and josie.io.writer to save the plot every
     # time instant.  In particular it might useful to choose a Strategy (or

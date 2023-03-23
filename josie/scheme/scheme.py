@@ -302,3 +302,6 @@ class Scheme(abc.ABC):
 
     def auxilliaryVariableUpdate(self, values):
         pass
+
+    def post_extrapolation(self, values):
+        self.auxilliaryVariableUpdate(values)

@@ -134,24 +134,7 @@ class FourEqScheme(Scheme):
         rhoV = values[..., fields.rhoV]
 
         rho = arho1 + arho2
-
-        # alpha guess for relax init
         alpha = arho / rho
-
-        # Relaxation to update the volume fraction
-        if self.do_relaxation:
-            if np.all(
-                [
-                    self.problem.eos[phase].__class__.__name__
-                    == "LinearizedGas"
-                    for phase in Phases
-                ]
-            ):
-                self.relaxForLinearizedEOS(values)
-            else:
-                self.relaxation(values)
-
-        alpha = values[..., fields.alpha]
 
         alphas = PhasePair(alpha, 1.0 - alpha)
         arhos = PhasePair(arho1, arho2)
@@ -189,12 +172,48 @@ class FourEqScheme(Scheme):
             + (1 - alpha) * values[..., fields.p2]
         )
 
+    def post_extrapolation(self, values: Q):
+        # auxilliary variables update
+        super().post_extrapolation(values)
+
+        if self.do_relaxation:
+            # Relaxation to update the volume fraction
+            if np.all(
+                [
+                    self.problem.eos[phase].__class__.__name__
+                    == "LinearizedGas"
+                    for phase in Phases
+                ]
+            ):
+                self.relaxForLinearizedEOS(values)
+            else:
+                self.relaxation(values)
+
+        # auxilliary variables update
+        self.auxilliaryVariableUpdate(values)
+
     def post_step(self, values: Q):
         """During the step we update the conservative values. After the
         step we update the non-conservative variables. This method updates
         the values of the non-conservative (auxiliary) variables using the
         :class:`~.EOS`
         """
+
+        # auxilliary variables update
+        self.auxilliaryVariableUpdate(values)
+
+        if self.do_relaxation:
+            # Relaxation bto update the volume fraction
+            if np.all(
+                [
+                    self.problem.eos[phase].__class__.__name__
+                    == "LinearizedGas"
+                    for phase in Phases
+                ]
+            ):
+                self.relaxForLinearizedEOS(values)
+            else:
+                self.relaxation(values)
 
         # auxilliary variables update
         self.auxilliaryVariableUpdate(values)

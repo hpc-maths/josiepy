@@ -9,8 +9,6 @@ from josie.general.schemes.space.limiters import (
     MUSCL_Hancock_MinMod,
 )
 
-# Test Toro
-
 
 @dataclass
 class RiemannState:
@@ -50,7 +48,7 @@ riemann_states = [
 
 
 @pytest.fixture(params=sorted(riemann_states, key=id))
-def toro_riemann_state(request):
+def riemann_state(request):
     yield request.param
 
 
