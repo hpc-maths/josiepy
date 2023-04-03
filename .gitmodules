@@ -1,6 +1,0 @@
-[submodule "vendor/commonmark.py"]
-	path = vendor/commonmark.py
-	url = https://github.com/rubendibattista/commonmark.py.git
-[submodule "vendor/recommonmark"]
-	path = vendor/recommonmark
-	url = https://github.com/rubendibattista/recommonmark.git
