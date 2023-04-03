@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2020-2023 JosiePy Development Team
+#
+# SPDX-License-Identifier: BSD-3-Clause
+
 """ Testing the limiters provided in Toro, Eleuterio F. Riemann Solvers
 and Numerical Methods for Fluid Dynamics: A Practical Introduction. 3rd
 ed. Berlin Heidelberg: Springer-Verlag, 2009.

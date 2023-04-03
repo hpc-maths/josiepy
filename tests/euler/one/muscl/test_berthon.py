@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2020-2023 JosiePy Development Team
+#
+# SPDX-License-Identifier: BSD-3-Clause
+
 """ Testing the additional limiter for conservative components of the
 Euler equations provided in Berthon, Christophe. « Why the MUSCL–Hancock
 Scheme Is L1-Stable ». Numerische Mathematik, nᵒ 104 (2006): 27‑46.

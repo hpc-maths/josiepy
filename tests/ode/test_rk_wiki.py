@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2020-2023 JosiePy Development Team
+#
+# SPDX-License-Identifier: BSD-3-Clause
+
 """ Testing
 this:https://en.wikipedia.org/wiki/Runge%E2%80%93Kutta_methods#Explicit_Runge%E2%80%93Kutta_methods#Use
 """

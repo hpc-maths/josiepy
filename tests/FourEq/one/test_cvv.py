@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2020-2023 JosiePy Development Team
+#
+# SPDX-License-Identifier: BSD-3-Clause
+
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 import numpy as np
