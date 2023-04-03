@@ -4,6 +4,9 @@ on:
   pull_request:
     branches: [master]
 
+env:
+  JUPYTER_PLATFORM_DIRS: 1
+
 jobs:
   build:
     runs-on: ${{ matrix.os }}
@@ -14,7 +17,6 @@ jobs:
           - ubuntu-latest
           - macos-latest
           - windows-latest
-
     steps:
       - uses: actions/checkout@v2
 
