@@ -26,6 +26,7 @@ jobs:
       - name: Poetry installation
         run: |
           pip install poetry
+          poetry install -E jupyter
 
       - name: Run tests
         run: |
