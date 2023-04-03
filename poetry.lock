@@ -557,9 +557,9 @@ develop = false
 [package.extras]
 test = ["flake8 (==3.7.9)", "hypothesis (==3.55.3)"]
 
-[package.source]
-type = "directory"
-url = "vendor/commonmark.py"
+# [package.source]
+# type = "directory"
+# url = "vendor/commonmark.py"
 
 [[package]]
 name = "contourpy"
@@ -3059,9 +3059,9 @@ commonmark = ">=0.8.1"
 docutils = ">=0.11"
 sphinx = ">=1.3.1"
 
-[package.source]
-type = "directory"
-url = "vendor/recommonmark"
+# [package.source]
+# type = "directory"
+# url = "vendor/recommonmark"
 
 [[package]]
 name = "requests"
