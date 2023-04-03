@@ -13,7 +13,7 @@
 ## Developer Notes
 ### Install
 We use [`poetry`](https://python-poetry.org/docs/basic-usage/) to manage the
-dependencies of the package. 
+dependencies of the package.
 
 To install everything in order to be able to develop on the package
 
@@ -21,16 +21,12 @@ To install everything in order to be able to develop on the package
 poetry install
 ```
 
-If you want to run the [examples](./examples), you need to include the jupyter 
+If you want to run the [examples](./examples), you need to include the jupyter
 extra
 
 ```
 poetry install -E jupyter
 ```
-
-### Submodules
-This repository contains `submodules`. Clone it using `--recursive`  or don't
-forget to `git submodule update --init --recursive`
 
 ### Correct Jupyter Git Diffing
 
@@ -42,6 +38,6 @@ you need to include the `.gitconfig` in the `.git/config`.
 
     git config --local include.path ../.gitconfig
 
-**`nbdime`** 
+**`nbdime`**
 You need to enable the [git integration](https://nbdime.readthedocs.io/en/latest/#git-integration-quickstart)
 
