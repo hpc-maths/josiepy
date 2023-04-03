@@ -43,8 +43,8 @@ sphinx-markdown-tables = "^0.0.15"
 sphinx-rtd-theme = "^0.5.2"
 sphinxcontrib-bibtex = "^2.3.0"
 pytest-profiling = "^1.7.0"
-commonmark = { path = "./vendor/commonmark.py" }
-recommonmark = { path = "./vendor/recommonmark" }
+commonmark = "^0.9.1"
+recommonmark = "^0.7.1"
 pytest-cov = "^2.12.1"
 ipdb = "^0.13.9"
 
