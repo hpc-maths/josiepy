@@ -4,7 +4,7 @@
 
 from __future__ import annotations
 
-import abc
+from abc import ABC, abstractmethod
 
 import numpy as np
 
@@ -22,7 +22,7 @@ if TYPE_CHECKING:
     from josie.mesh import Mesh
 
 
-class Cell(metaclass=abc.ABCMeta):
+class Cell(ABC):
     """This is a class interface representing a generic cell of a
     :class:`Mesh`.
 
@@ -44,35 +44,35 @@ class Cell(metaclass=abc.ABCMeta):
     """
 
     @property
-    @abc.abstractmethod
+    @abstractmethod
     def num_points(self) -> int:
         raise NotImplementedError
 
     @property
-    @abc.abstractmethod
+    @abstractmethod
     def num_dofs(self) -> int:
         raise NotImplementedError
 
     @property
-    @abc.abstractmethod
+    @abstractmethod
     def _meshio_cell_type(self) -> str:
         raise NotImplementedError
 
     @classmethod
-    @abc.abstractmethod
+    @abstractmethod
     def _generate_ghosts(cls, mesh: Mesh):
         """Generate ghost cells centroids"""
         raise NotImplementedError
 
     @classmethod
-    @abc.abstractmethod
+    @abstractmethod
     def centroid(
         cls, nw: PointType, sw: PointType, se: PointType, ne: PointType
     ) -> PointType:
         """Compute the centroid of the cell"""
 
     @classmethod
-    @abc.abstractmethod
+    @abstractmethod
     def volume(
         cls, nw: PointType, sw: PointType, se: PointType, ne: PointType
     ) -> np.ndarray:
@@ -80,19 +80,19 @@ class Cell(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @classmethod
-    @abc.abstractmethod
+    @abstractmethod
     def face_surface(cls, p0: PointType, p1: PointType) -> np.ndarray:
         """Compute the surface of a face from its points."""
         raise NotImplementedError
 
     @classmethod
-    @abc.abstractmethod
+    @abstractmethod
     def face_normal(cls, p0: PointType, p1: PointType) -> np.ndarray:
         """Compute the normal vector to a face."""
         raise NotImplementedError
 
     @classmethod
-    @abc.abstractmethod
+    @abstractmethod
     def create_connectivity(cls, mesh: Mesh):
         r"""This method creates the connectivity from the given points of
         a mesh. It modifies attributes of the :class:`Mesh` instance.
@@ -123,7 +123,7 @@ class Cell(metaclass=abc.ABCMeta):
         mesh.cells.compute_min_length()
 
     @classmethod
-    @abc.abstractmethod
+    @abstractmethod
     def export_connectivity(cls, mesh: "Mesh") -> MeshIO:
         """This method exports the connectivity of the mesh in the format
         accepted by the :class:`~meshio.Mesh`.

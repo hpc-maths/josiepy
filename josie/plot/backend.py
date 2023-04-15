@@ -5,7 +5,7 @@
 """ Backends used to display mesh and mesh results """
 from __future__ import annotations
 
-import abc
+from abc import ABC, abstractmethod
 
 from typing import List, Union, TYPE_CHECKING
 
@@ -14,10 +14,10 @@ if TYPE_CHECKING:
     from josie.solver import Solver
 
 
-class PlotBackend(metaclass=abc.ABCMeta):
+class PlotBackend(ABC):
     """An abstract interface representing a plot backend"""
 
-    @abc.abstractmethod
+    @abstractmethod
     def plot(self, mesh: Mesh):
         """Allocate a drawing instance in order to draw a single image plot.
         The drawing state is stored in :attr:`plot_state`.
@@ -30,7 +30,7 @@ class PlotBackend(metaclass=abc.ABCMeta):
 
         raise NotImplementedError
 
-    @abc.abstractmethod
+    @abstractmethod
     def append(self, solver: Solver, t):
         """Appends a new simulation time state
 
@@ -46,7 +46,7 @@ class PlotBackend(metaclass=abc.ABCMeta):
 
         raise NotImplementedError
 
-    @abc.abstractmethod
+    @abstractmethod
     def update(self, solver: Solver):
         """Updates the :attr:`plot_state` with the state (i.e. the field data
         stored in the mesh, e.g. cell data) in the Solver.
@@ -63,7 +63,7 @@ class PlotBackend(metaclass=abc.ABCMeta):
 
         raise NotImplementedError
 
-    @abc.abstractmethod
+    @abstractmethod
     def show(self, fields: Union[List, str]):
         """Show on screen a list of fields.
 
@@ -76,12 +76,12 @@ class PlotBackend(metaclass=abc.ABCMeta):
 
         raise NotImplementedError
 
-    @abc.abstractmethod
+    @abstractmethod
     def show_grid(self):
         """Show the grid on screen"""
         raise NotImplementedError
 
-    @abc.abstractmethod
+    @abstractmethod
     def show_all(self):
         """Show on screen all the fields"""
 
