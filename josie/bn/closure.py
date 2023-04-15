@@ -2,19 +2,19 @@
 #
 # SPDX-License-Identifier: BSD-3-Clause
 
-import abc
+from abc import ABC, abstractmethod
 import numpy as np
 
 from .state import Q
 
 
-class Closure(metaclass=abc.ABCMeta):
+class Closure(ABC):
     r"""A class representing the closure relation for :math:`p_I` and
     :math:`\vb{u}_I`. Use them as mixin with the Equation of State in order
     to provide full closure for the system
     """
 
-    @abc.abstractmethod
+    @abstractmethod
     def pI(self, state_array: Q) -> np.ndarray:
         r"""
         Parameters
@@ -32,7 +32,7 @@ class Closure(metaclass=abc.ABCMeta):
 
         raise NotImplementedError
 
-    @abc.abstractmethod
+    @abstractmethod
     def uI(self, state_array: Q) -> np.ndarray:
         r"""
         Parameters

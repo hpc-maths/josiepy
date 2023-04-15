@@ -4,7 +4,7 @@
 
 from __future__ import annotations
 
-import abc
+from abc import ABC, abstractmethod
 import numpy as np
 
 from typing import Union
@@ -12,7 +12,7 @@ from typing import Union
 from josie.mesh.cellset import CellSet, MeshCellSet
 
 
-class Problem(metaclass=abc.ABCMeta):
+class Problem(ABC):
     r"""A class representing a physical problem to be solved (governed by
     a PDE).
 
@@ -32,6 +32,7 @@ class Problem(metaclass=abc.ABCMeta):
     def __init__(self, **kwargs):
         super().__init__()
 
+    @abstractmethod
     def F(self, values) -> np.ndarray:
         r"""The convective flux operator :math:`\pdeConvective`
 
@@ -47,8 +48,9 @@ class Problem(metaclass=abc.ABCMeta):
             \times N_\text{dim}` containing the computed convective flux for
             the given problem
         """
-        pass
+        ...
 
+    @abstractmethod
     def B(self, values) -> np.ndarray:
         r"""This returns the tensor that pre-multiplies the non-conservative
         term of the problem.
@@ -76,6 +78,7 @@ class Problem(metaclass=abc.ABCMeta):
         """
         pass
 
+    @abstractmethod
     def K(self, cells: Union[CellSet, MeshCellSet]) -> np.ndarray:
         r"""This returns the tensor that pre-multiplies the gradient in the
         diffusive term of the problem.
@@ -103,6 +106,7 @@ class Problem(metaclass=abc.ABCMeta):
         """
         pass
 
+    @abstractmethod
     def s(self, values, t: float) -> np.ndarray:
         r"""This returns the values of the source terms
 

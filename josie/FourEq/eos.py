@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 from josie.twofluid.state import PhasePair
-import abc
+from abc import ABC, abstractmethod
 import numpy as np
 
 
@@ -12,19 +12,19 @@ from typing import Union
 ArrayAndScalar = Union[np.ndarray, float]
 
 
-class BarotropicEOS(metaclass=abc.ABCMeta):
+class BarotropicEOS(ABC):
     """An Abstract Base Class representing a barotropic EOS for an
     Euler System"""
 
-    @abc.abstractmethod
+    @abstractmethod
     def p(self, rho: ArrayAndScalar) -> ArrayAndScalar:
         raise NotImplementedError
 
-    @abc.abstractmethod
+    @abstractmethod
     def rho(self, p: ArrayAndScalar) -> ArrayAndScalar:
         raise NotImplementedError
 
-    @abc.abstractmethod
+    @abstractmethod
     def sound_velocity(self, rho: ArrayAndScalar) -> ArrayAndScalar:
         raise NotImplementedError
 

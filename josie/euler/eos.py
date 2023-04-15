@@ -5,7 +5,7 @@
 """ This module contains the different Equation of State (EOS) implementations
 """
 
-import abc
+from abc import ABC, abstractmethod
 import numpy as np
 
 from typing import Union
@@ -13,22 +13,22 @@ from typing import Union
 ArrayAndScalar = Union[np.ndarray, float]
 
 
-class EOS(metaclass=abc.ABCMeta):
+class EOS(ABC):
     """An Abstract Base Class representing an EOS for an Euler System"""
 
-    @abc.abstractmethod
+    @abstractmethod
     def rhoe(self, rho: ArrayAndScalar, p: ArrayAndScalar) -> ArrayAndScalar:
         raise NotImplementedError
 
-    @abc.abstractmethod
+    @abstractmethod
     def p(self, rho: ArrayAndScalar, e: ArrayAndScalar) -> ArrayAndScalar:
         raise NotImplementedError
 
-    @abc.abstractmethod
+    @abstractmethod
     def rho(self, p: ArrayAndScalar, e: ArrayAndScalar) -> ArrayAndScalar:
         raise NotImplementedError
 
-    @abc.abstractmethod
+    @abstractmethod
     def sound_velocity(
         self, rho: ArrayAndScalar, p: ArrayAndScalar
     ) -> ArrayAndScalar:

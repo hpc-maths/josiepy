@@ -33,7 +33,7 @@ class Field(int):
 
 
 class FieldsMeta(type):
-    """This metaclass reproduces in a simpler form the behaviour of
+    """This metaclass reproduces in a simpler form the behavior of
     :class:`Enum`.  It tracks all the defined attributes of a class, it
     precomputes the number of fields and replaces the fields that have no int
     value with the corresponding int

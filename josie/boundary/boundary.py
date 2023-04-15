@@ -7,7 +7,7 @@ boundaries of a domain
 """
 from __future__ import annotations
 
-import abc
+from abc import ABC, abstractmethod
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -89,7 +89,7 @@ class Boundary:
         self.curve.bc(cells, self, t)
 
 
-class BoundaryCurve(metaclass=abc.ABCMeta):
+class BoundaryCurve(ABC):
     r"""A class representing a :class:`BoundaryCurve`. A
     :class:`BoundaryCurve` is parametrized with a single parameter. It
     implements a :meth:`__call__` method that returns the :math:`(x,y)` values
@@ -104,7 +104,7 @@ class BoundaryCurve(metaclass=abc.ABCMeta):
     def bc(self, bc: BoundaryCondition):
         self._bc = bc
 
-    @abc.abstractmethod
+    @abstractmethod
     def __call__(self, xi):
         r"""The effective parametrization of the BoundaryCurve. Assume ``xi``
         (:math:`\xi`) to range into :math:`[0, 1]`
