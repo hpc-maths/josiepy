@@ -38,7 +38,7 @@ def riemann2Q(state, eos):
     p = state.p
     rhoe = eos.rhoe(rho, p)
     e = rhoe / rho
-    E = e + 0.5 * (U ** 2 + V ** 2)
+    E = e + 0.5 * (U**2 + V**2)
     c = eos.sound_velocity(rho, p)
 
     return EulerState(rho, rho * U, rho * V, rho * E, rhoe, U, V, p, c, e)
@@ -193,16 +193,10 @@ def test_exact_solver(toro_riemann_state):
     tolerance = 5e-3
 
     assert (
-        relative_error(rho_star_L, toro_riemann_state.solution.rho_star_L)
-        < tolerance
+        relative_error(rho_star_L, toro_riemann_state.solution.rho_star_L) < tolerance
     )
     assert (
-        relative_error(rho_star_R, toro_riemann_state.solution.rho_star_R)
-        < tolerance
+        relative_error(rho_star_R, toro_riemann_state.solution.rho_star_R) < tolerance
     )
-    assert (
-        relative_error(p_star, toro_riemann_state.solution.p_star) < tolerance
-    )
-    assert (
-        relative_error(U_star, toro_riemann_state.solution.U_star) < tolerance
-    )
+    assert relative_error(p_star, toro_riemann_state.solution.p_star) < tolerance
+    assert relative_error(U_star, toro_riemann_state.solution.U_star) < tolerance

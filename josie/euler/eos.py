@@ -29,9 +29,7 @@ class EOS(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def sound_velocity(
-        self, rho: ArrayAndScalar, p: ArrayAndScalar
-    ) -> ArrayAndScalar:
+    def sound_velocity(self, rho: ArrayAndScalar, p: ArrayAndScalar) -> ArrayAndScalar:
         raise NotImplementedError
 
 
@@ -119,9 +117,7 @@ class PerfectGas(EOS):
 
         return p / (self.gamma - 1) / e
 
-    def sound_velocity(
-        self, rho: ArrayAndScalar, p: ArrayAndScalar
-    ) -> ArrayAndScalar:
+    def sound_velocity(self, rho: ArrayAndScalar, p: ArrayAndScalar) -> ArrayAndScalar:
         """This returns the sound velocity from density and pressure
 
         Parameters
@@ -150,17 +146,13 @@ class StiffenedGas(PerfectGas):
         self.p0 = p0
 
     def rhoe(self, rho: ArrayAndScalar, p: ArrayAndScalar) -> ArrayAndScalar:
-
         return (p + self.gamma * self.p0) / (self.gamma - 1)
 
     def p(self, rho: ArrayAndScalar, e: ArrayAndScalar) -> ArrayAndScalar:
-
         return (self.gamma - 1) * np.multiply(rho, e) - self.p0 * self.gamma
 
     def rho(self, p: ArrayAndScalar, e: ArrayAndScalar) -> ArrayAndScalar:
         return (p + self.p0 * self.gamma) / (self.gamma - 1) / e
 
-    def sound_velocity(
-        self, rho: ArrayAndScalar, p: ArrayAndScalar
-    ) -> ArrayAndScalar:
+    def sound_velocity(self, rho: ArrayAndScalar, p: ArrayAndScalar) -> ArrayAndScalar:
         return np.sqrt(self.gamma * np.divide((p + self.p0), rho))

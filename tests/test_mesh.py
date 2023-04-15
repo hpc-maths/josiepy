@@ -40,9 +40,7 @@ def test_ghost_centroids(mesh, tol):
         boundary_idx = boundary.cells_idx
         ghost_idx = boundary.ghost_cells_idx
 
-        boundary_centroids = mesh.cells._centroids[
-            boundary_idx[0], boundary_idx[1]
-        ]
+        boundary_centroids = mesh.cells._centroids[boundary_idx[0], boundary_idx[1]]
 
         # Compute the ghost cells centroids
         ghost_centroids = mesh.cells._centroids[ghost_idx[0], ghost_idx[1]]
@@ -50,10 +48,7 @@ def test_ghost_centroids(mesh, tol):
         # The distance (lenght of the relative vector between boundary cells
         # and related ghost cell) must be min_length
         distances = ghost_centroids - boundary_centroids
-        assert (
-            np.mean(np.linalg.norm(distances, axis=-1)) - mesh.cells.min_length
-            < tol
-        )
+        assert np.mean(np.linalg.norm(distances, axis=-1)) - mesh.cells.min_length < tol
 
 
 def test_write(tmp_path, mesh):

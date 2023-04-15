@@ -48,7 +48,6 @@ def test_linear_index(mocker, mesh, Q):
     )
 
     def init_fun(solver: Solver):
-
         solver._values = _values.T[:, :, np.newaxis]
 
     solver.init(init_fun)  # This also updates ghosts
@@ -57,12 +56,10 @@ def test_linear_index(mocker, mesh, Q):
         solver.mesh.cells.values[0, :].ravel() == np.array([6, 11, 16]).ravel()
     )
     assert np.all(
-        solver.mesh.cells.values[:, 1].ravel()
-        == np.array([11, 12, 13]).ravel()
+        solver.mesh.cells.values[:, 1].ravel() == np.array([11, 12, 13]).ravel()
     )
 
     # This got updated after init
     assert np.all(
-        solver.mesh.cells._values[0, 1:-1].ravel()
-        == np.array([8, 13, 18]).ravel()
+        solver.mesh.cells._values[0, 1:-1].ravel() == np.array([8, 13, 18]).ravel()
     )

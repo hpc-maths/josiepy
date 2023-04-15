@@ -106,15 +106,10 @@ class Upwind(BaerScheme, NonConservativeScheme):
         np.copyto(alpha_face, alpha_L, where=U_face >= 0)
         np.copyto(alpha_face, alpha_R, where=U_face < 0)
 
-        alphan_face = np.einsum(
-            "...mk,...l->...mkl", alpha_face, neighs.normals
-        )
+        alphan_face = np.einsum("...mk,...l->...mkl", alpha_face, neighs.normals)
 
         # surfaces need to be broadcasted to comply with the alphan structure
-        G = (
-            neighs.surfaces[..., np.newaxis, np.newaxis, np.newaxis]
-            * alphan_face
-        )
+        G = neighs.surfaces[..., np.newaxis, np.newaxis, np.newaxis] * alphan_face
 
         return G
 
@@ -193,9 +188,7 @@ class Rusanov(BaerScheme, ConvectiveScheme):
 
         DeltaQ = 0.5 * sigma * (Qc_R - Qc_L)
 
-        FS.set_conservative(
-            surfaces[..., np.newaxis, np.newaxis] * (DeltaF - DeltaQ)
-        )
+        FS.set_conservative(surfaces[..., np.newaxis, np.newaxis] * (DeltaF - DeltaQ))
 
         return FS
 

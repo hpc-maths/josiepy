@@ -145,7 +145,7 @@ class PolytropicGas(BarotropicEOS):
             A :class:`ArrayAndScalar  containing the values of the pressure
             on the mesh cells
         """
-        return self.K * rho ** self.gamma
+        return self.K * rho**self.gamma
 
     def rho(self, p: ArrayAndScalar) -> ArrayAndScalar:
         """This returns the density from pressure
@@ -280,9 +280,7 @@ class TaitEOS(BarotropicEOS):
             velocity multiplied by the density
         """
 
-        return np.sqrt(
-            self.c0 * self.c0 * (rho / self.rho0) ** (self.n0 - 1.0)
-        )
+        return np.sqrt(self.c0 * self.c0 * (rho / self.rho0) ** (self.n0 - 1.0))
 
 
 class TwoPhaseEOS(PhasePair):

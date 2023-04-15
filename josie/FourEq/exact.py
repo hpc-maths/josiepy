@@ -21,7 +21,7 @@ class Exact(ConvectiveScheme, FourEqScheme):
         c1 = self.problem.eos[Phases.PHASE1].c0
         c2 = self.problem.eos[Phases.PHASE2].c0
 
-        return p0 - alpha * rho10 * c1 ** 2 - (1.0 - alpha) * rho20 * c2 ** 2
+        return p0 - alpha * rho10 * c1**2 - (1.0 - alpha) * rho20 * c2**2
 
     def deltaU(
         self,
@@ -58,22 +58,14 @@ class Exact(ConvectiveScheme, FourEqScheme):
         dU = U_L - U_R
 
         ind = np.where(P <= P_L)
-        dU[ind] += c_L[ind] * np.log(
-            (P_L[ind] - P0L[ind]) / (P[ind] - P0L[ind])
-        )
+        dU[ind] += c_L[ind] * np.log((P_L[ind] - P0L[ind]) / (P[ind] - P0L[ind]))
         ind = np.where(P > P_L)
-        dU[ind] += -(P[ind] - P_L[ind]) / np.sqrt(
-            rho_L[ind] * (P[ind] - P0L[ind])
-        )
+        dU[ind] += -(P[ind] - P_L[ind]) / np.sqrt(rho_L[ind] * (P[ind] - P0L[ind]))
 
         ind = np.where(P <= P_R)
-        dU[ind] -= -c_R[ind] * np.log(
-            (P_R[ind] - P0R[ind]) / (P[ind] - P0R[ind])
-        )
+        dU[ind] -= -c_R[ind] * np.log((P_R[ind] - P0R[ind]) / (P[ind] - P0R[ind]))
         ind = np.where(P > P_R)
-        dU[ind] -= (P[ind] - P_R[ind]) / np.sqrt(
-            rho_R[ind] * (P[ind] - P0R[ind])
-        )
+        dU[ind] -= (P[ind] - P_R[ind]) / np.sqrt(rho_R[ind] * (P[ind] - P0R[ind]))
 
         return dU
 
@@ -98,25 +90,19 @@ class Exact(ConvectiveScheme, FourEqScheme):
         ddU_dP[ind] += c_L[ind] / (P0L[ind] - P[ind])
         ind = np.where(P > P_L)
         ddU_dP[ind] += (2.0 * P0L[ind] - P[ind] - P_L[ind]) / (
-            2.0
-            * (P[ind] - P0L[ind])
-            * np.sqrt((P[ind] - P0L[ind]) * rho_L[ind])
+            2.0 * (P[ind] - P0L[ind]) * np.sqrt((P[ind] - P0L[ind]) * rho_L[ind])
         )
 
         ind = np.where(P <= P_R)
         ddU_dP[ind] += c_R[ind] / (P0R[ind] - P[ind])
         ind = np.where(P > P_R)
         ddU_dP[ind] += (2.0 * P0R[ind] - P[ind] - P_R[ind]) / (
-            2.0
-            * (P[ind] - P0R[ind])
-            * np.sqrt((P[ind] - P0R[ind]) * rho_R[ind])
+            2.0 * (P[ind] - P0R[ind]) * np.sqrt((P[ind] - P0R[ind]) * rho_R[ind])
         )
 
         return ddU_dP
 
-    def solvePressure(
-        self, P_init: np.ndarray, Q_L: Q, Q_R: Q, normals: np.ndarray
-    ):
+    def solvePressure(self, P_init: np.ndarray, Q_L: Q, Q_R: Q, normals: np.ndarray):
         P_old = P_init
         P_new = P_init
         tol = 1e-8
@@ -131,22 +117,14 @@ class Exact(ConvectiveScheme, FourEqScheme):
                 firstLoop = False
 
             P_old[ind, ...] = P_new[ind, ...]
-            P_new[ind, ...] = (
-                P_old[ind, ...]
-                - self.deltaU(
-                    Q_L[ind, ...],
-                    Q_R[ind, ...],
-                    P_old[ind, ...],
-                    normals[ind, ...],
-                )
-                / self.ddeltaU_dP(
-                    Q_L[ind, ...], Q_R[ind, ...], P_old[ind, ...]
-                )
-            )
+            P_new[ind, ...] = P_old[ind, ...] - self.deltaU(
+                Q_L[ind, ...],
+                Q_R[ind, ...],
+                P_old[ind, ...],
+                normals[ind, ...],
+            ) / self.ddeltaU_dP(Q_L[ind, ...], Q_R[ind, ...], P_old[ind, ...])
 
-            ind = np.where(
-                np.abs(P_new - P_old) / (0.5 * (P_new + P_old)) > tol
-            )[0]
+            ind = np.where(np.abs(P_new - P_old) / (0.5 * (P_new + P_old)) > tol)[0]
         return P_new
 
     def intercellFlux(
@@ -229,8 +207,8 @@ class Exact(ConvectiveScheme, FourEqScheme):
         #       If right of left shock -> Qc_L_star
 
         # If left shock
-        arho1_L_star = arho1_L * (1 + (P_star - P_L) / (rho_L * c_L ** 2))
-        arho2_L_star = arho2_L * (1 + (P_star - P_L) / (rho_L * c_L ** 2))
+        arho1_L_star = arho1_L * (1 + (P_star - P_L) / (rho_L * c_L**2))
+        arho2_L_star = arho2_L * (1 + (P_star - P_L) / (rho_L * c_L**2))
         rho_L_star = arho1_L_star + arho2_L_star
         rhoc_sq_L_star = (
             arho1_L_star * self.problem.eos[Phases.PHASE1].c0 ** 2
@@ -239,8 +217,7 @@ class Exact(ConvectiveScheme, FourEqScheme):
         S_L = np.empty_like(U_L) * np.nan
         ind = np.where(P_star > P_L)
         S_L[ind] = (
-            U_star[ind]
-            - np.sqrt(rho_L[ind] / rhoc_sq_L_star[ind]) * c_L[ind] ** 2
+            U_star[ind] - np.sqrt(rho_L[ind] / rhoc_sq_L_star[ind]) * c_L[ind] ** 2
         )
         # If left of left shock -> already done
         # If right of left shock -> Qc_L_star
@@ -269,9 +246,7 @@ class Exact(ConvectiveScheme, FourEqScheme):
         arho2_L_fan = arho2_L * np.exp((U_L - c_L) / c_L)
         rho_L_fan = arho1_L_fan + arho2_L_fan
 
-        ind = np.where(
-            (0 < U_star) * (P_star <= P_L) * (SH_L < 0) * (ST_L > 0)
-        )
+        ind = np.where((0 < U_star) * (P_star <= P_L) * (SH_L < 0) * (ST_L > 0))
         ind_tmp = ind[:3]
 
         # TODO: to be changed for 2D
@@ -305,8 +280,8 @@ class Exact(ConvectiveScheme, FourEqScheme):
 
         # If 0 > Ustar
         #   If right shock
-        arho1_R_star = arho1_R * (1 + (P_star - P_R) / (rho_R * c_R ** 2))
-        arho2_R_star = arho2_R * (1 + (P_star - P_R) / (rho_R * c_R ** 2))
+        arho1_R_star = arho1_R * (1 + (P_star - P_R) / (rho_R * c_R**2))
+        arho2_R_star = arho2_R * (1 + (P_star - P_R) / (rho_R * c_R**2))
         rho_R_star = arho1_R_star + arho2_R_star
         rhoc_sq_R_star = (
             arho1_R_star * self.problem.eos[Phases.PHASE1].c0 ** 2
@@ -315,8 +290,7 @@ class Exact(ConvectiveScheme, FourEqScheme):
         S_star_R = np.empty_like(U_R) * np.nan
         ind = np.where(P_star > P_R)
         S_star_R[ind] = (
-            U_star[ind]
-            + np.sqrt(rho_R[ind] / rhoc_sq_R_star[ind]) * c_R[ind] ** 2
+            U_star[ind] + np.sqrt(rho_R[ind] / rhoc_sq_R_star[ind]) * c_R[ind] ** 2
         )
 
         #   If right of right shock -> Qc_R
@@ -352,9 +326,7 @@ class Exact(ConvectiveScheme, FourEqScheme):
         arho2_R_fan = arho2_R * np.exp(-(U_R + c_R) / c_R)
         rho_R_fan = arho1_R_fan + arho2_R_fan
 
-        ind = np.where(
-            (0 >= U_star) * (P_star <= P_R) * (SH_R >= 0) * (ST_R < 0)
-        )
+        ind = np.where((0 >= U_star) * (P_star <= P_R) * (SH_R >= 0) * (ST_R < 0))
         ind_tmp = ind[:3]
 
         # TODO: to be changed for 2D
@@ -390,9 +362,7 @@ class Exact(ConvectiveScheme, FourEqScheme):
         intercells = Q_L.copy()
         intercells.view(Q).set_conservative(Qc)
         self.auxilliaryVariableUpdate(intercells)
-        F = np.einsum(
-            "...mkl,...l->...mk", self.problem.F(intercells), normals
-        )
+        F = np.einsum("...mkl,...l->...mk", self.problem.F(intercells), normals)
 
         # Multiply by surfaces
         FS.set_conservative(surfaces[..., np.newaxis, np.newaxis] * F)
@@ -404,7 +374,6 @@ class Exact(ConvectiveScheme, FourEqScheme):
         cells: MeshCellSet,
         CFL_value,
     ) -> float:
-
         dt = super().CFL(cells, CFL_value)
 
         dx = cells.min_length

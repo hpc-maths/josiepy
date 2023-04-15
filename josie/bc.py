@@ -90,9 +90,9 @@ class BoundaryCondition:
 
         # Apply BC for each field
         for field in self.bc.fields:
-            cells._values[ghost_idx[0], ghost_idx[1], :, field] = self.bc[
-                field
-            ](boundary_cells, ghost_cells, field, t)
+            cells._values[ghost_idx[0], ghost_idx[1], :, field] = self.bc[field](
+                boundary_cells, ghost_cells, field, t
+            )
 
 
 class ScalarBC(abc.ABC):
@@ -223,7 +223,6 @@ class Dirichlet(ScalarBC):
     _const_cls = "_ConstantDirichlet"
 
     def __new__(cls, value: ImposedValue, constant: bool = False):
-
         # Sorry, this is a bit of black magic to make defining various type of
         # BCs easier on the user side
         if isinstance(value, State):
@@ -265,7 +264,6 @@ class Dirichlet(ScalarBC):
         field: int,
         t: float,
     ) -> np.ndarray:
-
         # FIXME: Ignoring type because of this:
         # https://github.com/python/mypy/issues/708
         return 2 * self.set_value(cells, t) - cells.values[..., field]  # type: ignore # noqa: E501
@@ -290,7 +288,6 @@ class _ConstantDirichlet(Dirichlet):
         field: int,
         t: float,
     ) -> np.ndarray:
-
         return 2 * self._value - cells.values[..., field]
 
 
@@ -342,7 +339,6 @@ class Neumann(Dirichlet):
         field: int,
         t: float,
     ) -> np.ndarray:
-
         # TODO: Fix for non-zero gradient (need to add dx between the two
         # cells, maybe pre-storing at the beginning if a Neumann BC is given
 
@@ -365,7 +361,6 @@ class _ConstantNeumann(_ConstantDirichlet):
         field: int,
         t: float,
     ) -> np.ndarray:
-
         return cells.values[..., field] - self._value
 
 
@@ -397,9 +392,7 @@ class NeumannDirichlet(ScalarBC):
         dirichlet_value: ImposedValue,
         partition_fun: Callable[[np.ndarray], np.ndarray],
     ):
-        if isinstance(neumann_value, State) and isinstance(
-            dirichlet_value, State
-        ):
+        if isinstance(neumann_value, State) and isinstance(dirichlet_value, State):
             # An entire state was provided as value of the NeumannDirichlet BC,
             # so we return a BoundaryCondition with a NeumannDirichlet BC for
             # each field with the right value
@@ -440,7 +433,6 @@ class NeumannDirichlet(ScalarBC):
         field: int,
         t: float,
     ) -> np.ndarray:
-
         # First apply Neumann to everything
         ghost_values = self.neumann(cells, ghost_cells, field, t)
 
@@ -497,10 +489,7 @@ class Periodic(BoundaryCondition):
         pass
 
     def __call__(self, cells: MeshCellSet, boundary: Boundary, t: float):
-
-        cells._values[boundary.ghost_cells_idx] = cells.values[
-            self._side.value
-        ].copy()
+        cells._values[boundary.ghost_cells_idx] = cells.values[self._side.value].copy()
 
 
 def make_periodic(

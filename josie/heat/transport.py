@@ -19,9 +19,7 @@ class HeatTransport(Transport):
     """A class providing the thermal diffusivity for the temperature"""
 
     @abc.abstractmethod
-    def thermal_diffusivity(
-        self, cells: Union[MeshCellSet, CellSet]
-    ) -> np.ndarray:
+    def thermal_diffusivity(self, cells: Union[MeshCellSet, CellSet]) -> np.ndarray:
         r"""Thermal diffusivity :math:`\thermalDiffusivity`.
         Units: :math:`\qty[\si{\meter \per \square \second}]`
 
@@ -46,9 +44,7 @@ class ConstantHeatTransport(HeatTransport):
     def __init__(self, thermal_diffusivity: float):
         self._thermal_diffusivity = thermal_diffusivity
 
-    def thermal_diffusivity(
-        self, cells: Union[MeshCellSet, CellSet]
-    ) -> np.ndarray:
+    def thermal_diffusivity(self, cells: Union[MeshCellSet, CellSet]) -> np.ndarray:
         nx, ny, num_dofs, _ = cells.values.shape
 
         return np.ones((nx, ny, num_dofs)) * self._thermal_diffusivity

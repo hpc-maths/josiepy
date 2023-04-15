@@ -13,7 +13,7 @@ from josie.heat.state import Q
 
 @pytest.fixture
 def boundaries():
-    """ 1D problem along x """
+    """1D problem along x"""
     left = Line([0, 0], [0, 1])
     bottom = Line([0, 0], [1, 0])
     right = Line([1, 0], [1, 1])

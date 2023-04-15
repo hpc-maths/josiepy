@@ -44,7 +44,7 @@ def exact_solution(x, t):
 
 
 def b(x, t):
-    return (4 * np.pi ** 2 - 1) * exact_solution(x, t)
+    return (4 * np.pi**2 - 1) * exact_solution(x, t)
 
 
 class Problem(HeatProblem):

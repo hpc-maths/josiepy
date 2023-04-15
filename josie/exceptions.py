@@ -2,5 +2,6 @@
 #
 # SPDX-License-Identifier: BSD-3-Clause
 
+
 class InvalidMesh(Exception):
     pass

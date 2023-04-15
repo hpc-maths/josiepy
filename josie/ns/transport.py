@@ -17,9 +17,7 @@ if TYPE_CHECKING:
 
 class NSTransport(Transport):
     @abc.abstractmethod
-    def thermal_diffusivity(
-        self, cells: Union[MeshCellSet, CellSet]
-    ) -> np.ndarray:
+    def thermal_diffusivity(self, cells: Union[MeshCellSet, CellSet]) -> np.ndarray:
         r"""Thermal diffusivity :math:`\thermalDiffusivity`.
         Units: :math:`\qty[\si{\square \meter \per \second}]`
 
@@ -86,9 +84,7 @@ class NSConstantTransport(NSTransport):
         nx, ny, num_dofs, _ = cells.values.shape
         return np.ones((nx, ny, num_dofs)) * self._bulk_viscosity
 
-    def thermal_diffusivity(
-        self, cells: Union[MeshCellSet, CellSet]
-    ) -> np.ndarray:
+    def thermal_diffusivity(self, cells: Union[MeshCellSet, CellSet]) -> np.ndarray:
         nx, ny, num_dofs, _ = cells.values.shape
 
         return np.ones((nx, ny, num_dofs)) * self._thermal_diffusivity

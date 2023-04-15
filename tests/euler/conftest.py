@@ -110,10 +110,7 @@ def toro_riemann_state(request):
 
 @pytest.fixture(
     params=sorted(
-        [
-            member[1]
-            for member in inspect.getmembers(time_schemes, inspect.isclass)
-        ],
+        [member[1] for member in inspect.getmembers(time_schemes, inspect.isclass)],
         key=lambda c: c.__name__,
     ),
 )
@@ -121,16 +118,14 @@ def TimeScheme(request):
     yield request.param
 
 
-@pytest.fixture(
-    params=sorted(EulerScheme._all_subclasses(), key=lambda c: c.__name__)
-)
+@pytest.fixture(params=sorted(EulerScheme._all_subclasses(), key=lambda c: c.__name__))
 def IntercellFluxScheme(request):
     yield request.param
 
 
 @pytest.fixture
 def Scheme(IntercellFluxScheme, TimeScheme):
-    """ Create all the different schemes """
+    """Create all the different schemes"""
 
     class ToroScheme(Godunov, IntercellFluxScheme, TimeScheme):
         pass

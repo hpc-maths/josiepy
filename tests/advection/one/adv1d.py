@@ -8,8 +8,7 @@ import numpy as np
 
 
 def init(x: np.ndarray):
-    """ Init function. It inits the state with a Rieman problemm
-    """
+    """Init function. It inits the state with a Rieman problemm"""
     u = np.empty(x.shape)
 
     u[np.where(x > 0.45)] = 1
@@ -42,17 +41,15 @@ def upwind(u: np.ndarray, a: np.ndarray):
     a_plus = a_state[idx_a_plus]
     a_plus_left = a[idx_a_plus]
     a_minus = a_state[idx_a_minus]
-    a_minus_right = a[idx_a_minus+1]
+    a_minus_right = a[idx_a_minus + 1]
 
     u_plus = u_state[idx_a_plus]
     u_plus_left = u[idx_a_plus]
     u_minus = u_state[idx_a_minus]
-    u_minus_right = u[idx_a_minus+2]
+    u_minus_right = u[idx_a_minus + 2]
 
-    au[idx_a_plus] = flux(u_plus, a_plus) - \
-        flux(u_plus_left, a_plus_left)
-    au[idx_a_minus] = flux(u_minus_right, a_minus_right) - \
-        flux(u_minus, a_minus)
+    au[idx_a_plus] = flux(u_plus, a_plus) - flux(u_plus_left, a_plus_left)
+    au[idx_a_minus] = flux(u_minus_right, a_minus_right) - flux(u_minus, a_minus)
 
     return au
 
@@ -65,14 +62,14 @@ def advection_velocity(t, x, tf):
 
 
 def main(nx, tf, CFL, plot=False):
-    dx = 1/nx
-    x = np.arange(0+dx/2, 1, dx)
+    dx = 1 / nx
+    x = np.arange(0 + dx / 2, 1, dx)
     dx = x[1] - x[0]
 
     # Use a temporary dt to get the max of the advection velocity
     time = np.arange(0, tf, dx)
     temp_a = np.abs(np.max(advection_velocity(time, x, tf)))
-    dt = CFL*dx/np.abs(temp_a)
+    dt = CFL * dx / np.abs(temp_a)
 
     # Recompute the time with CFL
     time = np.arange(0, tf, dt)
@@ -100,7 +97,7 @@ def main(nx, tf, CFL, plot=False):
         a[-1] = a[1]
 
         # State update
-        u_new[1:-1] = u[1:-1] - dt/dx*upwind(u, a)
+        u_new[1:-1] = u[1:-1] - dt / dx * upwind(u, a)
 
         # Periodic BC
         u_new[0] = u_new[-2]

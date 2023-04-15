@@ -220,18 +220,12 @@ class SimpleCell(Cell):
         ne = np.asarray(ne)
 
         volume = (
-            np.linalg.norm(
-                np.cross(sw - nw, se - sw)[..., np.newaxis], axis=-1
-            )
-            / 2
+            np.linalg.norm(np.cross(sw - nw, se - sw)[..., np.newaxis], axis=-1) / 2
         )
 
         volume = (
             volume
-            + np.linalg.norm(
-                np.cross(se - ne, ne - nw)[..., np.newaxis], axis=-1
-            )
-            / 2
+            + np.linalg.norm(np.cross(se - ne, ne - nw)[..., np.newaxis], axis=-1) / 2
         )
 
         return volume
@@ -317,9 +311,7 @@ class SimpleCell(Cell):
         )
 
         volumes = np.full((nx + 2, ny + 2), np.nan)
-        normals = np.full(
-            (nx + 2, ny + 2, cls.num_points, MAX_DIMENSIONALITY), np.nan
-        )
+        normals = np.full((nx + 2, ny + 2, cls.num_points, MAX_DIMENSIONALITY), np.nan)
         surfaces = np.full((nx + 2, ny + 2, cls.num_points), np.nan)
 
         cells = MeshCellSet(
@@ -337,9 +329,7 @@ class SimpleCell(Cell):
         ne = np.transpose(np.asarray((x[1:, 1:], y[1:, 1:])), (1, 2, 0))
 
         mesh.points = np.stack((nw, sw, se, ne), axis=-2)
-        cells.centroids = np.asarray(cls.centroid(nw, sw, se, ne))[
-            ..., np.newaxis, :
-        ]
+        cells.centroids = np.asarray(cls.centroid(nw, sw, se, ne))[..., np.newaxis, :]
         cells.volumes = cls.volume(nw, sw, se, ne)
         cells.surfaces[..., NormalDirection.LEFT] = cls.face_surface(nw, sw)
         cells.surfaces[..., NormalDirection.BOTTOM] = cls.face_surface(sw, se)
@@ -371,14 +361,11 @@ class SimpleCell(Cell):
             boundary_idx = boundary.cells_idx
             ghost_idx = boundary.ghost_cells_idx
 
-            boundary_centroids = mesh.cells._centroids[
-                boundary_idx[0], boundary_idx[1]
-            ]
+            boundary_centroids = mesh.cells._centroids[boundary_idx[0], boundary_idx[1]]
 
             # Compute the ghost cells centroids
             mesh.cells._centroids[ghost_idx[0], ghost_idx[1]] = (
-                boundary_centroids
-                + cls._side_normal[side.name] * mesh.cells.min_length
+                boundary_centroids + cls._side_normal[side.name] * mesh.cells.min_length
             )
 
     @classmethod

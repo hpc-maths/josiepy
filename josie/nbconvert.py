@@ -90,9 +90,7 @@ class MathFixPreprocessor(Preprocessor):
             regex=r"\\begin\{[a-zA-Z]+\}([\s\S]*?)\\end\{[a-zA-Z]+\}",
             replace=r"```math\n \1 \n```",
         ),
-        RegexReplace(
-            regex=r"\$\$\n([ \S]+)\n\$\$", replace=r"```math\n \1 \n```"
-        ),
+        RegexReplace(regex=r"\$\$\n([ \S]+)\n\$\$", replace=r"```math\n \1 \n```"),
         RegexReplace(regex=r"\$(.*)\$", replace=r"`$ \1 $`"),
     ]
 

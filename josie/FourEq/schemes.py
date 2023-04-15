@@ -45,9 +45,7 @@ class FourEqScheme(Scheme):
         betaPos = (
             q
             - qtilde
-            + np.sqrt(
-                (q - qtilde) ** 2 + 4.0 * arho1 * c1**2 * arho2 * c2**2
-            )
+            + np.sqrt((q - qtilde) ** 2 + 4.0 * arho1 * c1**2 * arho2 * c2**2)
         ) / (2.0 * arho2 * c2**2)
 
         alpha = betaPos / (1.0 + betaPos)
@@ -66,24 +64,19 @@ class FourEqScheme(Scheme):
         # Solve for alpha using p1(arho1/alpha) = p2(arho2/alpha) with Newton
         # Note that arho1 and arho2 remain constant
         def phi(arho1: np.ndarray, arho2: np.ndarray, alpha: np.ndarray):
-            return self.problem.eos[Phases.PHASE1].p(
-                arho1 / alpha
-            ) - self.problem.eos[Phases.PHASE2].p(arho2 / (1.0 - alpha))
+            return self.problem.eos[Phases.PHASE1].p(arho1 / alpha) - self.problem.eos[
+                Phases.PHASE2
+            ].p(arho2 / (1.0 - alpha))
 
-        def dphi_dalpha(
-            arho1: np.ndarray, arho2: np.ndarray, alpha: np.ndarray
-        ):
+        def dphi_dalpha(arho1: np.ndarray, arho2: np.ndarray, alpha: np.ndarray):
             # Note that dp_drho = c^2 for barotropic EOS
             return (
                 -arho1
                 / (alpha**2)
-                * self.problem.eos[Phases.PHASE1].sound_velocity(arho1 / alpha)
-                ** 2
+                * self.problem.eos[Phases.PHASE1].sound_velocity(arho1 / alpha) ** 2
                 - arho2
                 / ((1.0 - alpha) ** 2)
-                * self.problem.eos[Phases.PHASE2].sound_velocity(
-                    arho2 / (1.0 - alpha)
-                )
+                * self.problem.eos[Phases.PHASE2].sound_velocity(arho2 / (1.0 - alpha))
                 ** 2
             )
 
@@ -91,9 +84,7 @@ class FourEqScheme(Scheme):
         iter = 0
         while np.any(dalpha / alpha > 1e-8):
             iter += 1
-            dalpha = -phi(arho1, arho2, alpha) / dphi_dalpha(
-                arho1, arho2, alpha
-            )
+            dalpha = -phi(arho1, arho2, alpha) / dphi_dalpha(arho1, arho2, alpha)
             alpha += dalpha
         if np.max(alpha) > 1.0 or np.min(alpha) < 0.0:
             exit()
@@ -145,8 +136,7 @@ class FourEqScheme(Scheme):
 
         values[..., fields.c] = np.sqrt(c_sq / values[..., fields.rho])
         values[..., fields.P] = (
-            alpha * values[..., fields.p1]
-            + (1 - alpha) * values[..., fields.p2]
+            alpha * values[..., fields.p1] + (1 - alpha) * values[..., fields.p2]
         )
 
     def post_extrapolation(self, values: Q):
@@ -157,8 +147,7 @@ class FourEqScheme(Scheme):
             # Relaxation to update the volume fraction
             if np.all(
                 [
-                    self.problem.eos[phase].__class__.__name__
-                    == "LinearizedGas"
+                    self.problem.eos[phase].__class__.__name__ == "LinearizedGas"
                     for phase in Phases
                 ]
             ):
@@ -183,8 +172,7 @@ class FourEqScheme(Scheme):
             # Relaxation bto update the volume fraction
             if np.all(
                 [
-                    self.problem.eos[phase].__class__.__name__
-                    == "LinearizedGas"
+                    self.problem.eos[phase].__class__.__name__ == "LinearizedGas"
                     for phase in Phases
                 ]
             ):

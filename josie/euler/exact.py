@@ -90,9 +90,7 @@ class Exact:
 
         self._interpolators = {}
 
-    def _set_state(
-        self, rho: float, p: float, U: float, V: float
-    ) -> EulerState:
+    def _set_state(self, rho: float, p: float, U: float, V: float) -> EulerState:
         """Handy function to set a full :class:`EulerState` state from density,
         pressure, and velocity"""
         fields = self.Q_L.fields
@@ -103,7 +101,7 @@ class Exact:
         state[..., fields.rhoV] = rho * V
         rhoe = state[..., fields.rhoe] = self.eos.rhoe(rho, p)
         e = state[..., fields.e] = rhoe / rho
-        state[..., fields.rhoE] = rho * (e + U ** 2 / 2)
+        state[..., fields.rhoE] = rho * (e + U**2 / 2)
         state[..., fields.c] = self.eos.sound_velocity(rhoe, p)
 
         state[..., fields.U] = U
@@ -142,8 +140,7 @@ class Exact:
 
         if not (opt.success):
             raise RuntimeError(
-                "The root finding algorithm could not find a solution for "
-                "rho_star_k"
+                "The root finding algorithm could not find a solution for " "rho_star_k"
             )
 
         rho_star_k = opt.x
@@ -205,7 +202,7 @@ class Exact:
         rho = y[1]
         c = eos.sound_velocity(rho, p)
 
-        drho_dp = 1 / c ** 2
+        drho_dp = 1 / c**2
         du_dp = wave / rho / c
 
         return (du_dp, drho_dp)
@@ -256,22 +253,18 @@ class Exact:
         """
 
         # Solve rarefaction ODE
-        ode_sol = self._solve_rarefaction_ode(
-            (p_k, p_star), (U_k, rho_k), Wave.LEFT
-        )
+        ode_sol = self._solve_rarefaction_ode((p_k, p_star), (U_k, rho_k), Wave.LEFT)
 
         # Accumulate the full state for the rarefaction
-        rar_full_state = np.empty(
-            (len(ode_sol.t), len(EulerState.fields))
-        ).view(EulerState)
+        rar_full_state = np.empty((len(ode_sol.t), len(EulerState.fields))).view(
+            EulerState
+        )
 
         for i, p_step in enumerate(ode_sol.t):
             rho_step = ode_sol.y[1, i]
             U_step = U_k - wave * (ode_sol.y[0, i] - U_k)
 
-            rar_full_state[i, :] = self._set_state(
-                rho_step, p_step, U_step, V_k
-            )
+            rar_full_state[i, :] = self._set_state(rho_step, p_step, U_step, V_k)
 
         U = rar_full_state[..., EulerState.fields.U]
         rho = rar_full_state[..., EulerState.fields.rho]
@@ -329,9 +322,7 @@ class Exact:
 
         return wave * (U - U_k)
 
-    def sample_rarefaction(
-        self, U_c: float, V_k: float, wave: Wave
-    ) -> EulerState:
+    def sample_rarefaction(self, U_c: float, V_k: float, wave: Wave) -> EulerState:
         r"""Return the state within the rarefaction fan"""
 
         if wave is Wave.LEFT:
@@ -384,8 +375,7 @@ class Exact:
 
         if not (opt.converged):
             raise RuntimeError(
-                "The root finding algorithm could not find a solution for "
-                "p_star"
+                "The root finding algorithm could not find a solution for " "p_star"
             )
 
         p_star = opt.root

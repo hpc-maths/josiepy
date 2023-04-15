@@ -69,12 +69,9 @@ def init_fun(Q):
     """
 
     def init_fun(cells: MeshCellSet):
-
         # The np.newaxis to take into account the num_dofs dimension of the
         # array
-        cells.values = np.sum(cells.centroids, axis=-1)[..., np.newaxis].view(
-            Q
-        )
+        cells.values = np.sum(cells.centroids, axis=-1)[..., np.newaxis].view(Q)
 
     yield init_fun
 

@@ -24,7 +24,6 @@ from josie.general.schemes.space import Godunov
 
 @pytest.fixture
 def eos():
-
     return PerfectGas()
 
 
@@ -36,11 +35,9 @@ def init_state(eos):
     e = 300
 
     p = eos.p(rho, e)
-    E = e + 0.5 * (U ** 2 + V ** 2)
+    E = e + 0.5 * (U**2 + V**2)
     c = eos.sound_velocity(rho, p)
-    init_state = NSState(
-        rho, rho * U, rho * V, rho * E, rho * e, U, V, p, c, e
-    )
+    init_state = NSState(rho, rho * U, rho * V, rho * E, rho * e, U, V, p, c, e)
 
     yield init_state
 
@@ -113,9 +110,7 @@ def scheme():
 
     eos = PerfectGas()
 
-    class Scheme(
-        Godunov, NSScheme, CentralDifferenceGradient, Rusanov, ExplicitEuler
-    ):
+    class Scheme(Godunov, NSScheme, CentralDifferenceGradient, Rusanov, ExplicitEuler):
         pass
 
     yield Scheme(eos, transport)

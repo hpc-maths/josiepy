@@ -115,7 +115,6 @@ def scheme():
             cells: MeshCellSet,
             CFL_value: float,
         ) -> float:
-
             U_abs = np.linalg.norm(V)
             dx = np.min(cells.surfaces)
 
@@ -202,7 +201,4 @@ def test_against_real_1D(solver, plot, tol, scheme, omega):
     assert (
         np.abs(order + 2) < eps
         and not (musclScheme.omega == 1 / 3 * (2 * c - np.sign(c)))
-    ) or (
-        np.abs(order + 3) < eps
-        and musclScheme.omega == 1 / 3 * (2 * c - np.sign(c))
-    )
+    ) or (np.abs(order + 3) < eps and musclScheme.omega == 1 / 3 * (2 * c - np.sign(c)))

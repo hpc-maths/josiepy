@@ -13,7 +13,6 @@ from josie.state import SubsetState
 
 
 def test_fluid_state():
-
     # Let's put in different order to check that works indeed
     class AllFields(Fields):
         rho = 0

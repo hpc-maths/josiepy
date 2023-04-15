@@ -43,17 +43,12 @@ class MUSCL_Hancock_ratio_limiters(MUSCL_Hancock):
             slope_R: np.ndarray = neigh_R.values - cells.values
 
             # Add a tolerance to avoid null slopes when computing the ratio
-            np.copyto(
-                slope_L, cells.values * tol, where=slope_L < tol * cells.values
-            )
-            np.copyto(
-                slope_R, cells.values * tol, where=slope_R < tol * cells.values
-            )
+            np.copyto(slope_L, cells.values * tol, where=slope_L < tol * cells.values)
+            np.copyto(slope_R, cells.values * tol, where=slope_R < tol * cells.values)
 
             # Ratio of slopes is given to xi function
             slope_R = self.xi(slope_L / slope_R) * (
-                0.5 * (1 + self.omega) * slope_L
-                + 0.5 * (1 - self.omega) * slope_R
+                0.5 * (1 + self.omega) * slope_L + 0.5 * (1 - self.omega) * slope_R
             )
 
             self.slopes[..., dir_L] = -slope_R
