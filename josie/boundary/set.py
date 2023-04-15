@@ -52,7 +52,6 @@ class Cube(BoxMesh):
         self,
         side_length: float,
     ):
-
         super().__init__(side_length, side_length)
 
 
@@ -62,5 +61,4 @@ class UnitCube(Cube):
     def __init__(
         self,
     ):
-
         super().__init__(1.0)

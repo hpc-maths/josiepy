@@ -56,13 +56,8 @@ class ConstantSource(SourceScheme):
         """The source flux computed only for the cells, without taking into
         consideration the neighbours since they're not needed
         """
-        return (
-            self.problem.s(cells, t)
-            * cells.volumes[..., np.newaxis, np.newaxis]
-        )
+        return self.problem.s(cells, t) * cells.volumes[..., np.newaxis, np.newaxis]
 
-    def s(
-        self, cells: MeshCellSet, neighs: NeighboursCellSet, t: float
-    ) -> State:
+    def s(self, cells: MeshCellSet, neighs: NeighboursCellSet, t: float) -> State:
         """Use :meth:`volume_s` instead"""
         raise NotImplementedError

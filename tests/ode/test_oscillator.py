@@ -41,9 +41,7 @@ def analytical_solution(t, Q0, omega):
     x_t = v0 / omega * np.sin(omega * t) + x0 * np.cos(omega * t)
     v_t = v0 * np.cos(omega * t) - x0 * omega * np.sin(omega * t)
 
-    Q_t = np.concatenate(
-        (np.atleast_1d(x_t), np.atleast_1d(v_t)), axis=-1
-    ).view(Q)
+    Q_t = np.concatenate((np.atleast_1d(x_t), np.atleast_1d(v_t)), axis=-1).view(Q)
 
     return Q_t
 
@@ -93,16 +91,13 @@ def run_oscillator(mesh, Q0, TimeScheme, k, m, dt, final_time) -> float:
 
 @pytest.fixture
 def Q0():
-    """ Initial state """
+    """Initial state"""
 
     return np.array([1, 0]).view(Q)
 
 
 @pytest.fixture(
-    params=[
-        member[1]
-        for member in inspect.getmembers(time_schemes, inspect.isclass)
-    ]
+    params=[member[1] for member in inspect.getmembers(time_schemes, inspect.isclass)]
 )
 def TimeScheme(request):
     yield request.param

@@ -30,8 +30,7 @@ class MUSCL_Hancock_no_limiter(MUSCL_Hancock):
 
             # Without limiters
             self.slopes[..., dir_R] = (
-                0.5 * (1 + self.omega) * slope_L
-                + 0.5 * (1 - self.omega) * slope_R
+                0.5 * (1 + self.omega) * slope_L + 0.5 * (1 - self.omega) * slope_R
             )
 
             self.slopes[..., dir_L] = -self.slopes[..., dir_R]
@@ -114,10 +113,8 @@ class MUSCL_Hancock_Beta_limiters(MUSCL_Hancock):
 
 
 class MUSCL_Hancock_MinMod(MUSCL_Hancock_Beta_limiters):
-
     beta = 1.0
 
 
 class MUSCL_Hancock_SuperBee(MUSCL_Hancock_Beta_limiters):
-
     beta = 2.0

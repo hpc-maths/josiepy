@@ -134,9 +134,7 @@ class Scheme(abc.ABC):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def accumulate(
-        self, cells: MeshCellSet, neighs: NeighboursCellSet, t: float
-    ):
+    def accumulate(self, cells: MeshCellSet, neighs: NeighboursCellSet, t: float):
         r"""This method implements the accumulation of all fluxes between
         each cell and its neighbour.
 

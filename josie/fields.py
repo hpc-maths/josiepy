@@ -89,8 +89,7 @@ class FieldsMeta(type):
             return obj
         else:
             raise TypeError(
-                "This class is used like an `Enum`. "
-                "Can't be directly instantiated"
+                "This class is used like an `Enum`. " "Can't be directly instantiated"
             )
 
     def __getitem__(self, idx):

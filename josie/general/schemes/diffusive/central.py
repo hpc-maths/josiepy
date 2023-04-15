@@ -63,7 +63,6 @@ class CentralDifferenceGradient(DiffusiveScheme):
             self._directions[neighs.direction] = idx
 
     def D(self, cells: MeshCellSet, neighs: NeighboursCellSet):
-
         # Retrieve neighbour index
         idx = self._directions[neighs.direction]
 

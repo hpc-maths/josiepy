@@ -35,10 +35,7 @@ from josie.bn.state import Q
 
 
 @pytest.fixture(
-    params=[
-        member[1]
-        for member in inspect.getmembers(time_schemes, inspect.isclass)
-    ],
+    params=[member[1] for member in inspect.getmembers(time_schemes, inspect.isclass)],
 )
 def TimeScheme(request):
     """Fixture that yields all the concrete time schemes implemented in
@@ -124,7 +121,6 @@ def riemann_states(IntercellFluxScheme, ToroNonConservativeScheme, TimeScheme):
             cells: MeshCellSet,
             CFL_value,
         ) -> float:
-
             return 1e-3
 
     class ToroScheme(
@@ -554,7 +550,7 @@ def set_bc_state(bc_state: RiemannBCState, eos: TwoPhaseEOS):
         p = phase_data.p
 
         rhoe = phase_eos.rhoe(rho, p)
-        E = rhoe / rho + 0.5 * (U ** 2 + V ** 2)
+        E = rhoe / rho + 0.5 * (U**2 + V**2)
         rhoE = rho * E
         c = phase_eos.sound_velocity(rho, p)
 
@@ -623,12 +619,8 @@ def test_toro(riemann_states, request, plot, write):
         def init_fun(cells: MeshCellSet):
             xc = cells.centroids[..., 0]
 
-            cells.values[
-                np.where(xc > riemann.discontinuity_x0), ...
-            ] = Q_right
-            cells.values[
-                np.where(xc <= riemann.discontinuity_x0), ...
-            ] = Q_left
+            cells.values[np.where(xc > riemann.discontinuity_x0), ...] = Q_right
+            cells.values[np.where(xc <= riemann.discontinuity_x0), ...] = Q_left
 
         scheme = riemann.scheme
         solver = BaerSolver(mesh, scheme)
@@ -666,9 +658,7 @@ def test_toro(riemann_states, request, plot, write):
         alpha = solver.mesh.cells.values[..., fields.alpha].ravel()
         (line,) = ax.plot(x, alpha, label=r"$\alpha$")
         ax.legend(loc="best")
-        time_annotation = fig.text(
-            0.5, 0.05, "t=0.00s", horizontalalignment="center"
-        )
+        time_annotation = fig.text(0.5, 0.05, "t=0.00s", horizontalalignment="center")
         artists.append(line)
         axes.append(ax)
 

@@ -21,7 +21,6 @@ if TYPE_CHECKING:
 
 
 class NSProblem(EulerProblem, DiffusiveProblem):
-
     if TYPE_CHECKING:
         transport: NSTransport
 

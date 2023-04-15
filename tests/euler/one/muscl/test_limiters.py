@@ -36,8 +36,7 @@ def relative_error(a, b):
 
 @pytest.fixture(
     params=[
-        member[1]
-        for member in inspect.getmembers(MUSCL_limiters, inspect.isclass)
+        member[1] for member in inspect.getmembers(MUSCL_limiters, inspect.isclass)
     ],
 )
 def MUSCLScheme(request):
@@ -46,7 +45,7 @@ def MUSCLScheme(request):
 
 @pytest.fixture
 def Scheme(MUSCLScheme):
-    """ Create all the different schemes """
+    """Create all the different schemes"""
 
     class ToroScheme(MUSCLScheme, ExplicitEuler, HLLC):
         pass
@@ -78,12 +77,10 @@ def riemann2Q(state, eos):
     V = state.V
     p = state.p
     rhoe = eos.rhoe(rho, p)
-    E = rhoe / rho + 0.5 * (U ** 2 + V ** 2)
+    E = rhoe / rho + 0.5 * (U**2 + V**2)
     c = eos.sound_velocity(rho, p)
 
-    return EulerState(
-        rho, rho * U, rho * V, rho * E, rhoe, U, V, p, c, rhoe / rho
-    )
+    return EulerState(rho, rho * U, rho * V, rho * E, rhoe, U, V, p, c, rhoe / rho)
 
 
 def test_toro(Scheme, plot, request):

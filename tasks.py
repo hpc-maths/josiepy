@@ -14,7 +14,7 @@ DOCS_DEPLOY_DIR = Path("./public")
 
 @task
 def copy_docs(c):
-    """ Copy the Sphinx files in the build directory """
+    """Copy the Sphinx files in the build directory"""
 
     print(f"Create `examples` dir in {DOCS_DIR}")
 
@@ -32,9 +32,7 @@ def convert_examples(c):
         exporter = MdBinderExporter()
         output, resources = exporter.from_filename(filename)
 
-        out_filename = (
-            resources["metadata"]["name"] + resources["output_extension"]
-        )
+        out_filename = resources["metadata"]["name"] + resources["output_extension"]
 
         out = EXAMPLES_DOCS_DIR / out_filename
 
@@ -46,7 +44,7 @@ def convert_examples(c):
 
 @task(copy_docs, convert_examples)
 def docs(c):
-    """ This command generates the HTML of the documentation """
+    """This command generates the HTML of the documentation"""
 
     dest_dir = DOCS_DIR / "build"
     source_dir = DOCS_DIR / "source"

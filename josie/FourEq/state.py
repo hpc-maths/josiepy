@@ -13,7 +13,6 @@ from josie.state import SubsetState
 
 
 class FourEqFields(FluidFields):
-
     arho = 0
     rhoU = 1
     rhoV = 2

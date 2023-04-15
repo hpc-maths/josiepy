@@ -50,14 +50,14 @@ def init_test(direction, Scheme, riemann_problem, bc_fun):
     pL = riemann_problem.left.p
     rhoeL = eos.rhoe(rhoL, pL)
     eL = rhoeL / rhoL
-    EL = eL + 0.5 * (uL ** 2 + vL ** 2)
+    EL = eL + 0.5 * (uL**2 + vL**2)
     cL = eos.sound_velocity(rhoL, pL)
 
     rhoR = riemann_problem.right.rho
     pR = riemann_problem.right.p
     rhoeR = eos.rhoe(rhoR, pR)
     eR = rhoeR / rhoR
-    ER = eR + 0.5 * (uR ** 2 + vR ** 2)
+    ER = eR + 0.5 * (uR**2 + vR**2)
     cR = eos.sound_velocity(rhoR, pR)
 
     Q_left = EulerState(
@@ -124,7 +124,6 @@ def periodic(first, second, direction):
 @pytest.mark.parametrize("bc_fun", [periodic, neumann])
 @pytest.mark.parametrize("direction", [Direction.X, Direction.Y])
 def test_toro(direction, Scheme, toro_riemann_state, bc_fun, plot):
-
     solver, plot_var = init_test(direction, Scheme, toro_riemann_state, bc_fun)
     scheme = solver.scheme
 

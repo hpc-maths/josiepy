@@ -21,18 +21,13 @@ def pytest_addoption(parser):
     parser.addoption(
         "--plot",
         action="store_true",
-        help=(
-            "Some tests can plot the mesh. Set to true if you want to see them"
-        ),
+        help=("Some tests can plot the mesh. Set to true if you want to see them"),
     )
 
     parser.addoption(
         "--animate",
         action="store_true",
-        help=(
-            "Some tests can animate the mesh. Set to true if you want to"
-            "see them"
-        ),
+        help=("Some tests can animate the mesh. Set to true if you want to" "see them"),
     )
 
     parser.addoption(
@@ -53,13 +48,9 @@ def pytest_addoption(parser):
 
 def pytest_collection_modifyitems(config, items):
     if config.getoption("--bench"):
-        skip_reason = pytest.mark.skip(
-            reason="Running Benchmarks, not unit tests"
-        )
+        skip_reason = pytest.mark.skip(reason="Running Benchmarks, not unit tests")
         for item in items:
-            if not ("bench") in item.keywords and isinstance(
-                item, pytest.Function
-            ):
+            if not ("bench") in item.keywords and isinstance(item, pytest.Function):
                 item.add_marker(skip_reason)
     else:
         skip_reason = pytest.mark.skip(reason="Skipping benchmarks")
@@ -69,9 +60,7 @@ def pytest_collection_modifyitems(config, items):
                 item.add_marker(skip_reason)
 
 
-@pytest.fixture(
-    params=(Line([0, 0], [1, 0]), CircleArc([0, 0], [1, 0], [0.2, 0.2]))
-)
+@pytest.fixture(params=(Line([0, 0], [1, 0]), CircleArc([0, 0], [1, 0], [0.2, 0.2])))
 def boundaries(request):
     left = Line([0, 0], [0, 1])
     bottom = request.param
@@ -98,8 +87,7 @@ def mesh(boundaries):
 @pytest.fixture(scope="session", autouse=True)
 def plot(request):
     if not (
-        request.config.getoption("--plot")
-        or request.config.getoption("--animate")
+        request.config.getoption("--plot") or request.config.getoption("--animate")
     ):
         import matplotlib
 
@@ -110,8 +98,7 @@ def plot(request):
 @pytest.fixture(scope="session", autouse=False)
 def animate(request):
     if not (
-        request.config.getoption("--plot")
-        or request.config.getoption("--animate")
+        request.config.getoption("--plot") or request.config.getoption("--animate")
     ):
         import matplotlib
 

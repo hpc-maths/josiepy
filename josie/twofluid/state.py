@@ -16,9 +16,7 @@ from josie.twofluid import fields
 class PhasePair(dict):
     """A tuple of objects that are indexable by :class:`Phases`."""
 
-    def __init__(
-        self, phase1: Optional[Any] = None, phase2: Optional[Any] = None
-    ):
+    def __init__(self, phase1: Optional[Any] = None, phase2: Optional[Any] = None):
         _dict = {
             fields.Phases.PHASE1: phase1,
             fields.Phases.PHASE2: phase2,
@@ -102,9 +100,7 @@ class TwoFluidState(ConsState):
             of the system associated to the requested phase
         """
 
-        return self[..., self.phase_state._subset_fields_map[phase]].view(
-            PhaseState
-        )
+        return self[..., self.phase_state._subset_fields_map[phase]].view(PhaseState)
 
     def set_phase(self, phase: fields.Phases, values: PhaseState):
         """Sets the part of the system associated to the specified ``phase``

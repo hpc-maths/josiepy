@@ -106,9 +106,7 @@ def test_bubble(plot, request):
         cells.values[..., fields.U] = 0.0
         cells.values[..., fields.V] = 0.0
         cells.values[..., fields.P] = p
-        cells.values[..., fields.c] = np.sqrt(
-            (arho1 * c1**2 + arho2 * c2**2) / rho
-        )
+        cells.values[..., fields.c] = np.sqrt((arho1 * c1**2 + arho2 * c2**2) / rho)
         cells.values[..., fields.alpha] = alpha
         cells.values[..., fields.arho1] = arho1
         cells.values[..., fields.p1] = p

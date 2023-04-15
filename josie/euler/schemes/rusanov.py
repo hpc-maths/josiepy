@@ -77,7 +77,6 @@ class Rusanov(EulerScheme):
     def intercellFlux(
         self, Q_L: State, Q_R: State, normals: np.ndarray, surfaces: np.ndarray
     ):
-
         fields = EulerState.fields
 
         FS = np.zeros_like(Q_L).view(EulerState)
@@ -104,8 +103,6 @@ class Rusanov(EulerScheme):
 
         DeltaQ = 0.5 * sigma * (Q_R_cons - Q_L_cons)
 
-        FS.set_conservative(
-            surfaces[..., np.newaxis, np.newaxis] * (DeltaF - DeltaQ)
-        )
+        FS.set_conservative(surfaces[..., np.newaxis, np.newaxis] * (DeltaF - DeltaQ))
 
         return FS

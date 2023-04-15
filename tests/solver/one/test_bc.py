@@ -19,7 +19,7 @@ def test_invalid_mesh_x(boundaries, solver, init_fun):
 
 
 def test_1D(solver):
-    """ In 1D, the top and bottom ghost cells are not present """
+    """In 1D, the top and bottom ghost cells are not present"""
 
     assert solver.mesh.dimensionality == 1
     assert len(solver.mesh.boundaries) == 2

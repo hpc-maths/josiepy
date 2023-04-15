@@ -91,7 +91,6 @@ class HLL(EulerScheme):
         normals: np.ndarray,
         surfaces: np.ndarray,
     ):
-
         FS = np.zeros_like(Q_L).view(EulerState)
         fields = EulerState.fields
 
@@ -122,9 +121,7 @@ class HLL(EulerScheme):
         np.copyto(
             F,
             np.divide(
-                sigma_R * F_L
-                - sigma_L * F_R
-                + sigma_L * sigma_R * (Qc_R - Qc_L),
+                sigma_R * F_L - sigma_L * F_R + sigma_L * sigma_R * (Qc_R - Qc_L),
                 sigma_R - sigma_L,
             ),
             where=(sigma_L <= 0) * (sigma_R >= 0),
@@ -143,7 +140,6 @@ class HLLC(HLL):
     def intercellFlux(
         self, Q_L: State, Q_R: State, normals: np.ndarray, surfaces: np.ndarray
     ):
-
         FS = np.zeros_like(Q_L).view(EulerState)
         F = np.zeros_like(Q_L.view(EulerState).get_conservative())
         fields = EulerState.fields
@@ -178,10 +174,7 @@ class HLLC(HLL):
 
         # Compute the approximate contact discontinuity speed
         S_star = np.divide(
-            p_R
-            - p_L
-            + rho_L * U_L * (sigma_L - U_L)
-            - rho_R * U_R * (sigma_R - U_R),
+            p_R - p_L + rho_L * U_L * (sigma_L - U_L) - rho_R * U_R * (sigma_R - U_R),
             rho_L * (sigma_L - U_L) - rho_R * (sigma_R - U_R),
         )
 
@@ -200,12 +193,8 @@ class HLLC(HLL):
 
         # FIXME: This can be avoided using direct flux expressions, Toro
         # p325, eq 10.41
-        U_star_L = UV_L + np.einsum(
-            "...mk,...l->...mkl", (S_star - U_L), normals
-        )
-        U_star_R = UV_R + np.einsum(
-            "...mk,...l->...mkl", (S_star - U_R), normals
-        )
+        U_star_L = UV_L + np.einsum("...mk,...l->...mkl", (S_star - U_L), normals)
+        U_star_R = UV_R + np.einsum("...mk,...l->...mkl", (S_star - U_R), normals)
 
         # Compute the intermediate states
         Q_star_R[..., fields.rho] = 1
@@ -221,12 +210,8 @@ class HLLC(HLL):
             S_star - U_L
         ) * (S_star + np.divide(p_L, rho_L * (sigma_L - U_L)))
 
-        Q_star_R = Q_star_R * (
-            rho_R * np.divide(sigma_R - U_R, sigma_R - S_star)
-        )
-        Q_star_L = Q_star_L * (
-            rho_L * np.divide(sigma_L - U_L, sigma_L - S_star)
-        )
+        Q_star_R = Q_star_R * (rho_R * np.divide(sigma_R - U_R, sigma_R - S_star))
+        Q_star_L = Q_star_L * (rho_L * np.divide(sigma_L - U_L, sigma_L - S_star))
 
         # Right supersonic flow
         np.copyto(F, F_L, where=(sigma_L >= 0))

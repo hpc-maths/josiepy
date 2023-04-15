@@ -214,7 +214,6 @@ class CircleArc(BoundaryCurve):
         self._th2 = th2
 
     def __call__(self, xi):
-
         # Remap to the correct angle range
         xi = map01to(xi, self._th1, self._th2)
 

@@ -260,12 +260,8 @@ class TwoPhaseProblem(Problem):
         F[..., BaerConsFields.arhoU1, Direction.Y] = arhoUV1
         F[..., BaerConsFields.arhoV1, Direction.X] = arhoVU1
         F[..., BaerConsFields.arhoV1, Direction.Y] = arhoVV1 + ap1
-        F[..., BaerConsFields.arhoE1, Direction.X] = np.multiply(
-            arhoE1 + ap1, U1
-        )
-        F[..., BaerConsFields.arhoE1, Direction.Y] = np.multiply(
-            arhoE1 + ap1, V1
-        )
+        F[..., BaerConsFields.arhoE1, Direction.X] = np.multiply(arhoE1 + ap1, U1)
+        F[..., BaerConsFields.arhoE1, Direction.Y] = np.multiply(arhoE1 + ap1, V1)
 
         F[..., BaerConsFields.arho2, Direction.X] = arhoU2
         F[..., BaerConsFields.arho2, Direction.Y] = arhoV2
@@ -273,11 +269,7 @@ class TwoPhaseProblem(Problem):
         F[..., BaerConsFields.arhoU2, Direction.Y] = arhoUV2
         F[..., BaerConsFields.arhoV2, Direction.X] = arhoVU2
         F[..., BaerConsFields.arhoV2, Direction.Y] = arhoVV2 + ap2
-        F[..., BaerConsFields.arhoE2, Direction.X] = np.multiply(
-            arhoE2 + ap2, U2
-        )
-        F[..., BaerConsFields.arhoE2, Direction.Y] = np.multiply(
-            arhoE2 + ap2, V2
-        )
+        F[..., BaerConsFields.arhoE2, Direction.X] = np.multiply(arhoE2 + ap2, U2)
+        F[..., BaerConsFields.arhoE2, Direction.Y] = np.multiply(arhoE2 + ap2, V2)
 
         return F

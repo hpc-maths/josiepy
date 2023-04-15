@@ -124,9 +124,7 @@ def riemann2Q(state, eos):
     E = rhoe / rho + 0.5 * (U**2 + V**2)
     c = eos.sound_velocity(rho, p)
 
-    return EulerState(
-        rho, rho * U, rho * V, rho * E, rhoe, U, V, p, c, rhoe / rho
-    )
+    return EulerState(rho, rho * U, rho * V, rho * E, rhoe, U, V, p, c, rhoe / rho)
 
 
 @pytest.mark.parametrize("riemann", sorted(riemann_states, key=id))

@@ -108,7 +108,7 @@ class Inlet(BoundaryCondition):
         V_ghost = self.V_bc(boundary_cells, ghost_cells, fields.V, t)
 
         rhoe_ghost = rho_ghost * e_ghost
-        rhoE_ghost = rho_ghost * (e_ghost + (U_ghost ** 2 + V_ghost ** 2) / 2)
+        rhoE_ghost = rho_ghost * (e_ghost + (U_ghost**2 + V_ghost**2) / 2)
         rhoU_ghost = rho_ghost * U_ghost
         rhoV_ghost = rho_ghost * V_ghost
 
@@ -124,7 +124,6 @@ class Inlet(BoundaryCondition):
             (fields.p, p_ghost),
             (fields.c, c_ghost),
         ):
-
             cells._values[ghost_idx[0], ghost_idx[1], :, field] = ghost_value
 
 
@@ -179,7 +178,7 @@ class Outflow(BoundaryCondition):
         U_ghost = self.zero_gradient(boundary_cells, ghost_cells, fields.U, t)
         V_ghost = self.zero_gradient(boundary_cells, ghost_cells, fields.V, t)
         rhoe_ghost = rho_ghost * e_ghost
-        rhoE_ghost = rho_ghost * (e_ghost + (U_ghost ** 2 + V_ghost ** 2) / 2)
+        rhoE_ghost = rho_ghost * (e_ghost + (U_ghost**2 + V_ghost**2) / 2)
         rhoU_ghost = rho_ghost * U_ghost
         rhoV_ghost = rho_ghost * V_ghost
 
@@ -195,7 +194,6 @@ class Outflow(BoundaryCondition):
             (fields.p, p_ghost),
             (fields.c, c_ghost),
         ):
-
             cells._values[ghost_idx[0], ghost_idx[1], :, field] = ghost_value
 
 
@@ -241,7 +239,7 @@ class NoSlip(BoundaryCondition):
         U_ghost = self.no_slip(boundary_cells, ghost_cells, fields.U, t)
         V_ghost = self.no_slip(boundary_cells, ghost_cells, fields.V, t)
         rhoe_ghost = rho_ghost * e_ghost
-        rhoE_ghost = rho_ghost * (e_ghost + (U_ghost ** 2 + V_ghost ** 2) / 2)
+        rhoE_ghost = rho_ghost * (e_ghost + (U_ghost**2 + V_ghost**2) / 2)
         rhoU_ghost = rho_ghost * U_ghost
         rhoV_ghost = rho_ghost * V_ghost
 
@@ -257,5 +255,4 @@ class NoSlip(BoundaryCondition):
             (fields.p, p_ghost),
             (fields.c, c_ghost),
         ):
-
             cells._values[ghost_idx[0], ghost_idx[1], :, field] = ghost_value

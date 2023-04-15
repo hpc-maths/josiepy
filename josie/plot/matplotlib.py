@@ -130,9 +130,7 @@ class MatplotlibBackend(PlotBackend):
 
         # Add the data for each field
         state_data: StateData = {}
-        for i, field in [
-            (field.value, field.name) for field in solver.Q.fields
-        ]:
+        for i, field in [(field.value, field.name) for field in solver.Q.fields]:
             values = copy.deepcopy(solver.mesh.cells.values[..., i].ravel())
             state_data[field] = values
 
@@ -147,9 +145,7 @@ class MatplotlibBackend(PlotBackend):
         updated_state_data = self._init_solver_state(solver)
 
         if len(self.plot_state) == 0:
-            self.plot_state.append(
-                StateElement(time=0.0, data=updated_state_data)
-            )
+            self.plot_state.append(StateElement(time=0.0, data=updated_state_data))
         else:
             self.plot_state[0].data = updated_state_data
 
@@ -257,9 +253,7 @@ class MatplotlibBackend(PlotBackend):
             state_element: StateElement = self.plot_state[0]
 
             # Recover the patch collection from the state
-            patch_coll: PatchCollection = copy.deepcopy(
-                self.plot_state.collection
-            )
+            patch_coll: PatchCollection = copy.deepcopy(self.plot_state.collection)
             patch_coll.set_array(state_element.data[field])
             patch_coll.set_cmap(cmap)
             ax.add_collection(patch_coll)

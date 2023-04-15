@@ -19,5 +19,4 @@ class NSSolver(Solver):
     """A solver for the Euler system"""
 
     def __init__(self, mesh: Mesh, scheme: NSScheme):
-
         super().__init__(mesh, NSState, scheme)

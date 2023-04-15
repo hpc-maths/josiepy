@@ -37,7 +37,7 @@ def mesh(boundaries):
 
 @pytest.fixture
 def solver(mocker, mesh, Q, init_fun):
-    """ A dummy solver instance with initiated state """
+    """A dummy solver instance with initiated state"""
 
     scheme = mocker.Mock()
 

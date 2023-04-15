@@ -135,9 +135,9 @@ class MUSCL_Hancock(ConvectiveScheme):
 
         self.values_face = cells.copy()
 
-        self.slopes = np.empty(
-            cells.values.shape + (2**cells.dimensionality,)
-        ).view(cells._values.__class__)
+        self.slopes = np.empty(cells.values.shape + (2**cells.dimensionality,)).view(
+            cells._values.__class__
+        )
 
         self.values_face._values = np.empty(
             cells._values.shape + (2**cells.dimensionality,)

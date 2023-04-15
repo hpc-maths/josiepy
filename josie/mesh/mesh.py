@@ -111,7 +111,6 @@ class Mesh:
         cell_type: Type[Cell],
         Backend: Type[PlotBackend] = DefaultBackend,
     ):
-
         self.left = Boundary(
             side=BoundarySide.LEFT,
             curve=left,

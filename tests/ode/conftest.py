@@ -11,7 +11,7 @@ from josie.mesh.cell import SimpleCell
 
 @pytest.fixture
 def boundaries(request):
-    """ 0D problem along x """
+    """0D problem along x"""
     left = Line([0, 0], [0, 1])
     bottom = Line([0, 0], [1, 0])
     right = Line([1, 0], [1, 1])

@@ -53,7 +53,6 @@ def test_memory(solver, strategy):
 
 
 def test_xdmf(solver, strategy, mesh, tmp_path, mocker):
-
     filename = tmp_path / "test.xdmf"
 
     writer = XDMFWriter(filename, strategy, solver, final_time=1.0, CFL=0.5)

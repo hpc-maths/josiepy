@@ -44,9 +44,7 @@ class LeastSquareGradient(DiffusiveScheme):
 
         super().post_init(cells)
 
-        self._gradient = np.zeros(
-            (nx, ny, num_dofs, num_fields, dimensionality)
-        )
+        self._gradient = np.zeros((nx, ny, num_dofs, num_fields, dimensionality))
 
     def pre_step(self, cells: MeshCellSet, dt: float):
         super().pre_step(cells, dt)
@@ -72,9 +70,7 @@ class LeastSquareGradient(DiffusiveScheme):
         # Store the relative vectors between cells and neighbour per each set
         # of neighbour. There are 2*dimensionality neighbours (i.e. 2D -> 4
         # neighbours)
-        self._r = np.zeros(
-            (nx, ny, num_fields, 2 * dimensionality, dimensionality)
-        )
+        self._r = np.zeros((nx, ny, num_fields, 2 * dimensionality, dimensionality))
 
         # Store norm of the relative vectors to be used as weights
         self._w = np.zeros((nx, ny, num_fields, 2 * dimensionality))
@@ -101,10 +97,7 @@ class LeastSquareGradient(DiffusiveScheme):
 
             # Weight by the inverse of the relative vector norm squared. Ie
             # the trace of each A matrix per each cell
-            w = (
-                1
-                / np.trace(A, axis1=-1, axis2=-2)[..., np.newaxis, np.newaxis]
-            )
+            w = 1 / np.trace(A, axis1=-1, axis2=-2)[..., np.newaxis, np.newaxis]
 
             # Add to global A
             self._A += A * w
@@ -116,7 +109,6 @@ class LeastSquareGradient(DiffusiveScheme):
             self._w[..., i, np.newaxis] = w
 
     def pre_accumulate(self, cells: MeshCellSet, t: float):
-
         for i, neigh in enumerate(cells.neighbours):
             r = self._r[..., i, :]
             w = self._w[..., i, np.newaxis]

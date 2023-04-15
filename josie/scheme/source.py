@@ -23,10 +23,7 @@ class SourceScheme(Scheme):
         \numSourceFull
     """
 
-    def accumulate(
-        self, cells: MeshCellSet, neighs: NeighboursCellSet, t: float
-    ):
-
+    def accumulate(self, cells: MeshCellSet, neighs: NeighboursCellSet, t: float):
         # Compute fluxes computed eventually by the other terms (diffusive,
         # nonconservative, source)
         super().accumulate(cells, neighs, t)
@@ -36,9 +33,7 @@ class SourceScheme(Scheme):
         self._fluxes += self.s(cells, neighs, t)  # type: ignore
 
     @abc.abstractmethod
-    def s(
-        self, cells: MeshCellSet, neighs: NeighboursCellSet, t: float
-    ) -> State:
+    def s(self, cells: MeshCellSet, neighs: NeighboursCellSet, t: float) -> State:
         r"""This is the source term implementation of the scheme. See
         :cite:`toro_riemann_2009` for a great overview on numerical methods for
         hyperbolic problems.
