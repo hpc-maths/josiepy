@@ -384,7 +384,8 @@ class NeumannDirichlet(ScalarBC):
 
     neumann: Neumann
     dirichlet: Dirichlet
-    partition_fun: Callable[[NeumannDirichlet, np.ndarray], np.ndarray]
+    # partition_fun: Callable[[NeumannDirichlet, np.ndarray], np.ndarray]
+    partition_fun: Callable[[np.ndarray], np.ndarray]
 
     def __new__(
         cls,

@@ -8,7 +8,7 @@ import numpy as np
 
 from typing import Collection, Union, Type, TYPE_CHECKING
 
-from josie.fields import Fields
+from .fields import Fields
 
 
 if TYPE_CHECKING:
@@ -65,7 +65,7 @@ class State(np.ndarray):
     fields: Type[Fields]
     _FIELDS_ENUM_NAME = "FieldsEnum"
 
-    def __new__(cls, *args, **kwargs) -> State:
+    def __new__(cls, *args, **kwargs):
         if args and kwargs:
             raise TypeError(
                 "A State can be defined using positional arguments OR "
@@ -81,9 +81,7 @@ class State(np.ndarray):
         else:
             dtype = object
 
-        arr: State = np.asarray(list(args), dtype=dtype).view(cls)
-
-        return arr
+        return np.asarray(list(args), dtype=dtype).view(cls)
 
     def __array_finalize__(self, obj):
         # Normal __new__ construction

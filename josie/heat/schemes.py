@@ -11,5 +11,6 @@ from .problem import HeatProblem
 
 
 class HeatScheme(DiffusiveScheme):
-    def __init__(self, problem: HeatProblem):
-        super().__init__(problem)
+    problem: HeatProblem
+    # def __init__(self, problem: HeatProblem):
+    #     self.problem = problem

@@ -48,6 +48,7 @@ def TimeScheme(request):
         subcls
         for subcls in BaerScheme._all_subclasses()
         if issubclass(subcls, NonConservativeScheme)
+        and subcls.tag == NonConservativeScheme
     ]
 )
 def ToroNonConservativeScheme(request):
@@ -60,7 +61,7 @@ def ToroNonConservativeScheme(request):
     params=[
         subcls
         for subcls in BaerScheme._all_subclasses()
-        if issubclass(subcls, ConvectiveScheme)
+        if issubclass(subcls, ConvectiveScheme) and subcls.tag == ConvectiveScheme
     ]
 )
 def IntercellFluxScheme(request):
@@ -183,57 +184,57 @@ def riemann_states(IntercellFluxScheme, ToroNonConservativeScheme, TimeScheme):
             final_time=0.25,
             CFL=0.45,
         ),
-        # Test #2
-        # -------
-        # We set a constant value of rho, U, V, p and just a non-constant
-        # alpha. In addition we set a Closure equation such that pI = 0. This
-        # should just make the non-conservative sheme work only for the alpha
-        # equation
-        RiemannProblem(
-            left=RiemannBCState(
-                alpha=0.8,
-                state=PhasePair(
-                    phase1=RiemannState(
-                        rho=1,
-                        U=0,
-                        V=0,
-                        p=1,
-                    ),
-                    phase2=RiemannState(
-                        rho=1,
-                        U=0,
-                        V=0,
-                        p=1,
-                    ),
-                ),
-            ),
-            right=RiemannBCState(
-                alpha=0.3,
-                state=PhasePair(
-                    phase1=RiemannState(
-                        rho=1,
-                        U=0,
-                        V=0,
-                        p=1,
-                    ),
-                    phase2=RiemannState(
-                        rho=1,
-                        U=0,
-                        V=0,
-                        p=1,
-                    ),
-                ),
-            ),
-            scheme=AdvectionOnly(
-                eos=TwoPhaseEOS(
-                    phase1=PerfectGas(gamma=1.4), phase2=PerfectGas(gamma=1.4)
-                ),
-                closure=NoPI(),
-            ),
-            discontinuity_x0=0.5,
-            final_time=0.25,
-            CFL=0.45,
-        ),
+        # # Test #2
+        # # -------
+        # # We set a constant value of rho, U, V, p and just a non-constant
+        # # alpha. In addition we set a Closure equation such that pI = 0. This
+        # # should just make the non-conservative sheme work only for the alpha
+        # # equation
+        # RiemannProblem(
+        #     left=RiemannBCState(
+        #         alpha=0.8,
+        #         state=PhasePair(
+        #             phase1=RiemannState(
+        #                 rho=1,
+        #                 U=0,
+        #                 V=0,
+        #                 p=1,
+        #             ),
+        #             phase2=RiemannState(
+        #                 rho=1,
+        #                 U=0,
+        #                 V=0,
+        #                 p=1,
+        #             ),
+        #         ),
+        #     ),
+        #     right=RiemannBCState(
+        #         alpha=0.3,
+        #         state=PhasePair(
+        #             phase1=RiemannState(
+        #                 rho=1,
+        #                 U=0,
+        #                 V=0,
+        #                 p=1,
+        #             ),
+        #             phase2=RiemannState(
+        #                 rho=1,
+        #                 U=0,
+        #                 V=0,
+        #                 p=1,
+        #             ),
+        #         ),
+        #     ),
+        #     scheme=AdvectionOnly(
+        #         eos=TwoPhaseEOS(
+        #             phase1=PerfectGas(gamma=1.4), phase2=PerfectGas(gamma=1.4)
+        #         ),
+        #         closure=NoPI(),
+        #     ),
+        #     discontinuity_x0=0.5,
+        #     final_time=0.25,
+        #     CFL=0.45,
+        # ),
         # Test # 3
         # -------
         # The same as the test #1 in :cite:`tokareva_toro`

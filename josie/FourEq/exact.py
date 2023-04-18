@@ -10,10 +10,14 @@ from .state import Q, FourEqConsFields
 from josie.scheme.convective import ConvectiveScheme
 from josie.twofluid.fields import Phases
 
+from .problem import FourEqProblem
+
 
 # This is rigorously valid only in the case of
 # linearized gas EOS according to 'Chanteperdix et al., 2002'
-class Exact(ConvectiveScheme, FourEqScheme):
+class Exact(FourEqScheme):
+    problem: FourEqProblem
+
     def P0(self, alpha: np.ndarray):
         p0 = self.problem.eos[Phases.PHASE1].p0
         rho10 = self.problem.eos[Phases.PHASE1].rho0

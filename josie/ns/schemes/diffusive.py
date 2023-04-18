@@ -22,7 +22,7 @@ class CentralDifferenceGradient(_CDG):
     viscosity tensor that is smaller in size noting that it only operates on
     the fields :math:`u, v, e`"""
 
-    problem: NSProblem
+    # problem: NSProblem
 
     def D(self, cells: MeshCellSet, neighs: NeighboursCellSet):
         values: NSState = cells.values.view(NSState)

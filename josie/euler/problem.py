@@ -6,17 +6,17 @@ from __future__ import annotations
 
 import numpy as np
 
-
-from josie.dimension import MAX_DIMENSIONALITY
-from josie.math import Direction
-from josie.problem import Problem
+from ..dimension import MAX_DIMENSIONALITY
+from ..math import Direction
+from ..problem import ConvectiveProblem
 
 from .eos import EOS
 from .state import ConsFields, EulerState
-from josie.state import State
+from .fields import EulerFields
+from ..state import State
 
 
-class EulerProblem(Problem):
+class EulerProblem(ConvectiveProblem):
     """A class representing an Euler system problem
 
     Attributes

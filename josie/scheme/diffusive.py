@@ -4,14 +4,17 @@
 
 import numpy as np
 
-from josie.scheme import Scheme
-from josie.mesh.cellset import MeshCellSet, NeighboursCellSet
+from ..scheme import Scheme
+from ..mesh.cellset import MeshCellSet, NeighboursCellSet
+from ..problem import DiffusiveProblem
 
 
 class DiffusiveScheme(Scheme):
     """A mixin that provides the scheme interface for the diffusive term. The
     :class:`DiffusiveScheme` needs to implement a strategy to approximate the
     state gradient at the cell interface with its neighbour"""
+
+    problem: DiffusiveProblem
 
     def D(self, cells: MeshCellSet, neighs: NeighboursCellSet) -> np.ndarray:
         r"""This is the diffusive flux implementation of the scheme. See

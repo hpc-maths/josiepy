@@ -5,15 +5,15 @@
 import numpy as np
 
 
-from josie.dimension import MAX_DIMENSIONALITY
-from josie.problem import Problem
-from josie.math import Direction
+from ..dimension import MAX_DIMENSIONALITY
+from ..problem import ConvectiveProblem
+from ..math import Direction
 
 from .eos import TwoPhaseEOS
 from .state import Q, FourEqConsFields
 
 
-class FourEqProblem(Problem):
+class FourEqProblem(ConvectiveProblem):
     """A class representing a two-phase system problem governed by the
     four equations model (barotropic EOS with velocity equilibrium)"""
 
