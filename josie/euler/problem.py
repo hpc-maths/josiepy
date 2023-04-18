@@ -12,7 +12,6 @@ from ..problem import ConvectiveProblem
 
 from .eos import EOS
 from .state import ConsFields, EulerState
-from .fields import EulerFields
 from ..state import State
 
 

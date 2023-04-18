@@ -4,7 +4,6 @@
 
 from __future__ import annotations
 
-from josie.problem import Problem
 from josie.transport import Transport
 from ..problem import DiffusiveProblem as DiffusiveProblemBase
 

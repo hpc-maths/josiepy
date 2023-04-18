@@ -7,7 +7,6 @@ import numpy as np
 from josie.mesh.cellset import MeshCellSet
 from .schemes import FourEqScheme
 from .state import Q, FourEqConsFields
-from josie.scheme.convective import ConvectiveScheme
 from josie.twofluid.fields import Phases
 
 from .problem import FourEqProblem

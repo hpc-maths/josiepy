@@ -5,7 +5,6 @@
 import abc
 import numpy as np
 
-from typing import Union
 from ..mesh.cellset import NeighboursCellSet, MeshCellSet
 
 from .scheme import Scheme

@@ -13,7 +13,6 @@ from josie.ns.state import NSGradientState, NSState
 
 if TYPE_CHECKING:
     from josie.mesh.cellset import MeshCellSet, NeighboursCellSet
-    from josie.ns.problem import NSProblem
 
 
 class CentralDifferenceGradient(_CDG):
@@ -21,8 +20,6 @@ class CentralDifferenceGradient(_CDG):
     :class:`~general.schemes.diffusive.CentralDifferenceGradient` using a
     viscosity tensor that is smaller in size noting that it only operates on
     the fields :math:`u, v, e`"""
-
-    # problem: NSProblem
 
     def D(self, cells: MeshCellSet, neighs: NeighboursCellSet):
         values: NSState = cells.values.view(NSState)

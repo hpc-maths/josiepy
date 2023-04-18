@@ -6,7 +6,6 @@ import numpy as np
 
 from josie.mesh.cellset import MeshCellSet
 from josie.euler.schemes import Rusanov as EulerRusanov
-from josie.scheme import Scheme
 from josie.scheme.convective import ConvectiveScheme
 from josie.twofluid.state import PhasePair
 from josie.twofluid.fields import Phases
