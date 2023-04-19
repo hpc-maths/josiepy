@@ -27,8 +27,7 @@ jupyter = ["jupyter", "ipywidgets", "ipywidgets", "RISE"]
 
 [tool.poetry.group.dev.dependencies]
 black = "^23.3.0"
-flake8 = "^6.0.0"
-mccabe = "^0.7.0"
+flake8 ="<5"
 invoke = "^2.0.0"
 mypy = "^1.2.0"
 nbconvert = "^7.3.1"
