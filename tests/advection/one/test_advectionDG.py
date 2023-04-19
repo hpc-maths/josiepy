@@ -65,9 +65,9 @@ class RKDG(RK):
 
         t += c * dt
         step_cells = mesh.cells.copy()
-        step_cells.values -= dt * np.einsum(
-            "...i,...j->...", a_s, self._ks[..., :step]
-        )
+        step_cells.values -= dt * np.einsum("...i,...j->...", a_s, self._ks[..., :step])
+        # Limiter Advection 1D
+        self.limiter(step_cells)
 
         step_cells.update_ghosts(mesh.boundaries, t)
 
@@ -189,6 +189,34 @@ class SchemeAdvDG(Scheme):
             self.F(cells, neighs),
         )
 
+    def limiter(self, cells: MeshCellSet):
+        nx, ny, num_dofs, num_fields = cells.values.shape
+        uavg = np.zeros_like(cells.values)
+        uavg[..., 0, :] = 0.25 * (
+            cells.values[..., 0, :]
+            + cells.values[..., 1, :]
+            + cells.values[..., 2, :]
+            + cells.values[..., 3, :]
+        )
+        uavg[..., 1, :] = uavg[..., 0, :]
+        uavg[..., 2, :] = uavg[..., 0, :]
+        uavg[..., 3, :] = uavg[..., 0, :]
+        ucell = uavg[..., 0, 0]
+        umin = 0.0
+        umax = 1.0
+
+        for j in range(nx):
+            minu = np.amin(cells.values[j, 0, :, 0])
+            maxu = np.amax(cells.values[j, 0, :, 0])
+            theta = min(
+                1,
+                abs((umax - ucell[j, 0]) / (maxu - ucell[j, 0])),
+                abs((umin - ucell[j, 0]) / (minu - ucell[j, 0])),
+            )
+            cells.values[j, 0, :, 0] = (
+                theta * (cells.values[j, 0, :, 0] - uavg[j, 0, :, 0]) + uavg[j, 0, :, 0]
+            )
+
     @abc.abstractmethod
     def F(self, cells: MeshCellSet, neighs: NeighboursCellSet) -> State:
         raise NotImplementedError
@@ -204,9 +232,6 @@ def upwind(cells: MeshCellSet, neighs: CellSet):
 
     FS = np.zeros_like(values)
     F = np.zeros((nx, ny, num_dofs, 2))
-
-    # I do a dot product of each normal in `norm` by the advection velocity
-    # Equivalent to: un = np.sum(Advection.V*(normals), axis=-1)
 
     if neighs.direction == 0:
         F[..., 0:2, 0] = (
@@ -238,31 +263,8 @@ def scheme():
     yield Upwind()
 
 
-def door(x, t):
-    return (x > 0.2 + V[0] * t) * (x < 0.4 + V[0] * t) * 1
-
-
-def bump(x, t):
-    b = 0.1
-    a = 0.3 + V[0] * t
-    return np.where(
-        np.abs(x - a) < b - 1e-8,
-        np.exp(b**2 / ((x - a) ** 2 - b**2)),
-        0,
-    )
-
-
-def const(x, t):
-    return np.ones_like(x)
-
-
-@pytest.fixture(params=sorted([const, bump, door], key=lambda c: c.__name__))
-def u_exa(request):
-    yield request.param
-
-
 @pytest.fixture
-def solver(scheme, Q, u_exa):
+def solver(scheme, Q):
     """1D problem along x"""
     left = Line([0, 0], [0, 1])
     bottom = Line([0, 0], [1, 0])
@@ -280,16 +282,19 @@ def solver(scheme, Q, u_exa):
     solver = SolverDG(mesh, Q, scheme)
 
     def init_fun(cells: MeshCellSet):
-        xc = cells.centroids[..., 0, :, 0]
-        u_init = u_exa(xc, 0)
-        cells.values[..., 0, :, 0] = u_init.view(Q)
+
+        xc = cells.centroids[..., 0]
+        xc_r = np.where(xc >= 0.45)
+        xc_l = np.where(xc < 0.45)
+        cells.values[xc_r[0], xc_r[1], xc_r[2], :] = Q(1)
+        cells.values[xc_l[0], xc_l[1], xc_l[2], :] = Q(0)
 
     solver.init(init_fun)
 
     yield solver
 
 
-def test_against_real_1D(solver, plot, tol, u_exa):
+def test_against_real_1D(solver, plot):
     """Testing against the real 1D solver"""
 
     rLGLmin = 2.0
@@ -301,52 +306,18 @@ def test_against_real_1D(solver, plot, tol, u_exa):
     time = np.arange(0, tf, dt)
     fig = plt.figure()
     ax1 = fig.add_subplot(121)
-    ax1.set_ylim([-0.3, 1.3])
 
     ims = []
-    err = 0
+    x = solver.mesh.cells.centroids[..., 1, 0]
 
-    for _, t in enumerate(time):
-        x = solver.mesh.cells.centroids[..., 0, :, 0]
-        u = solver.mesh.cells.values
-
+    for i, t in enumerate(time):
+        x = solver.mesh.cells.centroids[..., 1, 0]
+        u = solver.mesh.cells.values[..., 1, 0]
         if plot:
-            lines = np.asarray(
-                # BUG: the linear approx should be reversed LEFT/RIGHT
-                [
-                    [
-                        [x[i, 0], u[i, 0, 2, 0]],
-                        [x[i, 2], u[i, 0, 0, 0]],
-                    ]
-                    for i in range(x.shape[0])
-                ]
-            )
-            (im1,) = ax1.plot(x[..., 0], u_exa(x[..., 0], t), ":k")
-            lc = mc.LineCollection(lines, linewidths=1)
-            DG_lines = ax1.add_collection(lc)
-            ims.append([DG_lines, im1])
+            (im1,) = ax1.plot(x, u, "ro-")
+            ims.append([im1])
 
         solver.step(dt)
-
-    err = sum(
-        [
-            integrate.quad(
-                lambda xx: (
-                    np.interp(
-                        xx,
-                        [x[i, 0], x[i, 2]],
-                        [u[i, 0, 2, 0], u[i, 0, 0, 0]],
-                    )
-                    - u_exa(xx, t)
-                )
-                ** 2,
-                x[i, 0],
-                x[i, 2],
-            )[0]
-            for i in range(x.shape[0])
-        ]
-    )
-    print(np.sqrt(err))
 
     if plot:
         _ = ArtistAnimation(fig, ims, interval=200)

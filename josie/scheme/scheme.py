@@ -236,6 +236,8 @@ class Scheme(abc.ABC):
         nx, ny, num_dofs, _ = cells.values.shape
         if num_dofs != 1:
             cells.values -= self._fluxes * dt
+            # Limiter Advection 1D
+            self.limiter(cells)
         else:
             cells.values -= (
                 self._fluxes * dt / cells.volumes[..., np.newaxis, np.newaxis]
@@ -245,6 +247,10 @@ class Scheme(abc.ABC):
 
         # Keep ghost cells updated
         mesh.update_ghosts(t)
+
+    @abc.abstractmethod
+    def limiter(self, cells: MeshCellSet):
+        pass
 
     def post_init(self, cells: MeshCellSet):
         r""":class:`Scheme` can implement a :meth:`post_init` in order to
