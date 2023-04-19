@@ -207,16 +207,15 @@ def upwind(cells: MeshCellSet, neighs: CellSet):
 
     # I do a dot product of each normal in `norm` by the advection velocity
     # Equivalent to: un = np.sum(Advection.V*(normals), axis=-1)
-    Vn = np.einsum("...k,k->...", neighs.normals, V)
 
-    # Check where un > 0
-    idx = np.where(Vn > 0)
-    if np.any(np.nonzero(idx)):
-        F[idx] = flux(values)[idx]
-    idx = np.where(Vn < 0)
-    if np.any(np.nonzero(idx)):
-        F[idx] = flux(neighs.values)[idx]
-
+    if neighs.direction == 0:
+        F[..., 0:2, 0] = (
+            flux(values)[..., 0:2, 0] + flux(neighs.values)[..., 2:4, 0]
+        ) * 0.5 - 0.5 * (flux(values)[..., 0:2, 0] - flux(neighs.values)[..., 2:4, 0])
+    if neighs.direction == 2:
+        F[..., 2:4, 0] = (
+            flux(values)[..., 2:4, 0] + flux(neighs.values)[..., 0:2, 0]
+        ) * 0.5 - 0.5 * (flux(neighs.values)[..., 0:2, 0] - flux(values)[..., 2:4, 0])
     FS = np.einsum("...ij,...j->...i", F, neighs.normals)
     return FS[..., np.newaxis]
 
@@ -293,9 +292,10 @@ def solver(scheme, Q, u_exa):
 def test_against_real_1D(solver, plot, tol, u_exa):
     """Testing against the real 1D solver"""
 
-    cfl = 2.0 / 3
-    dx = 1 / solver.mesh.num_cells_x
-    dt = cfl * dx / np.linalg.norm(V)
+    rLGLmin = 2.0
+    cfl = 0.1
+    dx = solver.mesh._x[1, 0] - solver.mesh._x[0, 0]
+    dt = cfl * rLGLmin * dx / np.linalg.norm(V)
 
     tf = 0.2
     time = np.arange(0, tf, dt)
