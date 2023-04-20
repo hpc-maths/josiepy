@@ -7,9 +7,9 @@ import numpy as np
 import pytest
 
 
-# from scipy.special import erf
-import josie.general.schemes.time as time_schemes
-from josie.general.schemes.space.limiters import MUSCL_Hancock_no_limiter
+from josie.general.schemes.time import ExplicitEuler
+from josie.general.schemes.space.muscl import MUSCL_Hancock
+from josie.general.schemes.space.limiters import No_Limiter
 
 from josie.dimension import MAX_DIMENSIONALITY
 from josie.bc import Dirichlet
@@ -45,8 +45,6 @@ def init(x: np.ndarray):
         * (x < b)
         * (b - a)
     )
-    # u = (x > 0.4) * (x < 0.6)
-    # u = 0.5 * (1 + erf(20 * (x - 0.5)))
     return u
 
 
@@ -73,8 +71,7 @@ class AdvectionProblem(Problem):
 
 
 @pytest.fixture(
-    # params=[-1.0, 0, 0.1, 1.0],
-    params=[0],
+    params=[-1.0, 0, 0.1, 1.0],
 )
 def omega(request):
     yield request.param
@@ -82,7 +79,7 @@ def omega(request):
 
 @pytest.fixture
 def scheme():
-    class Upwind(MUSCL_Hancock_no_limiter, time_schemes.RK2):
+    class Upwind(MUSCL_Hancock, No_Limiter, ExplicitEuler):
         def intercellFlux(
             self, Q_L: Q, Q_R: Q, normals: np.ndarray, surfaces: np.ndarray
         ):
@@ -131,7 +128,6 @@ def init_fun(cells: MeshCellSet):
     cells.values = init(np.array(xc)).view(Q)
 
 
-# @pytest.fixture
 def test_against_real_1D(solver, plot, tol, scheme, omega):
     """Testing against the real 1D solution"""
 
@@ -201,19 +197,19 @@ def test_against_real_1D(solver, plot, tol, scheme, omega):
         plt.scatter(nx_tab, np.array(L2_err), label=r"$E_{L^2}$")
         plt.xlabel(r"$\frac{1}{\Delta x}$")
         plt.ylabel(r"erreur $L^2$")
-        plt.title(r"Erreur L2 (diff. finies) pour le cas $\omega=$" + str(omega))
+        plt.title(r"L2 error for $\omega=$" + str(omega))
         plt.legend(loc="lower left")
 
-        # plt.figure()
-        # plt.plot(x, u, marker="+")
-        # plt.plot(x, init(x - t), linestyle="--")
         plt.show()
 
     eps = 0.2
-    order, _ = np.linalg.lstsq(
+    order = -np.linalg.lstsq(
         np.vstack([np.log(nx_tab), np.ones(len(nx_tab))]).T,
         np.log(L2_err),
         rcond=None,
-    )[0]
+    )[0][0]
+    print(order)
 
-    assert np.abs(order + 2) < eps
+    assert (
+        order > 2 - eps and not (musclScheme.omega == 1 / 3 * (2 * c - np.sign(c)))
+    ) or (order > 3 - eps and musclScheme.omega == 1 / 3 * (2 * c - np.sign(c)))

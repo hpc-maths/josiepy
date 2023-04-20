@@ -1,27 +1,19 @@
-# SPDX-FileCopyrightText: 2020-2023 JosiePy Development Team
-#
-# SPDX-License-Identifier: BSD-3-Clause
-
-import inspect
 import matplotlib.pyplot as plt
 import numpy as np
 import pytest
 
-from matplotlib.animation import ArtistAnimation
 
-
-import josie.general.schemes.time as time_schemes
-
-from josie.general.schemes.space.godunov import Godunov
-from josie.general.schemes.space.muscl import MUSCL, MUSCL_Hancock
+from josie.general.schemes.time import RK2
+from josie.general.schemes.space.muscl import MUSCL
 from josie.general.schemes.space.limiters import No_Limiter
+
 from josie.dimension import MAX_DIMENSIONALITY
 from josie.bc import Dirichlet
 from josie.mesh.cellset import MeshCellSet
+from josie.state import SubsetState, State
 from josie.fluid.state import ConsState
 from josie.solver import Solver
 from josie.problem import Problem
-from josie.state import SubsetState, State
 from josie.mesh import Mesh
 from josie.mesh.cell import SimpleCell
 from josie.boundary import Line
@@ -49,8 +41,6 @@ def init(x: np.ndarray):
         * (x < b)
         * (b - a)
     )
-    # u = (x > 0.4) * (x < 0.6)
-    # u = 0.5 * (1 + erf(20 * (x - 0.5)))
     return u
 
 
@@ -76,34 +66,9 @@ class AdvectionProblem(Problem):
         return flux(state_array)
 
 
-@pytest.fixture(
-    params=sorted(
-        [member[1] for member in inspect.getmembers(time_schemes, inspect.isclass)],
-        key=lambda c: c.__name__,
-    ),
-)
-def TimeScheme(request):
-    yield request.param
-
-
-@pytest.fixture(
-    params=[Godunov, MUSCL, MUSCL_Hancock],
-)
-def SpaceScheme(request):
-    if request.param == Godunov:
-        yield request.param
-
-    else:
-
-        class Scheme(request.param, No_Limiter):
-            pass
-
-        yield Scheme
-
-
 @pytest.fixture
-def scheme(TimeScheme, SpaceScheme):
-    class Upwind(SpaceScheme, TimeScheme):
+def scheme():
+    class Upwind(MUSCL, No_Limiter, RK2):
         def intercellFlux(
             self, Q_L: Q, Q_R: Q, normals: np.ndarray, surfaces: np.ndarray
         ):
@@ -152,66 +117,85 @@ def init_fun(cells: MeshCellSet):
     cells.values = init(np.array(xc)).view(Q)
 
 
-@pytest.fixture
-def solver(scheme):
-    left = Line([0, 0], [0, 1])
-    bottom = Line([0, 0], [1, 0])
-    right = Line([1, 0], [1, 1])
-    top = Line([0, 1], [1, 1])
+def test_against_real_1D(solver, plot, tol, scheme):
+    """Testing against the real 1D solution"""
 
-    left.bc = Dirichlet(AdvectionConsState(0))
-    right.bc = Dirichlet(AdvectionConsState(0))
-    top.bc = None
-    bottom.bc = None
+    L2_err = []
+    nx_tab = [30, 50, 100, 300, 500, 1000]
+    plt.figure()
 
-    mesh = Mesh(left, bottom, right, top, SimpleCell)
-    mesh.interpolate(40, 1)
-    mesh.generate()
-    solver = Solver(mesh, Q, scheme)
-    solver.init(init_fun)
+    for nx in nx_tab:
+        left = Line([0, 0], [0, 1])
+        bottom = Line([0, 0], [1, 0])
+        right = Line([1, 0], [1, 1])
+        top = Line([0, 1], [1, 1])
 
-    yield solver
+        left.bc = Dirichlet(AdvectionConsState(0))
+        right.bc = Dirichlet(AdvectionConsState(0))
+        top.bc = None
+        bottom.bc = None
 
+        mesh = Mesh(left, bottom, right, top, SimpleCell)
+        mesh.interpolate(nx, 1)
+        mesh.generate()
 
-def test_against_real_1D(solver, plot, tol):
-    """Testing against the real 1D solver"""
+        musclScheme = scheme
 
-    nx = solver.mesh.num_cells_x
+        solver = Solver(mesh, Q, musclScheme)
+        solver.init(init_fun)
 
-    fig = plt.figure()
-    ax1 = fig.add_subplot(121)
-    ax2 = fig.add_subplot(122)
+        # CFL condition
+        c = 0.5
+        dx = 1 / nx
+        dt = c * dx
+        T = 0.1
 
-    ims = []
+        x = solver.mesh.cells.centroids[..., 0]
+        x = x.reshape(x.size)
+        Nt = int(np.ceil(T / dt))
+        for t in np.linspace(0, Nt * dt, Nt + 1):
+            u = solver.mesh.cells.values[..., 0]
+            u = u.reshape(u.size)
 
-    # CFL condition
-    c = 0.7
-    dx = 1 / nx
-    dt = c * dx
-    T = 0.1
+            err = u - init(x - t)
 
-    x = solver.mesh.cells.centroids[..., 0]
-    x = x.reshape(x.size)
-    Nt = int(np.ceil(T / dt))
-    dt = T / Nt
+            solver.step(dt)
 
-    for t in np.linspace(0, T, Nt + 1):
-        u = solver.mesh.cells.values[..., 0]
-        u = u.reshape(u.size)
-
-        err = u - init(x - t)
-
-        if plot:
-            (im1,) = ax1.plot(x, u, "ro-")
-            (im2,) = ax1.plot(x, init(x - t), "ks-")
-            ims.append([im1, im2])
-            (im_err,) = ax2.plot(x, err, "ks-")
-            ims.append([im1, im2, im_err])
-
-        # Check same solution with 1D-only
-        # assert np.sum(err < tol) == len(x)
-        solver.step(dt)
+        L2_err.append(np.linalg.norm(err) * np.sqrt(dx))
 
     if plot:
-        _ = ArtistAnimation(fig, ims, interval=100)
+        plt.loglog(
+            nx_tab,
+            L2_err[-1] * nx_tab[-1] / np.array(nx_tab),
+            "--",
+            label=r"$\propto \Delta x$",
+        )
+        plt.loglog(
+            nx_tab,
+            L2_err[-1] * nx_tab[-1] ** 2 / np.array(nx_tab) ** 2,
+            "--",
+            label=r"$\propto \Delta x^2$",
+        )
+        plt.loglog(
+            nx_tab,
+            L2_err[-1] * nx_tab[-1] ** 3 / np.array(nx_tab) ** 3,
+            "--",
+            label=r"$\propto \Delta x^3$",
+        )
+        plt.scatter(nx_tab, np.array(L2_err), label=r"$E_{L^2}$")
+        plt.xlabel(r"$\frac{1}{\Delta x}$")
+        plt.ylabel(r"erreur $L^2$")
+        plt.title(r"L2 error")
+        plt.legend(loc="lower left")
+
         plt.show()
+
+    eps = 0.2
+    order = -np.linalg.lstsq(
+        np.vstack([np.log(nx_tab), np.ones(len(nx_tab))]).T,
+        np.log(L2_err),
+        rcond=None,
+    )[0][0]
+    print(order)
+
+    assert order > 2 - eps

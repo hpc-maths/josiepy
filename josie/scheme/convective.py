@@ -41,9 +41,6 @@ class ConvectiveScheme(Scheme):
     ):
         raise NotImplementedError
 
-    def update_values_face(self, cells: MeshCellSet, dt: float):
-        pass
-
     @abc.abstractmethod
     def F(self, cells: MeshCellSet, neighs: NeighboursCellSet) -> State:
         r"""This is the convective flux implementation of the scheme. See

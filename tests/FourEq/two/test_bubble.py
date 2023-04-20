@@ -20,7 +20,8 @@ from josie.FourEq.state import Q
 from josie.FourEq.eos import TwoPhaseEOS, LinearizedGas
 
 from josie.FourEq.exact import Exact
-from josie.general.schemes.space.limiters import MUSCL_Hancock_MinMod
+from josie.general.schemes.space import MUSCL_Hancock
+from josie.general.schemes.space.limiters import MinMod
 
 from josie.general.schemes.time.euler import ExplicitEuler
 from josie.bc import make_periodic, Direction
@@ -34,7 +35,7 @@ def relative_error(a, b):
     return np.abs(a - b)
 
 
-class FourEqScheme(MUSCL_Hancock_MinMod, Exact, ExplicitEuler):
+class FourEqScheme(MUSCL_Hancock, MinMod, Exact, ExplicitEuler):
     pass
 
 
