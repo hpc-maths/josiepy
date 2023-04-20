@@ -30,6 +30,10 @@ jobs:
           pip install poetry
           poetry install -E jupyter
 
+      - name: Run flake8
+        run: |
+          poetry run flake8
+
       - name: Run tests
         run: |
           poetry run pygount --format cloc-xml -o loc.xml josie
