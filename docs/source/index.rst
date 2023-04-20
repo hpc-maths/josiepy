@@ -8,7 +8,7 @@
    :maxdepth: 2
    :glob:
    :caption: Contents:
-    
+
    examples/*
    zbibliography
 

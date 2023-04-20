@@ -27,32 +27,32 @@ test:
         - poetry run pygount --format cloc-xml -o loc.xml josie
         - poetry run pytest
     artifacts:
-        paths: 
+        paths:
             - "*.xml"
         expire_in: 1 week
 
 .benchmark:
     stage: bench
-    dependencies: 
+    dependencies:
         - test
     before_script:
         - apt-get update && apt-get -y install git
         - pip install pipenv
-    script: 
+    script:
         - git fetch origin master
         - git checkout origin/master
-        - pipenv install --system --dev 
-        - pytest --bench 
+        - pipenv install --system --dev
+        - pytest --bench
         - git checkout $CI_COMMIT_REF_NAME
         - pipenv clean
-        - pipenv install --system --dev 
+        - pipenv install --system --dev
         - pytest --bench --benchmark-compare=0001 --benchmark-compare-fail=min:10%
     only:
         - merge_requests
 
 # pages:
 #     stage: post
-#     script: 
+#     script:
 #         - |
 #             apt-get update && apt-get -y install texlive texlive-science \
 #             texlive-latex-extra
@@ -68,9 +68,9 @@ test:
 #     stage: post
 #     dependencies:
 #         - test
-#     before_script: 
+#     before_script:
 #         - apt-get update && apt-get -y install git
-#     script: 
+#     script:
 #         - git fetch --all --tags
 #         - pip install badgey
 #         - badgey LOCBadge loc.xml
