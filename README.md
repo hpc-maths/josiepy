@@ -40,4 +40,3 @@ you need to include the `.gitconfig` in the `.git/config`.
 
 **`nbdime`**
 You need to enable the [git integration](https://nbdime.readthedocs.io/en/latest/#git-integration-quickstart)
-
