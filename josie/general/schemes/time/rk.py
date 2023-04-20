@@ -119,7 +119,8 @@ class RK(TimeScheme):
         # Error checking for coefficients
         if not (len(butcher.c_s) == len(butcher.b_s)):
             raise ValueError(
-                "The number of `c_s` coefficients must be " "the same as the `b_s`"
+                "The number of `c_s` coefficients must be "
+                "the same as the `b_s`"
             )
 
         self.butcher = butcher
@@ -174,12 +175,15 @@ class RK(TimeScheme):
 
         t += c * dt
         step_cells = mesh.cells.copy()
-        step_cells.values = step_cells.values - dt * np.einsum(
-            "...i,...j->...", a_s, self._ks[..., :step]
+        step_cells.values = (
+            step_cells.values
+            - dt
+            * np.einsum("k,...k->...", a_s, self._ks[..., :step])
+            / mesh.cells.volumes[..., np.newaxis, np.newaxis]
         )
         step_cells.update_ghosts(mesh.boundaries, t)
 
-        self.pre_accumulate(step_cells, t)
+        self.pre_accumulate(step_cells, dt, t)
 
         for neighs in step_cells.neighbours:
             self.accumulate(step_cells, neighs, t)
