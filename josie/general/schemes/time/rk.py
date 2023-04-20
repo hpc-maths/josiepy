@@ -119,8 +119,7 @@ class RK(TimeScheme):
         # Error checking for coefficients
         if not (len(butcher.c_s) == len(butcher.b_s)):
             raise ValueError(
-                "The number of `c_s` coefficients must be "
-                "the same as the `b_s`"
+                "The number of `c_s` coefficients must be " "the same as the `b_s`"
             )
 
         self.butcher = butcher
