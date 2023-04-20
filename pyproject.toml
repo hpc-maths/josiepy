@@ -9,14 +9,14 @@ authors = ["Ruben Di Battista <rubendibattista@gmail.com>"]
 license = "MIT"
 
 [tool.poetry.dependencies]
-python = ">=3.8,<3.10"
-aenum = "^3.1.0"
-numpy = "^1.20.1"
-scipy = "^1.7.0"
-matplotlib = "^3.4.2"
-meshio = {extras = ["all"], version = "^4.4.6"}
+python = ">=3.8.1,<3.12"
+aenum = "^3.1.12"
+numpy = "^1.24.2"
+scipy = "^1.10.1"
+matplotlib = "^3.7.1"
+meshio = {extras = ["all"], version = "^5.3.4"}
 jupyter = {version = "^1.0.0", optional = true}
-ipywidgets = {version = "^7.6.3", optional = true}
+ipywidgets = {version = "^8.0.6", optional = true}
 ipyevents = {version = "^2.0.1", optional = true}
 RISE = {version = "^5.7.1", optional = true}
 markupsafe = "2.0.1"
@@ -27,30 +27,28 @@ jupyter = ["jupyter", "ipywidgets", "ipywidgets", "RISE"]
 
 [tool.poetry.group.dev.dependencies]
 black = "^23.3.0"
-flake8 = "^3"
-mccabe = "<0.7"
-invoke = "^1.6.0"
-mypy = "<0.991"
-nbconvert = ">=6.0.0"
+flake8 ="^6.0.0"
+invoke = "^2.0.0"
+mypy = "^1.2.0"
+nbconvert = "^7.3.1"
 jsonschema = "3.2.0"
-nbdime = "^3.1.0"
-pygount = "^1.2.4"
-pytest = "^6.2.4"
-pytest-benchmark = "^3.4.1"
-pytest-flake8 = "^1.0.7"
-pytest-mock = "^3.6.1"
-pytest-mypy = "^0.8.1"
-pytest-xdist = "^2.3.0"
-Sphinx = "^4.1.1"
-sphinx-autodoc-typehints = "^1.12.0"
-sphinx-markdown-tables = "^0.0.15"
-sphinx-rtd-theme = "^0.5.2"
-sphinxcontrib-bibtex = "^2.3.0"
+nbdime = "^3.1.1"
+pygount = "^1.5.1"
+pytest = "^7.3.1"
+pytest-benchmark = "^4.0.0"
+pytest-mock = "^3.10.0"
+pytest-mypy = "^0.10.3"
+pytest-xdist = "^3.2.1"
+Sphinx = "^6.1.3"
+sphinx-autodoc-typehints = "^1.23.0"
+sphinx-markdown-tables = "^0.0.17"
+sphinx-rtd-theme = "^1.2.0"
+sphinxcontrib-bibtex = "^2.5.0"
 pytest-profiling = "^1.7.0"
 commonmark = "^0.9.1"
 recommonmark = "^0.7.1"
-pytest-cov = "^2.12.1"
-ipdb = "^0.13.9"
+pytest-cov = "^4.0.0"
+ipdb = "^0.13.13"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

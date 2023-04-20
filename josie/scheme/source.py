@@ -9,6 +9,7 @@ import abc
 from typing import TYPE_CHECKING
 
 from .scheme import Scheme
+from ..problem import SourceProblem
 
 if TYPE_CHECKING:
     from josie.mesh.cellset import NeighboursCellSet, MeshCellSet
@@ -22,6 +23,8 @@ class SourceScheme(Scheme):
 
         \numSourceFull
     """
+
+    problem: SourceProblem
 
     def accumulate(self, cells: MeshCellSet, neighs: NeighboursCellSet, t: float):
         # Compute fluxes computed eventually by the other terms (diffusive,

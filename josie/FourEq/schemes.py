@@ -6,7 +6,6 @@ import numpy as np
 
 from josie.mesh.cellset import MeshCellSet
 from josie.euler.schemes import Rusanov as EulerRusanov
-from josie.scheme import Scheme
 from josie.scheme.convective import ConvectiveScheme
 from josie.twofluid.state import PhasePair
 from josie.twofluid.fields import Phases
@@ -16,7 +15,7 @@ from .problem import FourEqProblem
 from .state import Q, FourEqPhaseFields
 
 
-class FourEqScheme(Scheme):
+class FourEqScheme(ConvectiveScheme):
     """A base class for the four equations twophase scheme"""
 
     problem: FourEqProblem
@@ -184,7 +183,7 @@ class FourEqScheme(Scheme):
         self.auxilliaryVariableUpdate(values)
 
 
-class Rusanov(ConvectiveScheme, FourEqScheme):
+class Rusanov(FourEqScheme):
     def intercellFlux(
         self,
         Q_L: Q,

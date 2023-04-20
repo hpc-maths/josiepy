@@ -5,15 +5,18 @@
 import abc
 import numpy as np
 
-from josie.mesh.cellset import NeighboursCellSet, MeshCellSet
+from ..mesh.cellset import NeighboursCellSet, MeshCellSet
 
 from .scheme import Scheme
+from ..problem import NonConservativeProblem
 
 
 class NonConservativeScheme(Scheme):
     r"""A mixin that provides the scheme implementation for the non
     conservative term
     """
+
+    problem: NonConservativeProblem
 
     def accumulate(self, cells: MeshCellSet, neighs: NeighboursCellSet, t: float):
         # Accumulate other terms

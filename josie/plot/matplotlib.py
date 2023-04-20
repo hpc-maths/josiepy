@@ -87,7 +87,7 @@ class MatplotlibBackend(PlotBackend):
     _ani_states: Optional[List[AnimateState]]
 
     def __init__(self):
-        self.plot_state: PlotState = PlotState()
+        self.plot_state = PlotState()
         self._ani_states = None
 
     @staticmethod
@@ -268,5 +268,5 @@ class MatplotlibBackend(PlotBackend):
         plt.show()
 
     def show_all(self):
-        fields = self.plot_state.keys()
-        self.show(fields)
+        for state in self.plot_state.state_elements:
+            self.show(list(state.data.keys()))

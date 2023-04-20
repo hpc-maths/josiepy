@@ -11,6 +11,7 @@ from typing import Any, Optional, Type
 from josie.fluid.state import ConsState
 from josie.state import SubsetState
 from josie.twofluid import fields
+from ..fields import Field
 
 
 class PhasePair(dict):
@@ -25,13 +26,13 @@ class PhasePair(dict):
         super().__init__(_dict)
 
     def __repr__(self):
-        key1 = fields.Phases.PHASE1
-        key2 = fields.Phases.PHASE2
+        key1 = fields.Phases.names()[fields.Phases.PHASE1]
+        key2 = fields.Phases.names()[fields.Phases.PHASE2]
 
         val1 = self[key1]
         val2 = self[key2]
 
-        return f"{{ {key1.name}:{val1}, {key2.name}:{val2}  }}"
+        return f"{{ {key1}:{val1}, {key2}:{val2}  }}"
 
     @property
     def phase1(self) -> Any:
@@ -54,7 +55,10 @@ class PhaseState(SubsetState, abstract=True):
     def __init_subclass__(cls, /, abstract=False, **kwargs):
         cls._subset_fields_map = PhasePair(phase1=[], phase2=[])
         if not (abstract):
-            phase_fields = {fields.Phases.PHASE1: [], fields.Phases.PHASE2: []}
+            phase_fields: dict[int, list[Field]] = {
+                fields.Phases.PHASE1: [],
+                fields.Phases.PHASE2: [],
+            }
 
             # Add the matched fields to the corresponding entry in the
             # phase_fields dictionary

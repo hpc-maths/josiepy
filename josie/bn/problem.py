@@ -6,7 +6,7 @@ import numpy as np
 
 
 from josie.dimension import MAX_DIMENSIONALITY
-from josie.problem import Problem
+from ..problem import ConvectiveProblem, NonConservativeProblem
 from josie.math import Direction
 
 from .eos import TwoPhaseEOS
@@ -14,7 +14,7 @@ from .closure import Closure
 from .state import Q, BaerConsFields, BaerGradFields
 
 
-class TwoPhaseProblem(Problem):
+class TwoPhaseProblem(ConvectiveProblem, NonConservativeProblem):
     """A class representing a two-phase system problem governed by the
     equations first described in :cite:`baer_two-phase_1986`"""
 

@@ -9,6 +9,7 @@ import abc
 from typing import TYPE_CHECKING
 
 from .scheme import Scheme
+from ..problem import ConvectiveProblem
 
 import numpy as np
 
@@ -27,6 +28,8 @@ class ConvectiveScheme(Scheme):
         \numConvectiveFull
 
     """
+
+    problem: ConvectiveProblem
 
     @abc.abstractmethod
     def intercellFlux(

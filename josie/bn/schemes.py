@@ -6,9 +6,8 @@ import numpy as np
 
 from josie.mesh.cellset import NeighboursCellSet, MeshCellSet
 from josie.euler.schemes import Rusanov as EulerRusanov
-from josie.scheme import Scheme
-from josie.scheme.nonconservative import NonConservativeScheme
-from josie.scheme.convective import ConvectiveScheme
+from ..scheme.convective import ConvectiveScheme
+from ..scheme.nonconservative import NonConservativeScheme
 from josie.twofluid.state import PhasePair
 from josie.twofluid.fields import Phases
 
@@ -18,7 +17,7 @@ from .problem import TwoPhaseProblem
 from .state import Q
 
 
-class BaerScheme(Scheme):
+class BaerScheme(ConvectiveScheme, NonConservativeScheme):
     """A base class for a twophase scheme"""
 
     problem: TwoPhaseProblem
@@ -71,7 +70,7 @@ class BaerScheme(Scheme):
         self.auxilliaryVariableUpdate(values)
 
 
-class Upwind(BaerScheme, NonConservativeScheme):
+class Upwind(BaerScheme):
     r"""An optimized upwind scheme that reduces the size of the
     :math:`\pdeNonConservativeMultiplier` knowing that for
     :cite:`baer_two-phase_1986` the only state variable appearing in the non
@@ -80,6 +79,7 @@ class Upwind(BaerScheme, NonConservativeScheme):
 
     Check also :class:`~twofluid.problem.TwoPhaseProblem.B`.
     """
+    tag = NonConservativeScheme
 
     def G(self, cells: MeshCellSet, neighs: NeighboursCellSet) -> np.ndarray:
         Q_L: Q = cells.values.view(Q)
@@ -114,7 +114,9 @@ class Upwind(BaerScheme, NonConservativeScheme):
         return G
 
 
-class Rusanov(BaerScheme, ConvectiveScheme):
+class Rusanov(BaerScheme):
+    tag = ConvectiveScheme
+
     def intercellFlux(
         self, Q_L: Q, Q_R: Q, normals: np.ndarray, surfaces: np.ndarray
     ) -> Q:

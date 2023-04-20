@@ -41,6 +41,7 @@ class FieldsMeta(type):
 
     _field_values: List[Field]
     _field_names: List[str]
+    _len: int
 
     def __new__(cls, name, bases, clsdict):
         fields = dict(

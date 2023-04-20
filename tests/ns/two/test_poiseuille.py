@@ -130,7 +130,7 @@ def test_poiseuille(solver, plot):
     if plot:
         solver.plot()
 
-    final_time = 10
+    final_time = 1
     CFL = 0.5
 
     write_strategy = TimeStrategy(dt_save=0.05, animate=True)

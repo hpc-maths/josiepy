@@ -119,7 +119,7 @@ class MdBinderExporter(TemplateExporter):
     file_extension = ".md"
     template_file = "markdown/index.md.j2"
 
-    ExecutePreprocessor.timeout = None
+    ExecutePreprocessor.timeout = -1
 
     preprocessors = [
         MplInlinePreprocessor,
