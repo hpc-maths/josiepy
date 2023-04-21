@@ -10,6 +10,8 @@ import abc
 
 
 class No_Limiter(ConvectiveScheme):
+    omega = 0
+
     def limiter(self, slope_L: np.ndarray, slope_R: np.ndarray):
         # No slope limiter
         return 0.5 * (1 + self.omega) * slope_L + 0.5 * (1 - self.omega) * slope_R
@@ -20,6 +22,8 @@ class Beta_limiters(ConvectiveScheme):
     See Toro, Eleuterio F. Riemann Solvers and Numerical Methods for Fluid
     Dynamics: A Practical Introduction. 3rd ed. Berlin Heidelberg:
     Springer-Verlag, 2009. https://doi.org/10.1007/b79761, page 508"""
+
+    omega = 0
 
     @abc.abstractproperty
     def beta(self):
@@ -87,6 +91,8 @@ class Superbee(Beta_limiters):
 class Ratio_limiters(ConvectiveScheme):
     # beta_L and beta_R set to their limit 1
     beta_L, beta_R = 1.0, 1.0
+
+    omega = 0
 
     @abc.abstractmethod
     def xi(self, r: np.ndarray):

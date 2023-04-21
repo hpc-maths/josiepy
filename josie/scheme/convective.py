@@ -82,6 +82,9 @@ class ConvectiveScheme(Scheme):
         """
         raise NotImplementedError
 
+    def limiter(self, slope_L: np.ndarray, slope_R: np.ndarray):
+        pass
+
     def accumulate(self, cells: MeshCellSet, neighs: NeighboursCellSet, t: float):
         # Compute fluxes computed eventually by the other terms (diffusive,
         # nonconservative, source)
