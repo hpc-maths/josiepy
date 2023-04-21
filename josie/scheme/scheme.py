@@ -236,7 +236,7 @@ class Scheme(abc.ABC):
         nx, ny, num_dofs, _ = cells.values.shape
         if num_dofs != 1:
             cells.values -= self._fluxes * dt
-            # Limiter Advection 1D
+            # Limiter
             self.limiter(cells)
         else:
             cells.values -= (
