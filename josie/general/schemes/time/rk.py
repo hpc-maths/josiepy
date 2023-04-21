@@ -174,8 +174,11 @@ class RK(TimeScheme):
 
         t += c * dt
         step_cells = mesh.cells.copy()
-        step_cells.values = step_cells.values - dt * np.einsum(
-            "...i,...j->...", a_s, self._ks[..., :step]
+        step_cells.values = (
+            step_cells.values
+            - dt
+            * np.einsum("k,...k->...", a_s, self._ks[..., :step])
+            / mesh.cells.volumes[..., np.newaxis, np.newaxis]
         )
         step_cells.update_ghosts(mesh.boundaries, t)
 
