@@ -52,6 +52,8 @@ class PGDScheme(ConvectiveScheme):
     K_ref: np.ndarray
     U_min: float
     U_max: float
+    V_min: float
+    V_max: float
     eps: float
 
     def __init__(self):
@@ -74,6 +76,8 @@ class PGDScheme(ConvectiveScheme):
     def init_limiter(self, cells: MeshCellSet):
         self.U_min = np.amin(cells.values[..., PGDFields.U])
         self.U_max = np.amax(cells.values[..., PGDFields.U])
+        self.V_min = np.amin(cells.values[..., PGDFields.V])
+        self.V_max = np.amax(cells.values[..., PGDFields.V])
         self.eps = 1e-12
 
     def limiter(self, cells: MeshCellSet):
@@ -91,38 +95,12 @@ class PGDScheme(ConvectiveScheme):
         ucell = uavg[..., 0, :]
         umin = self.U_min
         umax = self.U_max
+        vmin = self.V_min
+        vmax = self.V_max
         rhomin = self.eps
+
         for i in range(nx):
             for j in range(ny):
-                if i == 0:
-                    umin = min(
-                        np.amin(cells.values[i, j, :, PGDFields.U]),
-                        np.amin(cells.values[i + 1, j, :, PGDFields.U]),
-                    )
-                    umax = max(
-                        np.amax(cells.values[i, j, :, PGDFields.U]),
-                        np.amax(cells.values[i + 1, j, :, PGDFields.U]),
-                    )
-                elif i == nx - 1:
-                    umin = min(
-                        np.amin(cells.values[i, j, :, PGDFields.U]),
-                        np.amin(cells.values[i - 1, j, :, PGDFields.U]),
-                    )
-                    umax = max(
-                        np.amax(cells.values[i, j, :, PGDFields.U]),
-                        np.amax(cells.values[i - 1, j, :, PGDFields.U]),
-                    )
-                else:
-                    umin = min(
-                        np.amin(cells.values[i, j, :, PGDFields.U]),
-                        np.amin(cells.values[i + 1, j, :, PGDFields.U]),
-                        np.amin(cells.values[i - 1, j, :, PGDFields.U]),
-                    )
-                    umax = max(
-                        np.amax(cells.values[i, j, :, PGDFields.U]),
-                        np.amax(cells.values[i + 1, j, :, PGDFields.U]),
-                        np.amax(cells.values[i - 1, j, :, PGDFields.U]),
-                    )
                 theta = np.ones(num_dofs)
                 s_a_e = np.zeros((num_dofs, 3))
                 s_a_e = copy.deepcopy(cells.values[i, j, :, 0:3])
@@ -130,37 +108,65 @@ class PGDScheme(ConvectiveScheme):
                     theta_rho = 1.0
                     theta_umax = 1.0
                     theta_umin = 1.0
-                    if ucell[i, j, PGDFields.rho] < rhomin or (
-                        math.fabs(
-                            s_a_e[k, PGDFields.rhoU] - ucell[i, j, PGDFields.rhoU]
+                    theta_vmax = 1.0
+                    theta_vmin = 1.0
+                    if s_a_e[k, PGDFields.rho] < rhomin:
+                        theta_rho = (rhomin - ucell[i, j, PGDFields.rho]) / (
+                            s_a_e[k, PGDFields.rho] - ucell[i, j, PGDFields.rho]
                         )
-                        < rhomin
-                    ):
-                        theta_rho = 0.0
-                        theta_umax = 0.0
-                        theta_umin = 0.0
-                    else:
-                        if s_a_e[k, 0] < rhomin:
-                            theta_rho = (rhomin - ucell[i, j, 0]) / (
-                                s_a_e[k, 0] - ucell[i, j, 0]
-                            )
-                        if s_a_e[k, 0] * umax - s_a_e[k, 1] < 0.0:
-                            theta_umax = (-ucell[i, j, 0] * umax + ucell[i, j, 1]) / (
-                                (s_a_e[k, 0] - ucell[i, j, 0]) * umax
-                                - s_a_e[k, 1]
-                                + ucell[i, j, 1]
-                            )
+                    if s_a_e[k, PGDFields.rho] * vmax - s_a_e[k, PGDFields.rhoV] < 0.0:
+                        theta_vmax = (
+                            -ucell[i, j, PGDFields.rho] * vmax
+                            + ucell[i, j, PGDFields.rhoV]
+                        ) / (
+                            (s_a_e[k, PGDFields.rho] - ucell[i, j, PGDFields.rho])
+                            * vmax
+                            - s_a_e[k, PGDFields.rhoV]
+                            + ucell[i, j, PGDFields.rhoV]
+                        )
 
-                        if s_a_e[k, 1] - s_a_e[k, 0] * umin < 0.0:
-                            theta_umin = (-ucell[i, j, 1] + ucell[i, j, 0] * umin) / (
-                                s_a_e[k, 1]
-                                - ucell[i, j, 1]
-                                - (s_a_e[k, 0] - ucell[i, j, 0]) * umin
-                            )
+                    if s_a_e[k, PGDFields.rhoV] - s_a_e[k, PGDFields.rho] * vmin < 0.0:
+                        theta_vmin = (
+                            -ucell[i, j, PGDFields.rhoV]
+                            + ucell[i, j, PGDFields.rho] * vmin
+                        ) / (
+                            s_a_e[k, PGDFields.rhoV]
+                            - ucell[i, j, PGDFields.rhoV]
+                            - (s_a_e[k, PGDFields.rho] - ucell[i, j, PGDFields.rho])
+                            * vmin
+                        )
+                    if s_a_e[k, PGDFields.rho] * umax - s_a_e[k, PGDFields.rhoU] < 0.0:
+                        theta_umax = (
+                            -ucell[i, j, PGDFields.rho] * umax
+                            + ucell[i, j, PGDFields.rhoU]
+                        ) / (
+                            (s_a_e[k, PGDFields.rho] - ucell[i, j, PGDFields.rho])
+                            * umax
+                            - s_a_e[k, PGDFields.rhoU]
+                            + ucell[i, j, PGDFields.rhoU]
+                        )
+
+                    if s_a_e[k, PGDFields.rhoU] - s_a_e[k, PGDFields.rho] * umin < 0.0:
+                        theta_umin = (
+                            -ucell[i, j, PGDFields.rhoU]
+                            + ucell[i, j, PGDFields.rho] * umin
+                        ) / (
+                            s_a_e[k, PGDFields.rhoU]
+                            - ucell[i, j, PGDFields.rhoU]
+                            - (s_a_e[k, PGDFields.rho] - ucell[i, j, PGDFields.rho])
+                            * umin
+                        )
                     theta[k] = max(
-                        0.0, min(theta[k], theta_rho, theta_umax, theta_umin)
+                        0.0,
+                        min(
+                            theta[k],
+                            theta_rho,
+                            theta_umax,
+                            theta_umin,
+                            theta_vmax,
+                            theta_vmin,
+                        ),
                     )
-
                 theta_cell = np.amin(theta)
                 cells.values[i, j, :, :] = (
                     theta_cell * (cells.values[i, j, :, :] - uavg[i, j, :, :])

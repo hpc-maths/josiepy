@@ -63,7 +63,7 @@ class RKDG(RK):
         t += c * dt
         step_cells = mesh.cells.copy()
         step_cells.values -= dt * np.einsum("...i,...j->...", a_s, self._ks[..., :step])
-        # Limiter PGD 1D
+        # Limiter PGD 2D
         self.limiter(step_cells)
 
         step_cells.update_ghosts(mesh.boundaries, t)
@@ -166,96 +166,138 @@ def scheme():
 @pytest.fixture
 def solver(scheme):
     """1D problem along x"""
-    left = Line([0, 0], [0, 1])
-    bottom = Line([0, 0], [1, 0])
-    right = Line([1, 0], [1, 1])
-    top = Line([0, 1], [1, 1])
+    left = Line([-1, -1], [-1, 1])
+    bottom = Line([-1, -1], [1, -1])
+    right = Line([1, -1], [1, 1])
+    top = Line([-1, 1], [1, 1])
 
     dQ = np.zeros(len(PGDState.fields)).view(PGDState)
     left.bc = Neumann(dQ)
     right.bc = Neumann(dQ)
-    top.bc = None
-    bottom.bc = None
+    bottom.bc = Neumann(dQ)
+    top.bc = Neumann(dQ)
 
     mesh = Mesh(left, bottom, right, top, DGCell)
-    mesh.interpolate(50, 1)
+    mesh.interpolate(50, 50)
     mesh.generate()
 
     solver = SolverDG(mesh, scheme)
 
     def init_fun(cells: MeshCellSet):
-        xc = cells.centroids[..., 0]
+        tol = 1e-13
+        c_x = cells.centroids[..., 0]
+        c_y = cells.centroids[..., 1]
+        sigma = 125.0 * 1000.0 / (33.0 ** 2)
+        xc = 0.0
+        yc = 0.0
         for i in range(mesh.num_cells_x):
             for j in range(mesh.num_cells_y):
                 for k in range(mesh.cell_type.num_dofs):
-                    # Test case Bouchut vacuum
-                    # cells.values[i, j, k, PGDFields.rho] = 0.5
-                    # if xc[i, j, k] < 0.5:
-                    #     cells.values[i, j, k, PGDFields.rhoU] = (
-                    #         -0.4 * cells.values[i, j, k, PGDFields.rho]
-                    #     )
-                    #     cells.values[i, j, k, PGDFields.U] = -0.4
-                    # elif xc[i, j, k] >= 0.5 and xc[i, j, k] < 1.0:
-                    #     cells.values[i, j, k, PGDFields.rhoU] = (
-                    #         0.4 * cells.values[i, j, k, PGDFields.rho]
-                    #     )
-                    #     cells.values[i, j, k, PGDFields.U] = 0.4
-                    # elif xc[i, j, k] >= 1.0 and xc[i, j, k] < 1.8:
-                    #     cells.values[i, j, k, PGDFields.rhoU] = (
-                    #         1.4 - xc[i, j, k]
-                    #     ) * cells.values[i, j, k, PGDFields.rho]
-                    #     cells.values[i, j, k, PGDFields.U] = 1.4 - xc[i, j, k]
-                    # else:
-                    #     cells.values[i, j, k, PGDFields.rhoU] = (
-                    #         -0.4 * cells.values[i, j, k, PGDFields.rho]
-                    #     )
-                    #     cells.values[i, j, k, PGDFields.U] = -0.4
-
+                    # Test case vacuum
+                    cells.values[i, j, k, PGDFields.rho] = 0.5
+                    if c_x[i, j, k] > 0.0 + tol and c_y[i, j, k] > 0.0 + tol:
+                        cells.values[i, j, k, PGDFields.rhoU] = (
+                            0.4 * cells.values[i, j, k, PGDFields.rho]
+                        )
+                        cells.values[i, j, k, PGDFields.rhoV] = (
+                            0.4 * cells.values[i, j, k, PGDFields.rho]
+                        )
+                        cells.values[i, j, k, PGDFields.U] = 0.4
+                        cells.values[i, j, k, PGDFields.V] = 0.4
+                    elif c_x[i, j, k] < 0.0 + tol and c_y[i, j, k] > 0.0 + tol:
+                        cells.values[i, j, k, PGDFields.rhoU] = (
+                            -0.4 * cells.values[i, j, k, PGDFields.rho]
+                        )
+                        cells.values[i, j, k, PGDFields.rhoV] = (
+                            0.4 * cells.values[i, j, k, PGDFields.rho]
+                        )
+                        cells.values[i, j, k, PGDFields.U] = -0.4
+                        cells.values[i, j, k, PGDFields.V] = 0.4
+                    elif c_x[i, j, k] > 0.0 + tol and c_y[i, j, k] < 0.0 + tol:
+                        cells.values[i, j, k, PGDFields.rhoU] = (
+                            0.4 * cells.values[i, j, k, PGDFields.rho]
+                        )
+                        cells.values[i, j, k, PGDFields.rhoV] = (
+                            -0.4 * cells.values[i, j, k, PGDFields.rho]
+                        )
+                        cells.values[i, j, k, PGDFields.U] = 0.4
+                        cells.values[i, j, k, PGDFields.V] = -0.4
+                    elif c_x[i, j, k] < 0.0 + tol and c_y[i, j, k] < 0.0 + tol:
+                        cells.values[i, j, k, PGDFields.rhoU] = (
+                            -0.4 * cells.values[i, j, k, PGDFields.rho]
+                        )
+                        cells.values[i, j, k, PGDFields.rhoV] = (
+                            -0.4 * cells.values[i, j, k, PGDFields.rho]
+                        )
+                        cells.values[i, j, k, PGDFields.U] = -0.4
+                        cells.values[i, j, k, PGDFields.V] = -0.4
                     # Test case delta shock
-                    cells.values[i, j, k, PGDFields.rho] = math.pow(
-                        math.sin(2 * math.pi * xc[i, j, k]), 4
-                    )
-                    if xc[i, j, k] > 0.5:
-                        cells.values[i, j, k, PGDFields.rhoU] = (
-                            -1.0 * cells.values[i, j, k, PGDFields.rho]
-                        )
-                        cells.values[i, j, k, PGDFields.U] = -1.0
-                    else:
-                        cells.values[i, j, k, PGDFields.rhoU] = (
-                            1.0 * cells.values[i, j, k, PGDFields.rho]
-                        )
-                        cells.values[i, j, k, PGDFields.U] = 1.0
-                    # Test case delta shock 2
-                    # if xc[i, j, k] > 0.5:
-                    #    cells.values[i, j, k, PGDFields.rhoU] = (
-                    #        -xc[i, j, k]
-                    #    ) * cells.values[i, j, k, PGDFields.rho]
-                    #    cells.values[i, j, k, PGDFields.U] = -xc[i, j, k]
-                    # else:
-                    #    cells.values[i, j, k, PGDFields.rhoU] = (
-                    #        -xc[i, j, k] + 1.0
-                    #    ) * cells.values[i, j, k, PGDFields.rho]
-                    #    cells.values[i, j, k, PGDFields.U] = -xc[i, j, k] + 1.0
-                    # Test case transport gaussienne
-                    # if xc[i, j, k] > 0.25 and xc[i, j, k] < 0.75:
-                    #     cells.values[i, j, k, PGDFields.rho] = math.pow(
-                    #         math.cos(math.pi * (2 * xc[i, j, k] - 1)), 4
+                    # cells.values[i, j, k, PGDFields.rho] = 1.0 / 10
+                    # if c_x[i, j, k] > 0.0 + tol and c_y[i, j, k] > 0.0 + tol:
+                    #     cells.values[i, j, k, PGDFields.rhoU] = (
+                    #         -0.25 * cells.values[i, j, k, PGDFields.rho]
                     #     )
-                    # else:
-                    #     cells.values[i, j, k, PGDFields.rho] = 1e-10
-                    # Test case transport creneau
-                    # if xc[i, j, k] > 0.45:
-                    #     cells.values[i, j, k, PGDFields.rho] = 1.0
-                    # else:
-                    #     cells.values[i, j, k, PGDFields.rho] = 1e-10
-                    # # Test case etat constant
-                    # # cells.values[i, j, k, PGDFields.rho] = 1.0
-                    # cells.values[i, j, k, PGDFields.rhoU] = (
-                    #    1.0 * cells.values[i, j, k, PGDFields.rho]
+                    #     cells.values[i, j, k, PGDFields.rhoV] = (
+                    #         -0.25 * cells.values[i, j, k, PGDFields.rho]
+                    #     )
+                    #     cells.values[i, j, k, PGDFields.U] = -0.25
+                    #     cells.values[i, j, k, PGDFields.V] = -0.25
+                    # elif c_x[i, j, k] < 0.0 + tol and c_y[i, j, k] > 0.0 + tol:
+                    #     cells.values[i, j, k, PGDFields.rhoU] = (
+                    #         0.25 * cells.values[i, j, k, PGDFields.rho]
+                    #     )
+                    #     cells.values[i, j, k, PGDFields.rhoV] = (
+                    #         -0.25 * cells.values[i, j, k, PGDFields.rho]
+                    #     )
+                    #     cells.values[i, j, k, PGDFields.U] = 0.25
+                    #     cells.values[i, j, k, PGDFields.V] = -0.25
+                    # elif c_x[i, j, k] > 0.0 + tol and c_y[i, j, k] < 0.0 + tol:
+                    #     cells.values[i, j, k, PGDFields.rhoU] = (
+                    #         -0.25 * cells.values[i, j, k, PGDFields.rho]
+                    #     )
+                    #     cells.values[i, j, k, PGDFields.rhoV] = (
+                    #         0.25 * cells.values[i, j, k, PGDFields.rho]
+                    #     )
+                    #     cells.values[i, j, k, PGDFields.U] = -0.25
+                    #     cells.values[i, j, k, PGDFields.V] = 0.25
+                    # elif c_x[i, j, k] < 0.0 + tol and c_y[i, j, k] < 0.0 + tol:
+                    #     cells.values[i, j, k, PGDFields.rhoU] = (
+                    #         0.25 * cells.values[i, j, k, PGDFields.rho]
+                    #     )
+                    #     cells.values[i, j, k, PGDFields.rhoV] = (
+                    #         0.25 * cells.values[i, j, k, PGDFields.rho]
+                    #     )
+                    #     cells.values[i, j, k, PGDFields.U] = 0.25
+                    #     cells.values[i, j, k, PGDFields.V] = 0.25
+
+                    # Test case etat constant
+                    # cells.values[i, j, k, PGDFields.rho] = 1.0
+                    # Test case transport gaussienne
+                    # cells.values[i, j, k, PGDFields.rho] = math.exp(
+                    #     -sigma
+                    #     * (
+                    #         math.fabs(c_x[i, j, k] - xc) ** 2
+                    #         + math.fabs(c_y[i, j, k] - yc) ** 2
+                    #     )
                     # )
-                    cells.values[i, j, k, PGDFields.rhoV] = 0.0
+                    # Test case transport creneau
+                    # if (
+                    #    c_x[i, j, k] > 0.4
+                    #    and c_y[i, j, k] > 0.4
+                    #    and c_x[i, j, k] < 0.6
+                    #    and c_y[i, j, k] < 0.6
+                    # ):
+                    #    cells.values[i, j, k, PGDFields.rho] = 1.0
+                    # else:
+                    #    cells.values[i, j, k, PGDFields.rho] = 1e-10
+                    # cells.values[i, j, k, PGDFields.rhoU] = (
+                    #     1.0 * cells.values[i, j, k, PGDFields.rho]
+                    # )
+                    # cells.values[i, j, k, PGDFields.rhoV] = (
+                    #     1.0 * cells.values[i, j, k, PGDFields.rho]
+                    # )
                     # cells.values[i, j, k, PGDFields.U] = 1.0
-                    cells.values[i, j, k, PGDFields.V] = 0.0
+                    # cells.values[i, j, k, PGDFields.V] = 1.0
 
     solver.init(init_fun)
     solver.scheme.init_limiter(solver.mesh.cells)
@@ -269,30 +311,31 @@ def test_against_real_1D(solver, plot):
     rLGLmin = 2.0
     cfl = 0.1
     dx = solver.mesh._x[1, 0] - solver.mesh._x[0, 0]
-    tf = 0.5
-
-    fig = plt.figure()
-    ax1 = fig.add_subplot(121)
-    ax2 = fig.add_subplot(122)
-
-    ims = []
+    dy = solver.mesh._y[0, 1] - solver.mesh._y[0, 0]
+    tf = 0.4
 
     t = 0.0
     while t < tf:
-        maxvel = np.amax(np.abs(solver.mesh.cells.values[..., PGDFields.U]))
-        dt = cfl * rLGLmin * dx / maxvel
+        maxvel = max(
+            np.amax(np.abs(solver.mesh.cells.values[..., PGDFields.U])),
+            np.amax(np.abs(solver.mesh.cells.values[..., PGDFields.V])),
+        )
+        dt = cfl * rLGLmin * min(dx, dy) / maxvel
         x = solver.mesh.cells.centroids[..., 1, 0]
         rho = solver.mesh.cells.values[..., 1, PGDFields.rho]
         Ux = solver.mesh.cells.values[..., 1, PGDFields.U]
-        if plot:
-            (im1,) = ax1.plot(x, rho, "ro-")
-            (im2,) = ax2.plot(x, Ux, "ro-")
-            ims.append([im1, im2])
+        Uy = solver.mesh.cells.values[..., 1, PGDFields.V]
 
         solver.step(dt)
         t += dt
 
     if plot:
-        ani = ArtistAnimation(fig, ims)
-        ani.save("PGD_1D_d-choc2_50x1.mp4", writer="ffmpeg")
+        tabx = solver.mesh.cells.centroids[..., 1, 0]
+        taby = solver.mesh.cells.centroids[..., 1, 1]
+        tab_rho = solver.mesh.cells.values[..., 1, PGDFields.rho]
+        tab_u = solver.mesh.cells.values[..., 1, PGDFields.U]
+        tab_v = solver.mesh.cells.values[..., 1, PGDFields.V]
+
+        plt.contourf(tabx, taby, tab_rho, cmap="plasma")
+        plt.colorbar()
         plt.show()
