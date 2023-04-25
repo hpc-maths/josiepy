@@ -114,12 +114,21 @@ class FracMomScheme(ConvectiveScheme):
                     theta_m32b = 1.0
                     theta_umax = 1.0
                     theta_umin = 1.0
+                    theta_vmax = 1.0
+                    theta_vmin = 1.0
                     if (
                         ucell[i, j, FracMomFields.m0] < m0min
                         or (
                             math.fabs(
                                 s_a_e[k, FracMomFields.m1U]
                                 - ucell[i, j, FracMomFields.m1U]
+                            )
+                            < m0min
+                        )
+                        or (
+                            math.fabs(
+                                s_a_e[k, FracMomFields.m1V]
+                                - ucell[i, j, FracMomFields.m1V]
                             )
                             < m0min
                         )
@@ -138,6 +147,8 @@ class FracMomScheme(ConvectiveScheme):
                         theta_m32b = 0.0
                         theta_umax = 0.0
                         theta_umin = 0.0
+                        theta_vmax = 0.0
+                        theta_vmin = 0.0
                     else:
                         H1a = s_a_e[k, FracMomFields.m12]
                         H1b = s_a_e[k, FracMomFields.m0] - s_a_e[k, FracMomFields.m12]
@@ -374,6 +385,41 @@ class FracMomScheme(ConvectiveScheme):
                                 )
                                 * umin
                             )
+                        if (
+                            s_a_e[k, FracMomFields.m1] * vmax
+                            - s_a_e[k, FracMomFields.m1V]
+                            < 0.0
+                        ):
+                            theta_vmax = (
+                                -ucell[i, j, FracMomFields.m1] * vmax
+                                + ucell[i, j, FracMomFields.m1V]
+                            ) / (
+                                (
+                                    s_a_e[k, FracMomFields.m1]
+                                    - ucell[i, j, FracMomFields.m1]
+                                )
+                                * vmax
+                                - s_a_e[k, FracMomFields.m1V]
+                                + ucell[i, j, FracMomFields.m1V]
+                            )
+
+                        if (
+                            s_a_e[k, FracMomFields.m1V]
+                            - s_a_e[k, FracMomFields.m1] * vmin
+                            < 0.0
+                        ):
+                            theta_vmin = (
+                                -ucell[i, j, FracMomFields.m1V]
+                                + ucell[i, j, FracMomFields.m1] * vmin
+                            ) / (
+                                s_a_e[k, FracMomFields.m1V]
+                                - ucell[i, j, FracMomFields.m1V]
+                                - (
+                                    s_a_e[k, FracMomFields.m1]
+                                    - ucell[i, j, FracMomFields.m1]
+                                )
+                                * vmin
+                            )
 
                     theta[k] = max(
                         0.0,
@@ -388,6 +434,8 @@ class FracMomScheme(ConvectiveScheme):
                             theta_m32b,
                             theta_umax,
                             theta_umin,
+                            theta_vmax,
+                            theta_vmin,
                         ),
                     )
                 theta_cell = np.amin(theta)
