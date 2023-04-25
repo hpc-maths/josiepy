@@ -33,8 +33,6 @@ from typing import TYPE_CHECKING
 
 from josie.problem import Problem
 from josie.state import State
-from josie.pgd.fields import PGDFields
-
 
 if TYPE_CHECKING:
     from josie.mesh.cellset import NeighboursCellSet, MeshCellSet
