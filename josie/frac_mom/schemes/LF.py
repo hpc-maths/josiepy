@@ -29,7 +29,7 @@ from __future__ import annotations
 import numpy as np
 
 from typing import TYPE_CHECKING
-from josie.frac_mom.state import FracMomState
+from josie.frac_mom.state import Q
 
 from .scheme import FracMomScheme
 
@@ -52,14 +52,13 @@ class LF(FracMomScheme):
     """
 
     def F(self, cells: MeshCellSet, neighs: NeighboursCellSet):
+        Q_L: Q = cells.values.view(Q)
+        Q_R: Q = neighs.values.view(Q)
 
-        Q_L: FracMomState = cells.values.view(FracMomState)
-        Q_R: FracMomState = neighs.values.view(FracMomState)
+        fields = Q.fields
 
-        fields = FracMomState.fields
-
-        FS = np.zeros_like(Q_L).view(FracMomState)
-        DeltaF = np.zeros_like(self.problem.F(cells)).view(FracMomState)
+        FS = np.zeros_like(Q_L).view(Q)
+        DeltaF = np.zeros_like(self.problem.F(cells)).view(Q)
 
         u_L = Q_L[..., fields.U]
         u_R = Q_R[..., fields.U]
@@ -77,7 +76,7 @@ class LF(FracMomScheme):
         # variables (rho, rhoU, rhoV, rhoE)
         Q_L_cons = Q_L.get_conservative()
         Q_R_cons = Q_R.get_conservative()
-        DeltaQ = np.zeros_like(Q_L_cons).view(FracMomState)
+        DeltaQ = np.zeros_like(Q_L_cons).view(Q)
 
         if neighs.direction == 0:
             DeltaF[..., 0:2, :, :] = 0.5 * (

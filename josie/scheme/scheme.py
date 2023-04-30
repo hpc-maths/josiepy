@@ -29,7 +29,7 @@ from __future__ import annotations
 import abc
 import numpy as np
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, List
 
 from josie.problem import Problem
 from josie.state import State
@@ -218,37 +218,29 @@ class Scheme(abc.ABC):
         # Accumulate all the fluxes (in multiple steps if required by the time
         # scheme). This modifies self._fluxes in-place
         self.step(mesh, dt, t)
-        # invM = np.ones((num_dofs, num_dofs))
-        # K = np.ones((num_dofs, num_dofs))
-        # initialiser M et K dans cell.py
-        # np.diag pour stocker juste un bloc de la matrice
-        # passage maille de référence [-1,1] vers maille quelconque
 
-        #    print(cells.values.shape)
-        #    print(self._fluxes.shape)
-        #    print(cells.volumes[..., np.newaxis].shape)
+        # Discrete time integration of fluxes
+        self.integrate_fluxes(cells, self._fluxes, dt)
 
-        # Update the cell values
-        # ipdb.set_trace()
-        # cells.values -= self._fluxes * dt
-        # / cells.volumes[..., np.newaxis, np.newaxis]
-        nx, ny, num_dofs, _ = cells.values.shape
-        if num_dofs != 1:
-            cells.values -= self._fluxes * dt
-            # Limiter
-            self.limiter(cells)
-        else:
-            cells.values -= (
-                self._fluxes * dt / cells.volumes[..., np.newaxis, np.newaxis]
-            )
         # Let's put here an handy post step if needed after the values update
         self.post_step(cells.values)
 
         # Keep ghost cells updated
         mesh.update_ghosts(t)
 
-    @abc.abstractmethod
-    def limiter(self, cells: MeshCellSet):
+    def integrate_fluxes(self, cells: MeshCellSet, fluxes: State, dt: float):
+        r"""This method integrate in time the fluxes with a given timestep."""
+        cells.values -= (
+            fluxes * dt / cells.volumes[..., np.newaxis, np.newaxis]
+        )
+
+        self.post_integrate_fluxes(cells)
+
+    def post_integrate_fluxes(self, cells: MeshCellSet):
+        r""":class:`Scheme` can implement a :meth:`post_integrate_fluxes`
+        in order to perform operations after the
+        :meth:`Scheme.integrate_fluxes` integration of fluxes.
+        """
         pass
 
     def post_init(self, cells: MeshCellSet):
@@ -325,3 +317,30 @@ class Scheme(abc.ABC):
 
     def post_extrapolation(self, values):
         self.auxilliaryVariableUpdate(values)
+
+
+class DGScheme(Scheme):
+    r"""An abstract class representing a scheme for Discontinuous Galerkin method"
+
+    Attributes
+    ----------
+    problem
+        An instance of :class:`Problem` representing the physical problem that
+        this scheme discretizes
+    """
+
+    M_ref: np.ndarray
+    K_ref: np.ndarray
+    eM_ref_tab: List
+    J: np.ndarray
+    eJ: np.ndarray
+    is_stiff_flux_acc = False
+
+    def integrate_fluxes(self, cells: MeshCellSet, fluxes: State, dt: float):
+        r"""This method integrate in time the fluxes with a given timestep."""
+        cells.values -= np.linalg.solve(self.M_ref, fluxes) * dt
+
+        self.post_integrate_fluxes(cells)
+
+    def post_integrate_fluxes(self, cells: MeshCellSet):
+        self.is_stiff_flux_acc = False

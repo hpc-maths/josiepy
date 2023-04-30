@@ -28,18 +28,17 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from josie.solver import Solver
+from josie.solver import DGSolver
 
-from .state import PGDState
+from .state import Q
 from .schemes import PGDScheme
 
 if TYPE_CHECKING:
     from josie.mesh import Mesh
 
 
-class PGDSolver(Solver):
+class PGDSolver(DGSolver):
     """A solver for the PGD system"""
 
     def __init__(self, mesh: Mesh, scheme: PGDScheme):
-
-        super().__init__(mesh, PGDState, scheme)
+        super().__init__(mesh, Q, scheme)

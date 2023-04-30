@@ -30,10 +30,9 @@ import abc
 
 from typing import TYPE_CHECKING
 
-from .scheme import Scheme
+from .scheme import Scheme, DGScheme
 
 import numpy as np
-
 
 if TYPE_CHECKING:
     from josie.mesh.cellset import NeighboursCellSet, MeshCellSet
@@ -107,11 +106,36 @@ class ConvectiveScheme(Scheme):
     def accumulate(
         self, cells: MeshCellSet, neighs: NeighboursCellSet, t: float
     ):
-
         # Compute fluxes computed eventually by the other terms (diffusive,
         # nonconservative, source)
         super().accumulate(cells, neighs, t)
 
         # Add conservative contribution
         self._fluxes += self.F(cells, neighs)
-        # self._fluxes += self.massEdge[neighs.direction]*self.F(cells, neighs)
+
+
+class ConvectiveDGScheme(DGScheme):
+    @abc.abstractmethod
+    def stiffness_fluxes(self, cells: MeshCellSet) -> np.ndarray:
+        raise NotImplementedError
+
+    def accumulate(
+        self, cells: MeshCellSet, neighs: NeighboursCellSet, t: float
+    ):
+        # Compute fluxes computed eventually by the other terms (diffusive,
+        # nonconservative, source)
+        super().accumulate(cells, neighs, t)
+
+        if not (self.is_stiff_flux_acc):
+            self._fluxes -= self.stiffness_fluxes(cells)
+
+            self.is_stiff_flux_acc = True
+
+        # Add conservative contribution
+        self._fluxes += np.einsum(
+            "...,...,ij,...jk->...ik",
+            self.eJ[..., neighs.direction],
+            self.J,
+            self.eM_ref_tab[neighs.direction],
+            self.F(cells, neighs),
+        )

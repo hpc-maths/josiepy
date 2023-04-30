@@ -112,7 +112,7 @@ class RiemannProblem:
 def riemann_states(IntercellFluxScheme, ToroNonConservativeScheme, TimeScheme):
     class AdvectionOnly(ToroNonConservativeScheme, TimeScheme):
         # Define this to avoid exception of ABC
-        def post_step(self, cells):
+        def post_step(self, values):
             pass
 
         def CFL(
@@ -120,7 +120,6 @@ def riemann_states(IntercellFluxScheme, ToroNonConservativeScheme, TimeScheme):
             cells: MeshCellSet,
             CFL_value,
         ) -> float:
-
             return 1e-3
 
     class ToroScheme(
@@ -550,7 +549,7 @@ def set_bc_state(bc_state: RiemannBCState, eos: TwoPhaseEOS):
         p = phase_data.p
 
         rhoe = phase_eos.rhoe(rho, p)
-        E = rhoe / rho + 0.5 * (U ** 2 + V ** 2)
+        E = rhoe / rho + 0.5 * (U**2 + V**2)
         rhoE = rho * E
         c = phase_eos.sound_velocity(rho, p)
 

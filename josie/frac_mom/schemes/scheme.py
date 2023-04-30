@@ -31,17 +31,17 @@ import copy
 import math
 from typing import TYPE_CHECKING
 from josie.frac_mom.problem import FracMomProblem
-from josie.frac_mom.state import FracMomState
+from josie.frac_mom.state import Q
 from josie.frac_mom.fields import FracMomFields
-from josie.scheme.convective import ConvectiveScheme
+from josie.mesh.cellset import MeshCellSet
+from josie.scheme.convective import ConvectiveDGScheme
 
 
 if TYPE_CHECKING:
-    from josie.mesh.cellset import NeighboursCellSet, MeshCellSet
     from josie.fluid.state import SingleFluidState
 
 
-class FracMomScheme(ConvectiveScheme):
+class FracMomScheme(ConvectiveDGScheme):
     """A general base class for PGD schemes"""
 
     problem: FracMomProblem
@@ -59,19 +59,21 @@ class FracMomScheme(ConvectiveScheme):
     def __init__(self):
         super().__init__(FracMomProblem())
 
-    def accumulate(self, cells: MeshCellSet, neighs: NeighboursCellSet, t: float):
+    def post_integrate_fluxes(self, cells: MeshCellSet):
+        super().post_integrate_fluxes(cells)
+        self.limiter(cells)
 
-        # Compute fluxes computed eventually by the other terms (diffusive,
-        # nonconservative, source)
-        # super().accumulate(cells, neighs, t)
-        # Add conservative contribution
-        self._fluxes += np.einsum(
-            "...,...,ij,...jk->...ik",
-            self.eJ[..., neighs.direction],
-            self.J,
-            self.eM_ref_tab[neighs.direction],
-            self.F(cells, neighs),
+    def stiffness_fluxes(self, cells: MeshCellSet) -> np.ndarray:
+        vec = np.einsum(
+            "ijk,...jlk->...ilk",
+            self.K_ref,
+            self.problem.F(cells),
         )
+
+        vec = (2.0 / self.dx) * vec[..., 0] + (2.0 / self.dy) * vec[..., 1]
+        vec2 = np.zeros(self._fluxes.shape)
+        vec2.view(Q).set_conservative(vec)
+        return vec2
 
     def init_limiter(self, cells: MeshCellSet):
         self.U_min = np.amin(cells.values[..., FracMomFields.U])
@@ -151,26 +153,39 @@ class FracMomScheme(ConvectiveScheme):
                         theta_vmin = 0.0
                     else:
                         H1a = s_a_e[k, FracMomFields.m12]
-                        H1b = s_a_e[k, FracMomFields.m0] - s_a_e[k, FracMomFields.m12]
+                        H1b = (
+                            s_a_e[k, FracMomFields.m0]
+                            - s_a_e[k, FracMomFields.m12]
+                        )
                         H2a = (
-                            s_a_e[k, FracMomFields.m0] * s_a_e[k, FracMomFields.m1]
+                            s_a_e[k, FracMomFields.m0]
+                            * s_a_e[k, FracMomFields.m1]
                             - s_a_e[k, FracMomFields.m12] ** 2
                         )
-                        H2b = s_a_e[k, FracMomFields.m12] - s_a_e[k, FracMomFields.m1]
+                        H2b = (
+                            s_a_e[k, FracMomFields.m12]
+                            - s_a_e[k, FracMomFields.m1]
+                        )
                         H3a = (
-                            s_a_e[k, FracMomFields.m12] * s_a_e[k, FracMomFields.m32]
+                            s_a_e[k, FracMomFields.m12]
+                            * s_a_e[k, FracMomFields.m32]
                             - s_a_e[k, FracMomFields.m1] ** 2
                         )
                         H3b = (
-                            s_a_e[k, FracMomFields.m0] - s_a_e[k, FracMomFields.m12]
+                            s_a_e[k, FracMomFields.m0]
+                            - s_a_e[k, FracMomFields.m12]
                         ) * (
-                            s_a_e[k, FracMomFields.m1] - s_a_e[k, FracMomFields.m32]
+                            s_a_e[k, FracMomFields.m1]
+                            - s_a_e[k, FracMomFields.m32]
                         ) - (
-                            s_a_e[k, FracMomFields.m12] - s_a_e[k, FracMomFields.m1]
+                            s_a_e[k, FracMomFields.m12]
+                            - s_a_e[k, FracMomFields.m1]
                         ) ** 2
 
                         if s_a_e[k, FracMomFields.m0] < m0min:
-                            theta_m0 = (m0min - ucell[i, j, FracMomFields.m0]) / (
+                            theta_m0 = (
+                                m0min - ucell[i, j, FracMomFields.m0]
+                            ) / (
                                 s_a_e[k, FracMomFields.m0]
                                 - ucell[i, j, FracMomFields.m0]
                             )
@@ -226,7 +241,7 @@ class FracMomScheme(ConvectiveScheme):
                                 * ucell[i, j, FracMomFields.m1]
                                 - ucell[i, j, FracMomFields.m12] ** 2
                             )
-                            delta = b ** 2 - 4 * a * c
+                            delta = b**2 - 4 * a * c
                             theta_m1a = max(
                                 (-b + math.sqrt(delta)) / (2 * a),
                                 (-b - math.sqrt(delta)) / (2 * a),
@@ -277,7 +292,7 @@ class FracMomScheme(ConvectiveScheme):
                                 * ucell[i, j, FracMomFields.m32]
                                 - ucell[i, j, FracMomFields.m1] ** 2
                             )
-                            delta = b ** 2 - 4 * a * c
+                            delta = b**2 - 4 * a * c
                             theta_m32a = max(
                                 (-b + math.sqrt(delta)) / (2 * a),
                                 (-b - math.sqrt(delta)) / (2 * a),
@@ -343,7 +358,7 @@ class FracMomScheme(ConvectiveScheme):
                                 ucell[i, j, FracMomFields.m12]
                                 - ucell[i, j, FracMomFields.m1]
                             ) ** 2
-                            delta = b ** 2 - 4 * a * c
+                            delta = b**2 - 4 * a * c
 
                             theta_m32b = max(
                                 (-b + math.sqrt(delta)) / (2 * a),
@@ -444,21 +459,16 @@ class FracMomScheme(ConvectiveScheme):
                     + uavg[i, j, :, :]
                 )
 
-    def post_step(self, cells: MeshCellSet):
+    def post_step(self, values: Q):
         """During the step we update the conservative values. After the
         step we update the non-conservative variables. This method updates
         the values of the non-conservative (auxiliary) variables using the
         :class:`~.EOS`
         """
 
-        values: FracMomState = cells.values.view(FracMomState)
+        fields = Q.fields
 
-        fields = values.fields
-
-        m0 = values[..., fields.m0]
-        m12 = values[..., fields.m12]
         m1 = values[..., fields.m1]
-        m32 = values[..., fields.m32]
         m1U = values[..., fields.m1U]
         m1V = values[..., fields.m1V]
 
@@ -501,10 +511,9 @@ class FracMomScheme(ConvectiveScheme):
         return U
 
     def CFL(self, cells: MeshCellSet, CFL_value: float) -> float:
-
         dt = super().CFL(cells, CFL_value)
 
-        values: FracMomState = cells.values.view(FracMomState)
+        values: Q = cells.values.view(Q)
         fields = values.fields
 
         # Get the velocity components
@@ -512,13 +521,11 @@ class FracMomScheme(ConvectiveScheme):
         UV = cells.values[..., UV_slice]
 
         U = np.linalg.norm(UV, axis=-1, keepdims=True)
-        c = cells.values[..., fields.c]
-
-        sigma = np.max(np.abs(U))
+        maxvel = np.max(np.abs(U))
 
         # Min mesh dx
         dx = cells.min_length
 
-        new_dt = CFL_value * dx / sigma
+        new_dt = CFL_value * dx / maxvel
 
         return np.min((dt, new_dt))

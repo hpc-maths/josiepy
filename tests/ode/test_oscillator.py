@@ -89,7 +89,7 @@ def run_oscillator(mesh, Q0, TimeScheme, k, m, dt, final_time) -> float:
 
 @pytest.fixture
 def Q0():
-    """ Initial state """
+    """Initial state"""
 
     return np.array([1, 0]).view(Q)
 

@@ -39,8 +39,10 @@ from typing import (
 
 from josie.mesh.cellset import CellSet, MeshCellSet
 
+from josie.mesh.cell import DGCell
+
 from josie.state import State
-from josie.scheme import Scheme
+from josie.scheme import Scheme, DGScheme
 
 import numpy as np
 
@@ -73,7 +75,7 @@ class Solver:
     # Type Checking
     _values: State
     _neighs: Sequence[CellSet]
-    t: float
+    t: np.ndarray
 
     # TODO: Fix _values to adapt on mesh.dimensionality
 
@@ -81,6 +83,11 @@ class Solver:
         self.mesh = mesh
         self.Q = Q
         self.scheme = scheme
+
+        if self.mesh.cell_type == DGCell or issubclass(
+            scheme.__class__, DGScheme
+        ):
+            raise TypeError("A DGSolver is required for the DG method.")
 
     def init(self, init_fun: Callable[[MeshCellSet], NoReturn]):
         """
@@ -95,7 +102,7 @@ class Solver:
         """
 
         # Init time
-        self.t = 0
+        self.t = np.array(0.0)
 
         # Init data structure for field values
         self.mesh.cells._values = self.Q.from_mesh(self.mesh)
@@ -118,7 +125,7 @@ class Solver:
         """This methods copies the :class:`Solver` object into another"""
 
         solver = Solver(self.mesh.copy(), self.Q, self.scheme)
-        solver.t = self.t
+        solver.t = self.t.copy()
 
         return solver
 
@@ -163,3 +170,55 @@ class Solver:
 
         plt = self.mesh.backend
         plt.show(fields)
+
+
+class DGSolver(Solver):
+    dx: float
+    dy: float
+
+    def __init__(self, mesh: Mesh, Q: Type[State], scheme: Scheme):
+        self.mesh = mesh
+        self.Q = Q
+        self.scheme = scheme
+
+        if self.mesh.cell_type != DGCell or not (
+            issubclass(scheme.__class__, DGScheme)
+        ):
+            raise TypeError(
+                "A DGCell and a DGScheme are required for the DG method."
+            )
+
+        self.dx = mesh._x[1, 0] - mesh._x[0, 0]
+        self.dy = mesh._y[0, 1] - mesh._y[0, 0]
+
+        self.scheme.dx = self.dx
+        self.scheme.dy = self.dx
+
+        # Init a local mass matrix in the element of reference
+        # Dim : (num_dof, num_dof)
+        self.scheme.M_ref = self.mesh.cell_type.refMass()
+        # Init a local stiffness matrix in the element of reference
+        # Dim : (num_dof, num_dof)
+        self.scheme.K_ref = self.mesh.cell_type.refStiff()
+
+        # Init a local edge-mass matrix in the element of reference
+        # One matrix for each direction
+        # Dim : (num_dof, num_dof)
+        self.scheme.eM_ref_tab = self.mesh.cell_type.refMassEdge()
+
+        # Init jacobians
+        self.scheme.J = self.jacob(self.mesh)
+        # Init edge jacobians
+        # One for each direction
+        self.scheme.eJ = self.jacob1D(self.mesh)
+
+    def jacob(self, mesh):
+        x = mesh._x
+
+        # Works only for structured mesh (no rotation, only x-axis
+        # and/or y-axis stretch)
+        # self.jac = J^{-1}
+        return (4.0 / (self.dx * self.dy)) * np.ones(x[1:, :-1].shape)
+
+    def jacob1D(self, mesh):
+        return mesh.cells.surfaces / 2

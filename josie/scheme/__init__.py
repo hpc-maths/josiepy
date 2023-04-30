@@ -1,1 +1,1 @@
-from .scheme import Scheme
+from .scheme import Scheme, DGScheme

@@ -209,7 +209,7 @@ class SimpleCell(Cell):
         se = np.asarray(se)
         ne = np.asarray(ne)
 
-        return np.asarray(nw + sw + se + ne) / 4
+        return np.asarray(nw + sw + se + ne)[..., np.newaxis, :] / 4
 
     @classmethod
     def volume(

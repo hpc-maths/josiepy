@@ -1,11 +1,11 @@
 import numpy as np
 import pytest
 
-from josie.scheme.convective import ConvectiveDGScheme
 from josie.bc import make_periodic, Direction
 from josie.boundary import Line
 from josie.mesh import Mesh
 from josie.mesh.cell import DGCell
+from josie.scheme.convective import ConvectiveDGScheme
 
 from josie.general.schemes.time.rk import RK2
 from josie.mesh.cellset import MeshCellSet, CellSet
@@ -16,9 +16,8 @@ from josie.problem import Problem
 import matplotlib.pyplot as plt
 from matplotlib.animation import ArtistAnimation
 
-
-# Advection velocity in x-direction
-V = np.array([1.0, 0.0])
+# Advection velocity in xy-direction
+V = np.array([1.0, 1.0])
 
 
 class Q(State):
@@ -104,21 +103,53 @@ def scheme():
             FS = np.zeros_like(values)
             F = np.zeros((nx, ny, num_dofs, 2))
 
+            maxvel = np.amax(np.fabs(V))
+
             if neighs.direction == 0:
                 F[..., 0:2, 0] = (
                     self.problem.F(cells)[..., 0:2, 0]
                     + self.problem.F(neighs)[..., 2:4, 0]
-                ) * 0.5 - 0.5 * (
+                ) * 0.5 - 0.5 * maxvel * (
                     self.problem.F(cells)[..., 0:2, 0]
                     - self.problem.F(neighs)[..., 2:4, 0]
+                )
+            if neighs.direction == 1:
+                F[..., 0, 1] = (
+                    self.problem.F(cells)[..., 0, 1]
+                    + self.problem.F(neighs)[..., 1, 1]
+                ) * 0.5 - 0.5 * maxvel * (
+                    self.problem.F(cells)[..., 0, 1]
+                    - self.problem.F(neighs)[..., 1, 1]
+                )
+                F[..., 2, 1] = (
+                    self.problem.F(cells)[..., 2, 1]
+                    + self.problem.F(neighs)[..., 3, 1]
+                ) * 0.5 - 0.5 * maxvel * (
+                    self.problem.F(cells)[..., 2, 1]
+                    - self.problem.F(neighs)[..., 3, 1]
                 )
             if neighs.direction == 2:
                 F[..., 2:4, 0] = (
                     self.problem.F(cells)[..., 2:4, 0]
                     + self.problem.F(neighs)[..., 0:2, 0]
-                ) * 0.5 - 0.5 * (
+                ) * 0.5 - 0.5 * maxvel * (
                     self.problem.F(neighs)[..., 0:2, 0]
                     - self.problem.F(cells)[..., 2:4, 0]
+                )
+            if neighs.direction == 3:
+                F[..., 1, 1] = (
+                    self.problem.F(cells)[..., 1, 1]
+                    + self.problem.F(neighs)[..., 0, 1]
+                ) * 0.5 - 0.5 * maxvel * (
+                    self.problem.F(neighs)[..., 0, 1]
+                    - self.problem.F(cells)[..., 1, 1]
+                )
+                F[..., 3, 1] = (
+                    self.problem.F(cells)[..., 3, 1]
+                    + self.problem.F(neighs)[..., 2, 1]
+                ) * 0.5 - 0.5 * maxvel * (
+                    self.problem.F(neighs)[..., 2, 1]
+                    - self.problem.F(cells)[..., 3, 1]
                 )
             FS = np.einsum("...ij,...j->...i", F, neighs.normals)
             return FS[..., np.newaxis]
@@ -129,7 +160,7 @@ def scheme():
             CFL_value: float,
         ) -> float:
             U_abs = np.linalg.norm(V)
-            dx = np.min(cells.surfaces)
+            dx = cells.min_length
             return CFL_value * dx / U_abs
 
     yield Upwind(AdvectionProblem(V))
@@ -144,53 +175,58 @@ def solver(scheme, Q):
     top = Line([0, 1], [1, 1])
 
     left, right = make_periodic(left, right, Direction.X)
-    top.bc = None
-    bottom.bc = None
+    bottom, top = make_periodic(bottom, top, Direction.Y)
 
     mesh = Mesh(left, bottom, right, top, DGCell)
-    mesh.interpolate(100, 1)
+    mesh.interpolate(30, 30)
     mesh.generate()
 
     solver = DGSolver(mesh, Q, scheme)
     solver.scheme.alpha = 1
 
     def init_fun(cells: MeshCellSet):
-        xc = cells.centroids[..., 0]
-        xc_r = np.where(xc >= 0.45)
-        xc_l = np.where(xc < 0.45)
-        cells.values[xc_r[0], xc_r[1], xc_r[2], :] = Q(1)
-        cells.values[xc_l[0], xc_l[1], xc_l[2], :] = Q(0)
+        c_x = cells.centroids[..., 0]
+        c_y = cells.centroids[..., 1]
+        cells.values[..., 0] = np.where(
+            (np.abs(c_x - 0.5) < 0.1) * (np.abs(c_y - 0.5) < 0.1), 1.0, 0.0
+        )
 
     solver.init(init_fun)
 
     yield solver
 
 
-def test_against_real_1D(solver, plot):
+def test_advection(solver, plot):
     """Testing against the real 1D solver"""
 
     rLGLmin = 2.0
     cfl = 0.1
 
-    tf = 0.2
-    fig = plt.figure()
-    ax1 = fig.add_subplot(121)
+    tf = 0.5
 
+    fig = plt.figure()
+    ax3d = plt.axes(projection="3d")
     ims = []
-    x = solver.mesh.cells.centroids[..., 1, 0]
 
     while solver.t < tf:
         dt = solver.scheme.CFL(solver.mesh.cells, cfl * rLGLmin)
-
-        x = solver.mesh.cells.centroids[..., 1, 0]
-        u = solver.mesh.cells.values[..., 1, 0]
-
-        if plot:
-            (im1,) = ax1.plot(x, u, "ro-")
-            ims.append([im1])
-
         solver.step(dt)
 
+        if plot:
+            tabx = solver.mesh.cells.centroids[..., 1, 0]
+            taby = solver.mesh.cells.centroids[..., 1, 1]
+            tabu = solver.mesh.cells.values[..., 1, 0]
+
+            im = ax3d.plot_surface(tabx, taby, tabu, cmap="plasma")
+
+            ax3d.set_title("2D Advection equation")
+            ax3d.set_xlabel("X")
+            ax3d.set_ylabel("Y")
+            ax3d.set_zlabel("U")
+            ims.append([im])
+
     if plot:
-        _ = ArtistAnimation(fig, ims, interval=200)
+        _ = ArtistAnimation(fig, ims)
+        # ani.save("Advec2D_20x20.mp4", writer="ffmpeg")
+        # ani.save("Advec2D_30x30.gif", writer='PillowWriter', fps=5)
         plt.show()

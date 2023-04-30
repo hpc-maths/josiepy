@@ -28,18 +28,17 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from josie.solver import Solver
+from josie.solver import DGSolver
 
-from .state import FracMomState
+from .state import Q
 from .schemes import FracMomScheme
 
 if TYPE_CHECKING:
     from josie.mesh import Mesh
 
 
-class FracMomSolver(Solver):
+class FracMomSolver(DGSolver):
     """A solver for the PGD system"""
 
     def __init__(self, mesh: Mesh, scheme: FracMomScheme):
-
-        super().__init__(mesh, FracMomState, scheme)
+        super().__init__(mesh, Q, scheme)

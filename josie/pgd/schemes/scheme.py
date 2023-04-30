@@ -28,20 +28,19 @@ from __future__ import annotations
 
 import numpy as np
 import copy
-import math
 from typing import TYPE_CHECKING
 from josie.pgd.problem import PGDProblem
-from josie.pgd.state import PGDState
+from josie.pgd.state import Q
 from josie.pgd.fields import PGDFields
-from josie.scheme.convective import ConvectiveScheme
+from josie.scheme.convective import ConvectiveDGScheme
 
 
 if TYPE_CHECKING:
-    from josie.mesh.cellset import NeighboursCellSet, MeshCellSet
+    from josie.mesh.cellset import MeshCellSet
     from josie.fluid.state import SingleFluidState
 
 
-class PGDScheme(ConvectiveScheme):
+class PGDScheme(ConvectiveDGScheme):
     """A general base class for PGD schemes"""
 
     problem: PGDProblem
@@ -59,19 +58,21 @@ class PGDScheme(ConvectiveScheme):
     def __init__(self):
         super().__init__(PGDProblem())
 
-    def accumulate(self, cells: MeshCellSet, neighs: NeighboursCellSet, t: float):
+    def post_integrate_fluxes(self, cells: MeshCellSet):
+        super().post_integrate_fluxes(cells)
+        self.limiter(cells)
 
-        # Compute fluxes computed eventually by the other terms (diffusive,
-        # nonconservative, source)
-        # super().accumulate(cells, neighs, t)
-        # Add conservative contribution
-        self._fluxes += np.einsum(
-            "...,...,ij,...jk->...ik",
-            self.eJ[..., neighs.direction],
-            self.J,
-            self.eM_ref_tab[neighs.direction],
-            self.F(cells, neighs),
+    def stiffness_fluxes(self, cells: MeshCellSet) -> np.ndarray:
+        vec = np.einsum(
+            "ijk,...jlk->...ilk",
+            self.K_ref,
+            self.problem.F(cells),
         )
+
+        vec = (2.0 / self.dx) * vec[..., 0] + (2.0 / self.dy) * vec[..., 1]
+        vec2 = np.zeros(self._fluxes.shape)
+        vec2.view(Q).set_conservative(vec)
+        return vec2
 
     def init_limiter(self, cells: MeshCellSet):
         self.U_min = np.amin(cells.values[..., PGDFields.U])
@@ -112,48 +113,77 @@ class PGDScheme(ConvectiveScheme):
                     theta_vmin = 1.0
                     if s_a_e[k, PGDFields.rho] < rhomin:
                         theta_rho = (rhomin - ucell[i, j, PGDFields.rho]) / (
-                            s_a_e[k, PGDFields.rho] - ucell[i, j, PGDFields.rho]
+                            s_a_e[k, PGDFields.rho]
+                            - ucell[i, j, PGDFields.rho]
                         )
-                    if s_a_e[k, PGDFields.rho] * vmax - s_a_e[k, PGDFields.rhoV] < 0.0:
+                    if (
+                        s_a_e[k, PGDFields.rho] * vmax
+                        - s_a_e[k, PGDFields.rhoV]
+                        < 0.0
+                    ):
                         theta_vmax = (
                             -ucell[i, j, PGDFields.rho] * vmax
                             + ucell[i, j, PGDFields.rhoV]
                         ) / (
-                            (s_a_e[k, PGDFields.rho] - ucell[i, j, PGDFields.rho])
+                            (
+                                s_a_e[k, PGDFields.rho]
+                                - ucell[i, j, PGDFields.rho]
+                            )
                             * vmax
                             - s_a_e[k, PGDFields.rhoV]
                             + ucell[i, j, PGDFields.rhoV]
                         )
 
-                    if s_a_e[k, PGDFields.rhoV] - s_a_e[k, PGDFields.rho] * vmin < 0.0:
+                    if (
+                        s_a_e[k, PGDFields.rhoV]
+                        - s_a_e[k, PGDFields.rho] * vmin
+                        < 0.0
+                    ):
                         theta_vmin = (
                             -ucell[i, j, PGDFields.rhoV]
                             + ucell[i, j, PGDFields.rho] * vmin
                         ) / (
                             s_a_e[k, PGDFields.rhoV]
                             - ucell[i, j, PGDFields.rhoV]
-                            - (s_a_e[k, PGDFields.rho] - ucell[i, j, PGDFields.rho])
+                            - (
+                                s_a_e[k, PGDFields.rho]
+                                - ucell[i, j, PGDFields.rho]
+                            )
                             * vmin
                         )
-                    if s_a_e[k, PGDFields.rho] * umax - s_a_e[k, PGDFields.rhoU] < 0.0:
+                    if (
+                        s_a_e[k, PGDFields.rho] * umax
+                        - s_a_e[k, PGDFields.rhoU]
+                        < 0.0
+                    ):
                         theta_umax = (
                             -ucell[i, j, PGDFields.rho] * umax
                             + ucell[i, j, PGDFields.rhoU]
                         ) / (
-                            (s_a_e[k, PGDFields.rho] - ucell[i, j, PGDFields.rho])
+                            (
+                                s_a_e[k, PGDFields.rho]
+                                - ucell[i, j, PGDFields.rho]
+                            )
                             * umax
                             - s_a_e[k, PGDFields.rhoU]
                             + ucell[i, j, PGDFields.rhoU]
                         )
 
-                    if s_a_e[k, PGDFields.rhoU] - s_a_e[k, PGDFields.rho] * umin < 0.0:
+                    if (
+                        s_a_e[k, PGDFields.rhoU]
+                        - s_a_e[k, PGDFields.rho] * umin
+                        < 0.0
+                    ):
                         theta_umin = (
                             -ucell[i, j, PGDFields.rhoU]
                             + ucell[i, j, PGDFields.rho] * umin
                         ) / (
                             s_a_e[k, PGDFields.rhoU]
                             - ucell[i, j, PGDFields.rhoU]
-                            - (s_a_e[k, PGDFields.rho] - ucell[i, j, PGDFields.rho])
+                            - (
+                                s_a_e[k, PGDFields.rho]
+                                - ucell[i, j, PGDFields.rho]
+                            )
                             * umin
                         )
                     theta[k] = max(
@@ -173,16 +203,14 @@ class PGDScheme(ConvectiveScheme):
                     + uavg[i, j, :, :]
                 )
 
-    def post_step(self, cells: MeshCellSet):
+    def post_step(self, values: Q):
         """During the step we update the conservative values. After the
         step we update the non-conservative variables. This method updates
         the values of the non-conservative (auxiliary) variables using the
         :class:`~.EOS`
         """
 
-        values: PGDState = cells.values.view(PGDState)
-
-        fields = values.fields
+        fields = Q.fields
 
         rho = values[..., fields.rho]
         rhoU = values[..., fields.rhoU]
@@ -227,10 +255,9 @@ class PGDScheme(ConvectiveScheme):
         return U
 
     def CFL(self, cells: MeshCellSet, CFL_value: float) -> float:
-
         dt = super().CFL(cells, CFL_value)
 
-        values: PGDState = cells.values.view(PGDState)
+        values: Q = cells.values.view(Q)
         fields = values.fields
 
         # Get the velocity components
@@ -238,7 +265,6 @@ class PGDScheme(ConvectiveScheme):
         UV = cells.values[..., UV_slice]
 
         U = np.linalg.norm(UV, axis=-1, keepdims=True)
-        c = cells.values[..., fields.c]
 
         sigma = np.max(np.abs(U))
 

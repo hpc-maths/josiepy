@@ -129,6 +129,8 @@ class RK(TimeScheme):
 
     """
 
+    t: np.ndarray
+
     def __init__(self, problem: Problem, butcher: ButcherTableau):
         # To make if work with the recursive :math:`k` function, we need to add
         # an initial value of 0 for c_s and a_s
@@ -186,7 +188,6 @@ class RK(TimeScheme):
 
         The highest :math:`k_s` value is stored in :attr:`_fluxes`
         """
-        # ipdb.set_trace()
         if step > 0:
             self.k(mesh, dt, t, step - 1)
             self._ks[..., step - 1] = self._fluxes.copy()
@@ -197,9 +198,13 @@ class RK(TimeScheme):
 
         t += c * dt
         step_cells = mesh.cells.copy()
-        step_cells.values -= dt * np.einsum(
-            "...i,...j->...", a_s, self._ks[..., :step]
+
+        self.integrate_fluxes(
+            step_cells,
+            np.einsum("...i,...j->...", a_s, self._ks[..., :step]),
+            dt,
         )
+
         step_cells.update_ghosts(mesh.boundaries, t)
 
         self.pre_accumulate(step_cells, t)
@@ -208,7 +213,8 @@ class RK(TimeScheme):
             self.accumulate(step_cells, neighs, t)
 
     def step(self, mesh: Mesh, dt: float, t: float):
-        self.k(mesh, dt, t, self.num_steps - 1)
+        self.t = t.copy()
+        self.k(mesh, dt, self.t, self.num_steps - 1)
         # Now self._fluxes contains the last k value. So we multiply the
         # corresponding b
         self._fluxes *= self.butcher.b_s[-1]

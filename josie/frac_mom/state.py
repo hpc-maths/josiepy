@@ -62,7 +62,7 @@ class FracMomConsState(SubsetState):
     fields = ConsFields
 
 
-class FracMomState(SingleFluidState):
+class Q(SingleFluidState):
     r"""The class representing the state variables of the PGD system
 
     .. math::

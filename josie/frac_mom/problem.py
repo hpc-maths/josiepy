@@ -34,7 +34,7 @@ from josie.math import Direction
 from josie.mesh.cellset import CellSet
 from josie.problem import Problem
 
-from .state import FracMomState
+from .state import Q
 from .fields import ConsFields
 
 
@@ -83,7 +83,7 @@ class FracMomProblem(Problem):
                     (\rho E + p)U & (\rho E + p)V
                 \end{bmatrix}
         """
-        values: FracMomState = cells.values.view(FracMomState)
+        values: Q = cells.values.view(Q)
         fields = values.fields
 
         num_cells_x, num_cells_y, num_dofs, _ = values.shape

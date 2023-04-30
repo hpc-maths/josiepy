@@ -62,7 +62,7 @@ class PGDConsState(SubsetState):
     fields = ConsFields
 
 
-class PGDState(SingleFluidState):
+class Q(SingleFluidState):
     r"""The class representing the state variables of the PGD system
 
     .. math::
