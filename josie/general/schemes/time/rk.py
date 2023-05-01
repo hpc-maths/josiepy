@@ -198,9 +198,9 @@ class RK(TimeScheme):
         self._fluxes *= self.butcher.b_s[-1]  # type: ignore
 
         # Let's sum all the other contributions from 0 to s-1
-        self._fluxes += np.einsum(
+        self._fluxes += np.einsum(  # type: ignore
             "i,...i->...", self.butcher.b_s[:-1], self._ks
-        )  # type: ignore
+        )
 
 
 class RK2Alpha(RK):
