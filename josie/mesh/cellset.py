@@ -121,7 +121,9 @@ class NeighboursCellSet(CellSet):
         direction,
         dimensionality,
     ):
-        super().__init__(volumes, surfaces, normals, centroids, values, dimensionality)
+        super().__init__(
+            volumes, surfaces, normals, centroids, values, dimensionality
+        )
 
         self.direction = direction
 
@@ -271,7 +273,9 @@ class MeshCellSet(CellSet):
             ]
 
         if self.dimensionality > 1:
-            directions.extend((NeighbourDirection.BOTTOM, NeighbourDirection.TOP))
+            directions.extend(
+                (NeighbourDirection.BOTTOM, NeighbourDirection.TOP)
+            )
 
         # TODO Add 3D
         # if self.dimensionality > 2:

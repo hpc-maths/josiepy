@@ -10,6 +10,7 @@ import numpy as np
 def init(x: np.ndarray):
     """Init function. It inits the state with a Rieman problemm"""
     u = np.empty(x.shape)
+    # u = np.sin(x)
 
     u[np.where(x > 0.45)] = 1
     u[np.where(x <= 0.45)] = 0
@@ -49,7 +50,9 @@ def upwind(u: np.ndarray, a: np.ndarray):
     u_minus_right = u[idx_a_minus + 2]
 
     au[idx_a_plus] = flux(u_plus, a_plus) - flux(u_plus_left, a_plus_left)
-    au[idx_a_minus] = flux(u_minus_right, a_minus_right) - flux(u_minus, a_minus)
+    au[idx_a_minus] = flux(u_minus_right, a_minus_right) - flux(
+        u_minus, a_minus
+    )
 
     return au
 
@@ -109,4 +112,4 @@ def main(nx, tf, CFL, plot=False):
 
 
 if __name__ == "__main__":
-    main(500, 4, 0.9)
+    main(100, 1, 0.9)

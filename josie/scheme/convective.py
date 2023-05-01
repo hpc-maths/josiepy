@@ -8,11 +8,10 @@ import abc
 
 from typing import TYPE_CHECKING
 
-from .scheme import Scheme
 from ..problem import ConvectiveProblem
+from .scheme import Scheme, DGScheme
 
 import numpy as np
-
 
 if TYPE_CHECKING:
     from josie.mesh.cellset import NeighboursCellSet, MeshCellSet
@@ -85,11 +84,48 @@ class ConvectiveScheme(Scheme):
         """
         raise NotImplementedError
 
-    def accumulate(self, cells: MeshCellSet, neighs: NeighboursCellSet, t: float):
+    def accumulate(
+        self, cells: MeshCellSet, neighs: NeighboursCellSet, t: float
+    ):
         # Compute fluxes computed eventually by the other terms (diffusive,
         # nonconservative, source)
         super().accumulate(cells, neighs, t)
 
         # Add conservative contribution
-        # FIXME: Ignoring typing: https://github.com/numpy/numpy/issues/20072
         self._fluxes += self.F(cells, neighs)  # type: ignore
+
+
+class ConvectiveDGScheme(DGScheme):
+    problem: ConvectiveProblem
+
+    def update_values_face(self, cells: MeshCellSet, dt: float):
+        pass
+
+    @abc.abstractmethod
+    def F(self, cells: MeshCellSet, neighs: NeighboursCellSet) -> State:
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def stiffness_fluxes(self, cells: MeshCellSet) -> np.ndarray:
+        raise NotImplementedError
+
+    def accumulate(
+        self, cells: MeshCellSet, neighs: NeighboursCellSet, t: float
+    ):
+        # Compute fluxes computed eventually by the other terms (diffusive,
+        # nonconservative, source)
+        super().accumulate(cells, neighs, t)
+
+        if not (self.is_stiff_flux_acc):
+            self._fluxes -= self.stiffness_fluxes(cells)  # type: ignore
+
+            self.is_stiff_flux_acc = True
+
+        # Add conservative contribution
+        self._fluxes += np.einsum(  # type: ignore
+            "...,...,ij,...jk->...ik",
+            self.eJ[..., neighs.direction],
+            self.J,
+            self.eM_ref_tab[neighs.direction],
+            self.F(cells, neighs),
+        )

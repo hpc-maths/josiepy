@@ -114,7 +114,7 @@ class RiemannProblem:
 def riemann_states(IntercellFluxScheme, ToroNonConservativeScheme, TimeScheme):
     class AdvectionOnly(ToroNonConservativeScheme, TimeScheme):
         # Define this to avoid exception of ABC
-        def post_step(self, cells):
+        def post_step(self, values):
             pass
 
         def CFL(
