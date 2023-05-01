@@ -60,9 +60,7 @@ class SchemeAdvDG(ConvectiveDGScheme):
             self.problem.F(cells),
         )
 
-        return (2.0 / self.dx) * vec[..., [0]] + (2.0 / self.dy) * vec[
-            ..., [1]
-        ]
+        return (2.0 / self.dx) * vec[..., [0]] + (2.0 / self.dy) * vec[..., [1]]
 
     def post_integrate_fluxes(self, cells: MeshCellSet):
         super().post_integrate_fluxes(cells)
@@ -115,18 +113,14 @@ def scheme():
                 )
             if neighs.direction == 1:
                 F[..., 0, 1] = (
-                    self.problem.F(cells)[..., 0, 1]
-                    + self.problem.F(neighs)[..., 1, 1]
+                    self.problem.F(cells)[..., 0, 1] + self.problem.F(neighs)[..., 1, 1]
                 ) * 0.5 - 0.5 * maxvel * (
-                    self.problem.F(cells)[..., 0, 1]
-                    - self.problem.F(neighs)[..., 1, 1]
+                    self.problem.F(cells)[..., 0, 1] - self.problem.F(neighs)[..., 1, 1]
                 )
                 F[..., 2, 1] = (
-                    self.problem.F(cells)[..., 2, 1]
-                    + self.problem.F(neighs)[..., 3, 1]
+                    self.problem.F(cells)[..., 2, 1] + self.problem.F(neighs)[..., 3, 1]
                 ) * 0.5 - 0.5 * maxvel * (
-                    self.problem.F(cells)[..., 2, 1]
-                    - self.problem.F(neighs)[..., 3, 1]
+                    self.problem.F(cells)[..., 2, 1] - self.problem.F(neighs)[..., 3, 1]
                 )
             if neighs.direction == 2:
                 F[..., 2:4, 0] = (
@@ -138,18 +132,14 @@ def scheme():
                 )
             if neighs.direction == 3:
                 F[..., 1, 1] = (
-                    self.problem.F(cells)[..., 1, 1]
-                    + self.problem.F(neighs)[..., 0, 1]
+                    self.problem.F(cells)[..., 1, 1] + self.problem.F(neighs)[..., 0, 1]
                 ) * 0.5 - 0.5 * maxvel * (
-                    self.problem.F(neighs)[..., 0, 1]
-                    - self.problem.F(cells)[..., 1, 1]
+                    self.problem.F(neighs)[..., 0, 1] - self.problem.F(cells)[..., 1, 1]
                 )
                 F[..., 3, 1] = (
-                    self.problem.F(cells)[..., 3, 1]
-                    + self.problem.F(neighs)[..., 2, 1]
+                    self.problem.F(cells)[..., 3, 1] + self.problem.F(neighs)[..., 2, 1]
                 ) * 0.5 - 0.5 * maxvel * (
-                    self.problem.F(neighs)[..., 2, 1]
-                    - self.problem.F(cells)[..., 3, 1]
+                    self.problem.F(neighs)[..., 2, 1] - self.problem.F(cells)[..., 3, 1]
                 )
             FS = np.einsum("...ij,...j->...i", F, neighs.normals)
             return FS[..., np.newaxis]

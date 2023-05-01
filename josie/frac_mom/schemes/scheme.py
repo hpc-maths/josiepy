@@ -148,39 +148,26 @@ class FracMomScheme(ConvectiveDGScheme):
                         theta_vmin = 0.0
                     else:
                         H1a = s_a_e[k, FracMomFields.m12]
-                        H1b = (
-                            s_a_e[k, FracMomFields.m0]
-                            - s_a_e[k, FracMomFields.m12]
-                        )
+                        H1b = s_a_e[k, FracMomFields.m0] - s_a_e[k, FracMomFields.m12]
                         H2a = (
-                            s_a_e[k, FracMomFields.m0]
-                            * s_a_e[k, FracMomFields.m1]
+                            s_a_e[k, FracMomFields.m0] * s_a_e[k, FracMomFields.m1]
                             - s_a_e[k, FracMomFields.m12] ** 2
                         )
-                        H2b = (
-                            s_a_e[k, FracMomFields.m12]
-                            - s_a_e[k, FracMomFields.m1]
-                        )
+                        H2b = s_a_e[k, FracMomFields.m12] - s_a_e[k, FracMomFields.m1]
                         H3a = (
-                            s_a_e[k, FracMomFields.m12]
-                            * s_a_e[k, FracMomFields.m32]
+                            s_a_e[k, FracMomFields.m12] * s_a_e[k, FracMomFields.m32]
                             - s_a_e[k, FracMomFields.m1] ** 2
                         )
                         H3b = (
-                            s_a_e[k, FracMomFields.m0]
-                            - s_a_e[k, FracMomFields.m12]
+                            s_a_e[k, FracMomFields.m0] - s_a_e[k, FracMomFields.m12]
                         ) * (
-                            s_a_e[k, FracMomFields.m1]
-                            - s_a_e[k, FracMomFields.m32]
+                            s_a_e[k, FracMomFields.m1] - s_a_e[k, FracMomFields.m32]
                         ) - (
-                            s_a_e[k, FracMomFields.m12]
-                            - s_a_e[k, FracMomFields.m1]
+                            s_a_e[k, FracMomFields.m12] - s_a_e[k, FracMomFields.m1]
                         ) ** 2
 
                         if s_a_e[k, FracMomFields.m0] < m0min:
-                            theta_m0 = (
-                                m0min - ucell[i, j, FracMomFields.m0]
-                            ) / (
+                            theta_m0 = (m0min - ucell[i, j, FracMomFields.m0]) / (
                                 s_a_e[k, FracMomFields.m0]
                                 - ucell[i, j, FracMomFields.m0]
                             )

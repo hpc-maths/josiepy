@@ -50,9 +50,7 @@ def upwind(u: np.ndarray, a: np.ndarray):
     u_minus_right = u[idx_a_minus + 2]
 
     au[idx_a_plus] = flux(u_plus, a_plus) - flux(u_plus_left, a_plus_left)
-    au[idx_a_minus] = flux(u_minus_right, a_minus_right) - flux(
-        u_minus, a_minus
-    )
+    au[idx_a_minus] = flux(u_minus_right, a_minus_right) - flux(u_minus, a_minus)
 
     return au
 

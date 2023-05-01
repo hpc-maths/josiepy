@@ -221,18 +221,12 @@ class SimpleCell(Cell):
         ne = np.asarray(ne)
 
         volume = (
-            np.linalg.norm(
-                np.cross(sw - nw, se - sw)[..., np.newaxis], axis=-1
-            )
-            / 2
+            np.linalg.norm(np.cross(sw - nw, se - sw)[..., np.newaxis], axis=-1) / 2
         )
 
         volume = (
             volume
-            + np.linalg.norm(
-                np.cross(se - ne, ne - nw)[..., np.newaxis], axis=-1
-            )
-            / 2
+            + np.linalg.norm(np.cross(se - ne, ne - nw)[..., np.newaxis], axis=-1) / 2
         )
 
         return volume
@@ -318,9 +312,7 @@ class SimpleCell(Cell):
         )
 
         volumes = np.full((nx + 2, ny + 2), np.nan)
-        normals = np.full(
-            (nx + 2, ny + 2, cls.num_points, MAX_DIMENSIONALITY), np.nan
-        )
+        normals = np.full((nx + 2, ny + 2, cls.num_points, MAX_DIMENSIONALITY), np.nan)
         surfaces = np.full((nx + 2, ny + 2, cls.num_points), np.nan)
 
         cells = MeshCellSet(
@@ -370,14 +362,11 @@ class SimpleCell(Cell):
             boundary_idx = boundary.cells_idx
             ghost_idx = boundary.ghost_cells_idx
 
-            boundary_centroids = mesh.cells._centroids[
-                boundary_idx[0], boundary_idx[1]
-            ]
+            boundary_centroids = mesh.cells._centroids[boundary_idx[0], boundary_idx[1]]
 
             # Compute the ghost cells centroids
             mesh.cells._centroids[ghost_idx[0], ghost_idx[1]] = (
-                boundary_centroids
-                + cls._side_normal[side.name] * mesh.cells.min_length
+                boundary_centroids + cls._side_normal[side.name] * mesh.cells.min_length
             )
 
     @classmethod
@@ -440,9 +429,7 @@ class DGCell(SimpleCell):
             return 1.0 / np.sqrt(2 / (2 * n + 1))
 
         # Pseudo-Vandermonde matrix
-        with np.nditer(
-            V, flags=["multi_index"], op_flags=[["writeonly"]]
-        ) as it:
+        with np.nditer(V, flags=["multi_index"], op_flags=[["writeonly"]]) as it:
             for x in it:
                 i, j, n, m = it.multi_index
                 x[...] = (  # type: ignore
@@ -472,12 +459,12 @@ class DGCell(SimpleCell):
             return 1.0 / np.sqrt(2 / (2 * n + 1))
 
         # Pseudo-Vandermonde matrix
-        with np.nditer(
-            V, flags=["multi_index"], op_flags=[["writeonly"]]
-        ) as it:
+        with np.nditer(V, flags=["multi_index"], op_flags=[["writeonly"]]) as it:
             for x in it:
                 i, n = it.multi_index
-                x[...] = sqrtgamma(n) * sp.legendre(n)(quad_points_1D[i])  # type: ignore
+                x[...] = sqrtgamma(n) * sp.legendre(n)(  # type: ignore
+                    quad_points_1D[i]
+                )
 
         return V
 
@@ -567,9 +554,7 @@ class DGCell(SimpleCell):
             return 1.0 / np.sqrt(2 / (2 * n + 1))
 
         # X derivative of Pseudo-Vandermonde matrix
-        with np.nditer(
-            Vx, flags=["multi_index"], op_flags=[["writeonly"]]
-        ) as it:
+        with np.nditer(Vx, flags=["multi_index"], op_flags=[["writeonly"]]) as it:
             for x in it:
                 i, j, n, m = it.multi_index
                 x[...] = (  # type: ignore
@@ -580,9 +565,7 @@ class DGCell(SimpleCell):
                 )
 
         # Y derivative of Pseudo-Vandermonde matrix
-        with np.nditer(
-            Vy, flags=["multi_index"], op_flags=[["writeonly"]]
-        ) as it:
+        with np.nditer(Vy, flags=["multi_index"], op_flags=[["writeonly"]]) as it:
             for x in it:
                 i, j, n, m = it.multi_index
                 x[...] = (  # type: ignore

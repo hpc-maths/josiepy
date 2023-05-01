@@ -84,9 +84,7 @@ class ConvectiveScheme(Scheme):
         """
         raise NotImplementedError
 
-    def accumulate(
-        self, cells: MeshCellSet, neighs: NeighboursCellSet, t: float
-    ):
+    def accumulate(self, cells: MeshCellSet, neighs: NeighboursCellSet, t: float):
         # Compute fluxes computed eventually by the other terms (diffusive,
         # nonconservative, source)
         super().accumulate(cells, neighs, t)
@@ -109,9 +107,7 @@ class ConvectiveDGScheme(DGScheme):
     def stiffness_fluxes(self, cells: MeshCellSet) -> np.ndarray:
         raise NotImplementedError
 
-    def accumulate(
-        self, cells: MeshCellSet, neighs: NeighboursCellSet, t: float
-    ):
+    def accumulate(self, cells: MeshCellSet, neighs: NeighboursCellSet, t: float):
         # Compute fluxes computed eventually by the other terms (diffusive,
         # nonconservative, source)
         super().accumulate(cells, neighs, t)

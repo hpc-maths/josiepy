@@ -113,77 +113,48 @@ class PGDScheme(ConvectiveDGScheme):
                     theta_vmin = 1.0
                     if s_a_e[k, PGDFields.rho] < rhomin:
                         theta_rho = (rhomin - ucell[i, j, PGDFields.rho]) / (
-                            s_a_e[k, PGDFields.rho]
-                            - ucell[i, j, PGDFields.rho]
+                            s_a_e[k, PGDFields.rho] - ucell[i, j, PGDFields.rho]
                         )
-                    if (
-                        s_a_e[k, PGDFields.rho] * vmax
-                        - s_a_e[k, PGDFields.rhoV]
-                        < 0.0
-                    ):
+                    if s_a_e[k, PGDFields.rho] * vmax - s_a_e[k, PGDFields.rhoV] < 0.0:
                         theta_vmax = (
                             -ucell[i, j, PGDFields.rho] * vmax
                             + ucell[i, j, PGDFields.rhoV]
                         ) / (
-                            (
-                                s_a_e[k, PGDFields.rho]
-                                - ucell[i, j, PGDFields.rho]
-                            )
+                            (s_a_e[k, PGDFields.rho] - ucell[i, j, PGDFields.rho])
                             * vmax
                             - s_a_e[k, PGDFields.rhoV]
                             + ucell[i, j, PGDFields.rhoV]
                         )
 
-                    if (
-                        s_a_e[k, PGDFields.rhoV]
-                        - s_a_e[k, PGDFields.rho] * vmin
-                        < 0.0
-                    ):
+                    if s_a_e[k, PGDFields.rhoV] - s_a_e[k, PGDFields.rho] * vmin < 0.0:
                         theta_vmin = (
                             -ucell[i, j, PGDFields.rhoV]
                             + ucell[i, j, PGDFields.rho] * vmin
                         ) / (
                             s_a_e[k, PGDFields.rhoV]
                             - ucell[i, j, PGDFields.rhoV]
-                            - (
-                                s_a_e[k, PGDFields.rho]
-                                - ucell[i, j, PGDFields.rho]
-                            )
+                            - (s_a_e[k, PGDFields.rho] - ucell[i, j, PGDFields.rho])
                             * vmin
                         )
-                    if (
-                        s_a_e[k, PGDFields.rho] * umax
-                        - s_a_e[k, PGDFields.rhoU]
-                        < 0.0
-                    ):
+                    if s_a_e[k, PGDFields.rho] * umax - s_a_e[k, PGDFields.rhoU] < 0.0:
                         theta_umax = (
                             -ucell[i, j, PGDFields.rho] * umax
                             + ucell[i, j, PGDFields.rhoU]
                         ) / (
-                            (
-                                s_a_e[k, PGDFields.rho]
-                                - ucell[i, j, PGDFields.rho]
-                            )
+                            (s_a_e[k, PGDFields.rho] - ucell[i, j, PGDFields.rho])
                             * umax
                             - s_a_e[k, PGDFields.rhoU]
                             + ucell[i, j, PGDFields.rhoU]
                         )
 
-                    if (
-                        s_a_e[k, PGDFields.rhoU]
-                        - s_a_e[k, PGDFields.rho] * umin
-                        < 0.0
-                    ):
+                    if s_a_e[k, PGDFields.rhoU] - s_a_e[k, PGDFields.rho] * umin < 0.0:
                         theta_umin = (
                             -ucell[i, j, PGDFields.rhoU]
                             + ucell[i, j, PGDFields.rho] * umin
                         ) / (
                             s_a_e[k, PGDFields.rhoU]
                             - ucell[i, j, PGDFields.rhoU]
-                            - (
-                                s_a_e[k, PGDFields.rho]
-                                - ucell[i, j, PGDFields.rho]
-                            )
+                            - (s_a_e[k, PGDFields.rho] - ucell[i, j, PGDFields.rho])
                             * umin
                         )
                     theta[k] = max(

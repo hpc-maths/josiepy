@@ -61,9 +61,7 @@ class SchemeAdvDG(ConvectiveDGScheme):
             self.problem.F(cells),
         )
 
-        return (2.0 / self.dx) * vec[..., [0]] + (2.0 / self.dy) * vec[
-            ..., [1]
-        ]
+        return (2.0 / self.dx) * vec[..., [0]] + (2.0 / self.dy) * vec[..., [1]]
 
     def post_integrate_fluxes(self, cells: MeshCellSet):
         super().post_integrate_fluxes(cells)

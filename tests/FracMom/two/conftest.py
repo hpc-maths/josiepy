@@ -27,12 +27,8 @@ def delta_shock(cells: MeshCellSet):
     cells.values[..., FracMomFields.U] = U
     cells.values[..., FracMomFields.V] = V
 
-    cells.values[..., FracMomFields.m1U] = (
-        U * cells.values[..., FracMomFields.m1]
-    )
-    cells.values[..., FracMomFields.m1V] = (
-        V * cells.values[..., FracMomFields.m1]
-    )
+    cells.values[..., FracMomFields.m1U] = U * cells.values[..., FracMomFields.m1]
+    cells.values[..., FracMomFields.m1V] = V * cells.values[..., FracMomFields.m1]
 
 
 def bouchut_vacuum(cells: MeshCellSet):
@@ -54,12 +50,8 @@ def bouchut_vacuum(cells: MeshCellSet):
     cells.values[..., FracMomFields.U] = U
     cells.values[..., FracMomFields.V] = V
 
-    cells.values[..., FracMomFields.m1U] = (
-        U * cells.values[..., FracMomFields.m1]
-    )
-    cells.values[..., FracMomFields.m1V] = (
-        V * cells.values[..., FracMomFields.m1]
-    )
+    cells.values[..., FracMomFields.m1U] = U * cells.values[..., FracMomFields.m1]
+    cells.values[..., FracMomFields.m1V] = V * cells.values[..., FracMomFields.m1]
 
 
 def delta_shock2(cells: MeshCellSet):
@@ -71,9 +63,9 @@ def delta_shock2(cells: MeshCellSet):
     c2_x = 0.15
     c2_y = 0.15
     sigma = 125.0 * 1000.0 / (33.0**2)
-    g = np.exp(
-        -sigma * (np.fabs(c_x - c1_x) ** 2 + np.fabs(c_y - c1_y) ** 2)
-    ) + np.exp(-sigma * (np.fabs(c_x - c2_x) ** 2 + np.fabs(c_y - c2_y) ** 2))
+    g = np.exp(-sigma * (np.fabs(c_x - c1_x) ** 2 + np.fabs(c_y - c1_y) ** 2)) + np.exp(
+        -sigma * (np.fabs(c_x - c2_x) ** 2 + np.fabs(c_y - c2_y) ** 2)
+    )
     cells.values[..., FracMomFields.m0] = g
     cells.values[..., FracMomFields.m12] = g
     cells.values[..., FracMomFields.m1] = g
@@ -89,12 +81,10 @@ def delta_shock2(cells: MeshCellSet):
     cells.values[..., FracMomFields.V] = V
 
     cells.values[..., FracMomFields.m1U] = (
-        cells.values[..., FracMomFields.U]
-        * cells.values[..., FracMomFields.m1]
+        cells.values[..., FracMomFields.U] * cells.values[..., FracMomFields.m1]
     )
     cells.values[..., FracMomFields.m1V] = (
-        cells.values[..., FracMomFields.V]
-        * cells.values[..., FracMomFields.m1]
+        cells.values[..., FracMomFields.V] * cells.values[..., FracMomFields.m1]
     )
 
 
@@ -105,26 +95,18 @@ def step(cells: MeshCellSet):
     cells.values[..., FracMomFields.m0] = np.where(
         (c_x > 0.4) * (c_y > 0.4) * (c_x < 0.6) * (c_y < 0.6), 1, 1e-10
     )
-    cells.values[..., FracMomFields.m12] = cells.values[
-        ..., FracMomFields.m0
-    ].copy()
-    cells.values[..., FracMomFields.m1] = cells.values[
-        ..., FracMomFields.m0
-    ].copy()
-    cells.values[..., FracMomFields.m32] = cells.values[
-        ..., FracMomFields.m0
-    ].copy()
+    cells.values[..., FracMomFields.m12] = cells.values[..., FracMomFields.m0].copy()
+    cells.values[..., FracMomFields.m1] = cells.values[..., FracMomFields.m0].copy()
+    cells.values[..., FracMomFields.m32] = cells.values[..., FracMomFields.m0].copy()
 
     cells.values[..., FracMomFields.U] = 1.0
     cells.values[..., FracMomFields.V] = 1.0
 
     cells.values[..., FracMomFields.m1U] = (
-        cells.values[..., FracMomFields.U]
-        * cells.values[..., FracMomFields.m1]
+        cells.values[..., FracMomFields.U] * cells.values[..., FracMomFields.m1]
     )
     cells.values[..., FracMomFields.m1V] = (
-        cells.values[..., FracMomFields.V]
-        * cells.values[..., FracMomFields.m1]
+        cells.values[..., FracMomFields.V] * cells.values[..., FracMomFields.m1]
     )
 
 
@@ -145,12 +127,10 @@ def gauss(cells: MeshCellSet):
     cells.values[..., FracMomFields.V] = 1.0
 
     cells.values[..., FracMomFields.m1U] = (
-        cells.values[..., FracMomFields.m1]
-        * cells.values[..., FracMomFields.U]
+        cells.values[..., FracMomFields.m1] * cells.values[..., FracMomFields.U]
     )
     cells.values[..., FracMomFields.m1V] = (
-        cells.values[..., FracMomFields.m1]
-        * cells.values[..., FracMomFields.V]
+        cells.values[..., FracMomFields.m1] * cells.values[..., FracMomFields.V]
     )
 
 
@@ -164,12 +144,10 @@ def const(cells: MeshCellSet):
     cells.values[..., FracMomFields.V] = 1.0
 
     cells.values[..., FracMomFields.m1U] = (
-        cells.values[..., FracMomFields.m1]
-        * cells.values[..., FracMomFields.U]
+        cells.values[..., FracMomFields.m1] * cells.values[..., FracMomFields.U]
     )
     cells.values[..., FracMomFields.m1V] = (
-        cells.values[..., FracMomFields.m1]
-        * cells.values[..., FracMomFields.V]
+        cells.values[..., FracMomFields.m1] * cells.values[..., FracMomFields.V]
     )
 
 

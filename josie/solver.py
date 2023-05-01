@@ -62,9 +62,7 @@ class Solver:
         self.Q = Q
         self.scheme = scheme
 
-        if self.mesh.cell_type == DGCell or issubclass(
-            scheme.__class__, DGScheme
-        ):
+        if self.mesh.cell_type == DGCell or issubclass(scheme.__class__, DGScheme):
             raise TypeError("A DGSolver is required for the DG method.")
 
     def init(self, init_fun: Callable[[MeshCellSet], NoReturn]):
@@ -162,9 +160,7 @@ class DGSolver(Solver):
         if self.mesh.cell_type != DGCell or not (
             issubclass(scheme.__class__, DGScheme)
         ):
-            raise TypeError(
-                "A DGCell and a DGScheme are required for the DG method."
-            )
+            raise TypeError("A DGCell and a DGScheme are required for the DG method.")
 
         self.dx = mesh._x[1, 0] - mesh._x[0, 0]
         self.dy = mesh._y[0, 1] - mesh._y[0, 0]
