@@ -120,9 +120,9 @@ class State(np.ndarray):
         num_dofs = mesh.cell_type.num_dofs
         state_size = len(cls.fields)
 
-        return np.empty((nx + 2, ny + 2, num_dofs, state_size)).view(  # type: ignore[arg-type]
-            cls
-        )
+        return np.empty(
+            (nx + 2, ny + 2, num_dofs, state_size)  # type: ignore[arg-type]
+        ).view(cls)
 
 
 def StateTemplate(*fields: str) -> Type[State]:
