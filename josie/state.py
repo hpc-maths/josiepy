@@ -117,12 +117,12 @@ class State(np.ndarray):
         # single cell
         nx = mesh.num_cells_x
         ny = mesh.num_cells_y
-        state_size = len(cls.fields)
         num_dofs = mesh.cell_type.num_dofs
+        state_size = len(cls.fields)
 
-        # I'm ignoring the type checking here below because it seems a bug:
-        # https://github.com/python/mypy/issues/8993
-        return np.empty((nx + 2, ny + 2, num_dofs, state_size)).view(cls)  # type: ignore # noqa: 501
+        return np.empty(
+            (nx + 2, ny + 2, num_dofs, state_size)  # type: ignore[arg-type]
+        ).view(cls)
 
 
 def StateTemplate(*fields: str) -> Type[State]:

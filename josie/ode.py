@@ -104,6 +104,7 @@ class OdeSolver(Solver):
 
         strategy = TimeStrategy(dt_save=self.dt)
         writer = WriterClass(strategy, self, final_time, CFL=1.0)
+        # writer = WriterClass(strategy, self, final_time, CFL=0.5)
 
         writer.solve()
 

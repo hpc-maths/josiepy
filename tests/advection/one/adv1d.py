@@ -10,6 +10,7 @@ import numpy as np
 def init(x: np.ndarray):
     """Init function. It inits the state with a Rieman problemm"""
     u = np.empty(x.shape)
+    # u = np.sin(x)
 
     u[np.where(x > 0.45)] = 1
     u[np.where(x <= 0.45)] = 0
@@ -109,4 +110,4 @@ def main(nx, tf, CFL, plot=False):
 
 
 if __name__ == "__main__":
-    main(500, 4, 0.9)
+    main(100, 1, 0.9)

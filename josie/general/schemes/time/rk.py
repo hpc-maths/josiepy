@@ -107,6 +107,8 @@ class RK(TimeScheme):
 
     """
 
+    t: np.ndarray
+
     def __init__(self, problem: Problem, butcher: ButcherTableau):
         # To make if work with the recursive :math:`k` function, we need to add
         # an initial value of 0 for c_s and a_s
@@ -163,7 +165,6 @@ class RK(TimeScheme):
 
         The highest :math:`k_s` value is stored in :attr:`_fluxes`
         """
-
         if step > 0:
             self.k(mesh, dt, t, step - 1)
             self._ks[..., step - 1] = self._fluxes.copy()
@@ -174,12 +175,13 @@ class RK(TimeScheme):
 
         t += c * dt
         step_cells = mesh.cells.copy()
-        step_cells.values = (
-            step_cells.values
-            - dt
-            * np.einsum("k,...k->...", a_s, self._ks[..., :step])
-            / mesh.cells.volumes[..., np.newaxis, np.newaxis]
+
+        self.integrate_fluxes(
+            step_cells,
+            np.einsum("...i,...j->...", a_s, self._ks[..., :step]),
+            dt,
         )
+
         step_cells.update_ghosts(mesh.boundaries, t)
 
         self.pre_accumulate(step_cells, t)
@@ -189,12 +191,13 @@ class RK(TimeScheme):
 
     def step(self, mesh: Mesh, dt: float, t: float):
         self.k(mesh, dt, t, self.num_steps - 1)
+
         # Now self._fluxes contains the last k value. So we multiply the
         # corresponding b
-        self._fluxes = self._fluxes * self.butcher.b_s[-1]
+        self._fluxes *= self.butcher.b_s[-1]  # type: ignore
 
         # Let's sum all the other contributions from 0 to s-1
-        self._fluxes = self._fluxes + np.einsum(
+        self._fluxes += np.einsum(  # type: ignore
             "i,...i->...", self.butcher.b_s[:-1], self._ks
         )
 
