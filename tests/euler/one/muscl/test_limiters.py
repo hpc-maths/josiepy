@@ -7,14 +7,12 @@ and Numerical Methods for Fluid Dynamics: A Practical Introduction. 3rd
 ed. Berlin Heidelberg: Springer-Verlag, 2009.
 https://doi.org/10.1007/b79761, pages 508-510 """
 
-import inspect
 import matplotlib.pyplot as plt
 import numpy as np
 import pytest
 
 from josie.general.schemes.time import ExplicitEuler
 from josie.general.schemes.space.muscl import MUSCL_Hancock
-import josie.general.schemes.space.limiters as MUSCL_Limiters
 from josie.general.schemes.space.limiters import (
     MinMod,
     Minbee,
