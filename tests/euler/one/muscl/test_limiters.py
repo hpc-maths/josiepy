@@ -13,7 +13,17 @@ import numpy as np
 import pytest
 
 from josie.general.schemes.time import ExplicitEuler
-import josie.general.schemes.space.limiters as MUSCL_limiters
+from josie.general.schemes.space.muscl import MUSCL_Hancock
+import josie.general.schemes.space.limiters as MUSCL_Limiters
+from josie.general.schemes.space.limiters import (
+    MinMod,
+    Minbee,
+    No_Limiter,
+    Superbee,
+    Superbee_r,
+    van_Albada,
+    van_Leer,
+)
 
 from josie.bc import Dirichlet
 from josie.boundary import Line
@@ -35,19 +45,17 @@ def relative_error(a, b):
 
 
 @pytest.fixture(
-    params=[
-        member[1] for member in inspect.getmembers(MUSCL_limiters, inspect.isclass)
-    ],
+    params=[MinMod, Minbee, No_Limiter, Superbee, Superbee_r, van_Albada, van_Leer],
 )
-def MUSCLScheme(request):
+def Limiter(request):
     yield request.param
 
 
 @pytest.fixture
-def Scheme(MUSCLScheme):
+def Scheme(Limiter):
     """Create all the different schemes"""
 
-    class ToroScheme(MUSCLScheme, ExplicitEuler, HLLC):
+    class ToroScheme(Limiter, MUSCL_Hancock, ExplicitEuler, HLLC):
         pass
 
     return ToroScheme

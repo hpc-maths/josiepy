@@ -22,9 +22,6 @@ class MUSCL(ConvectiveScheme):
     # between -1 and 1
     omega = 0
 
-    def limiter(self, slope_L: np.ndarray, slope_R: np.ndarray):
-        return super().limiter(slope_L, slope_R)
-
     def compute_slopes(self, cells: MeshCellSet):
         # Compute intercell slopes for each face
         # We assume here that all cell sizes are the same
