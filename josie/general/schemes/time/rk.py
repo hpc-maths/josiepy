@@ -143,6 +143,7 @@ class RK(TimeScheme):
         self._ks: np.ndarray = np.empty(
             (nx, ny, num_dofs, num_fields, self.num_steps - 1)
         )
+        self.step_cells = cells.copy()
 
     def pre_step(self, cells: MeshCellSet, dt: float):
         """Zero-out the array containing the :math:`k_s` values
@@ -173,19 +174,18 @@ class RK(TimeScheme):
         a_s = self.butcher.a_s[step : 2 * step + 1]
 
         t += c * dt
-        step_cells = mesh.cells.copy()
-        step_cells.values = (
-            step_cells.values
-            - dt
+        self.step_cells = mesh.cells.copy()
+        self.step_cells.values -= (  # type: ignore
+            dt
             * np.einsum("k,...k->...", a_s, self._ks[..., :step])
             / mesh.cells.volumes[..., np.newaxis, np.newaxis]
         )
-        step_cells.update_ghosts(mesh.boundaries, t)
+        self.step_cells.update_ghosts(mesh.boundaries, t)
 
-        self.pre_accumulate(step_cells, t)
+        self.pre_accumulate(self.step_cells, dt, t)
 
-        for neighs in step_cells.neighbours:
-            self.accumulate(step_cells, neighs, t)
+        for neighs in self.step_cells.neighbours:
+            self.accumulate(self.step_cells, neighs, t)
 
     def step(self, mesh: Mesh, dt: float, t: float):
         self.k(mesh, dt, t, self.num_steps - 1)

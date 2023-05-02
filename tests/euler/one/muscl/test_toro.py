@@ -12,7 +12,8 @@ import numpy as np
 import pytest
 
 from josie.general.schemes.time import ExplicitEuler
-from josie.general.schemes.space.limiters import MUSCL_Hancock_MinMod
+from josie.general.schemes.space.muscl import MUSCL_Hancock
+from josie.general.schemes.space.limiters import MinMod
 
 from josie.bc import Dirichlet
 from josie.boundary import Line
@@ -31,16 +32,11 @@ def relative_error(a, b):
     return np.abs(a - b)
 
 
-@pytest.fixture(params=[MUSCL_Hancock_MinMod])
-def MUSCLScheme(request):
-    yield request.param
-
-
 @pytest.fixture
-def Scheme(MUSCLScheme):
+def Scheme():
     """Create all the different schemes"""
 
-    class ToroScheme(MUSCLScheme, ExplicitEuler, HLLC):
+    class ToroScheme(MUSCL_Hancock, MinMod, ExplicitEuler, HLLC):
         pass
 
     return ToroScheme

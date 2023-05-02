@@ -9,6 +9,8 @@ from josie.boundary import Line
 from josie.mesh import Mesh
 from josie.mesh.cell import SimpleCell
 
+import numpy as np
+
 
 @pytest.fixture
 def boundaries():
@@ -34,3 +36,25 @@ def mesh(boundaries):
     mesh.generate()
 
     yield mesh
+
+
+@pytest.fixture
+def init():
+    def init(x: np.ndarray):
+        """Init function."""
+
+        a = 0.05
+        b = 0.85
+
+        return np.where(
+            (x > a) * (x < b),
+            np.exp(-1 / (x - a) ** 2)
+            * np.exp(-1 / (x - b) ** 2)
+            / (
+                np.exp(-1 / ((a + b) / 2 - a) ** 2)
+                * np.exp(-1 / ((a + b) / 2 - b) ** 2)
+            ),
+            0,
+        )
+
+    yield init

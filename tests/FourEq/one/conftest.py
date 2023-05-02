@@ -8,10 +8,8 @@ from dataclasses import dataclass
 
 from josie.FourEq.exact import Exact
 from josie.general.schemes.time.euler import ExplicitEuler
-from josie.general.schemes.space import Godunov
-from josie.general.schemes.space.limiters import (
-    MUSCL_Hancock_MinMod,
-)
+from josie.general.schemes.space.muscl import MUSCL_Hancock
+from josie.general.schemes.space.limiters import MinMod
 
 
 @dataclass
@@ -56,21 +54,16 @@ def riemann_state(request):
     yield request.param
 
 
-@pytest.fixture(params=[Godunov, MUSCL_Hancock_MinMod])
-def SpaceScheme(request):
-    yield request.param
-
-
 @pytest.fixture(params=[Exact])
 def IntercellFlux(request):
     yield request.param
 
 
 @pytest.fixture
-def Scheme(SpaceScheme, IntercellFlux):
+def Scheme(IntercellFlux):
     """Create all the different schemes"""
 
-    class CVVScheme(SpaceScheme, IntercellFlux, ExplicitEuler):
+    class CVVScheme(MUSCL_Hancock, MinMod, IntercellFlux, ExplicitEuler):
         pass
 
     return CVVScheme
