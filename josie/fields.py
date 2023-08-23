@@ -7,10 +7,10 @@ import sys
 from typing import List, Optional
 
 from aenum import (
-    _is_sunder,
-    _is_dunder,
-    _is_descriptor,
-    _is_private_name,
+    is_sunder,
+    is_dunder,
+    is_descriptor,
+    is_private_name,
 )
 
 
@@ -49,10 +49,10 @@ class FieldsMeta(type):
                 (k, Field(k, v))
                 for (k, v) in clsdict.items()
                 if not (
-                    _is_sunder(k)
-                    or _is_dunder(k)
-                    or _is_private_name(cls, k)
-                    or _is_descriptor(v)
+                    is_sunder(k)
+                    or is_dunder(k)
+                    or is_private_name(cls, k)
+                    or is_descriptor(v)
                 )
             ]
         )
