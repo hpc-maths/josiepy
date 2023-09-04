@@ -2,18 +2,30 @@
 #
 # SPDX-License-Identifier: BSD-3-Clause
 
+import numpy as np
+
 from josie.mesh.cellset import MeshCellSet, NeighboursCellSet
+from josie.mesh.mesh import Mesh
+from josie.state import State
 
 from josie.scheme.convective import ConvectiveScheme
 
 
 class Godunov(ConvectiveScheme):
-    def post_init(self, cells: MeshCellSet):
+    def post_init(self, mesh: Mesh):
         r"""Initialize the datastructure holding the values at interface
         for each cell and face
         """
 
-        super().post_init(cells)
+        super().post_init(mesh)
+
+        self._fluxes: State = np.empty_like(mesh.cells.values)
+
+    def apply_fluxes(self, cells: MeshCellSet, dt: float):
+        # Update the cell values
+        cells.values = cells.values - np.einsum(
+            "...kl,...->...kl", self._fluxes * dt, cells.volumes
+        )
 
     def F(self, cells: MeshCellSet, neighs: NeighboursCellSet):
         # Solve the Riemann problem to compute the intercell flux

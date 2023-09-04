@@ -388,3 +388,12 @@ class SimpleCell(Cell):
         io_cells = np.split(np.arange(rows), num_chunks)
 
         return MeshIO(io_pts, {cls._meshio_cell_type: np.array(io_cells)})
+
+
+class MUSCLCell(SimpleCell):
+    """
+    The first DOF is in the center of cell
+    The next four are the extrapolated values for MUSCL at the center of each faces
+    """
+
+    num_dofs = 5

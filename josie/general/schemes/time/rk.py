@@ -125,7 +125,7 @@ class RK(TimeScheme):
         self.butcher = butcher
         self.num_steps: int = len(butcher.b_s)
 
-    def post_init(self, cells: MeshCellSet):
+    def post_init(self, mesh: Mesh):
         r"""A Runge-Kutta method needs to store intermediate steps. It needs
         :math:`s - 1` additional storage slots, where :math:`s` is the number
         of steps of the Runge-Kutta method
@@ -136,10 +136,10 @@ class RK(TimeScheme):
             A :class:`MeshCellSet` containing the state of the mesh cells
         """
 
-        super().post_init(cells)
+        super().post_init(mesh)
 
+        cells = mesh.cells
         nx, ny, num_dofs, num_fields = cells.values.shape
-
         self._ks: np.ndarray = np.empty(
             (nx, ny, num_dofs, num_fields, self.num_steps - 1)
         )

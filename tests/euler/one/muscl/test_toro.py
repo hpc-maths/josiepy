@@ -19,7 +19,7 @@ from josie.bc import Dirichlet
 from josie.boundary import Line
 from josie.math import Direction
 from josie.mesh import Mesh
-from josie.mesh.cell import SimpleCell
+from josie.mesh.cell import MUSCLCell
 from josie.mesh.cellset import MeshCellSet
 from josie.euler.eos import PerfectGas
 from josie.euler.schemes import HLLC
@@ -80,7 +80,7 @@ def test_toro(toro_riemann_state, Scheme, plot, request):
     top.bc = None
     bottom.bc = None
 
-    mesh = Mesh(left, bottom, right, top, SimpleCell)
+    mesh = Mesh(left, bottom, right, top, MUSCLCell)
     mesh.interpolate(100, 1)
     mesh.generate()
 

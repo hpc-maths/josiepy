@@ -6,16 +6,16 @@ import numpy as np
 
 from josie.mesh.cellset import MeshCellSet, NeighboursCellSet
 
+from josie.mesh.mesh import Mesh
+
 from josie.scheme.convective import ConvectiveScheme
 
 from josie.mesh.cellset import DimensionPair
 
-from josie.fluid.state import ConsState
+from josie.state import State
 
 
 class MUSCL(ConvectiveScheme):
-    _values: ConsState
-
     slopes: np.ndarray
 
     # Parameter for limiters
@@ -34,7 +34,8 @@ class MUSCL(ConvectiveScheme):
             neigh_R = cells.neighbours[dir_R]
 
             slope = self.limiter(
-                cells.values - neigh_L.values, neigh_R.values - cells.values
+                cells.values[..., [0], :] - neigh_L.values[..., [0], :],
+                neigh_R.values[..., [0], :] - cells.values[..., [0], :],
             )
 
             self.slopes[..., dir_R] = slope
@@ -57,8 +58,13 @@ class MUSCL(ConvectiveScheme):
         # Compute linear extrapolated values at each face
         for direction in range(2**cells.dimensionality):
             self.values_face.values[..., direction] = (
-                cells.values + 0.5 * self.slopes[..., direction]
+                cells.values[..., [0], :] + 0.5 * self.slopes[..., direction]
             )
+
+    def apply_fluxes(self, cells: MeshCellSet, dt: float):
+        cells.values = cells.values - np.einsum(
+            "...kl,...->...kl", self._fluxes, dt / cells.volumes
+        )
 
     def F(self, cells: MeshCellSet, neighs: NeighboursCellSet):
         # Solve the Riemann problem to compute the intercell flux
@@ -77,21 +83,24 @@ class MUSCL(ConvectiveScheme):
             neighs.surfaces,
         )
 
-    def post_init(self, cells: MeshCellSet):
+    def post_init(self, mesh: Mesh):
         r"""Initialize the datastructure holding the values at interface
         for each cell and face
         """
 
-        super().post_init(cells)
+        super().post_init(mesh)
+
+        self._fluxes: State = np.empty_like(mesh.cells.values)
+        cells = mesh.cells
 
         self.values_face = cells.copy()
 
-        self.slopes = np.empty(cells.values.shape + (2**cells.dimensionality,)).view(
-            cells._values.__class__
-        )
+        self.slopes = np.empty(
+            cells.values[..., [0], :].shape + (2**cells.dimensionality,)
+        ).view(cells._values.__class__)
 
         self.values_face._values = np.empty(
-            cells._values.shape + (2**cells.dimensionality,)
+            cells._values[..., [0], :].shape + (2**cells.dimensionality,)
         ).view(cells._values.__class__)
 
         self.values_face.create_neighbours()
@@ -104,7 +113,7 @@ class MUSCL(ConvectiveScheme):
         # Initialize state values at each face with the state value
         # of the cell
         for dir in range(2**cells.dimensionality):
-            self.values_face._values[..., dir] = cells._values.copy()
+            self.values_face._values[..., dir] = cells._values[..., [0], :].copy()
 
         # Compute the slope for each direction according to the
         # chosen limiter

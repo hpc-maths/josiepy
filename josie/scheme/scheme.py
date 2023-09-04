@@ -5,7 +5,6 @@
 from __future__ import annotations
 
 import abc
-import numpy as np
 
 from typing import TYPE_CHECKING
 
@@ -163,6 +162,12 @@ class Scheme(abc.ABC):
 
         pass
 
+    @abc.abstractmethod
+    def apply_fluxes(self, cells: MeshCellSet, dt: float):
+        r"""Apply/sum up the fluxes in the current state to compute the updated state"""
+
+        pass
+
     def update(self, mesh: Mesh, dt: float, t: float):
         r"""This method implements the time step update. It accumulates all the
         numerical fluxes using the :meth:`Scheme.step` method (possibly in
@@ -196,10 +201,7 @@ class Scheme(abc.ABC):
         # scheme). This modifies self._fluxes in-place
         self.step(mesh, dt, t)
 
-        # Update the cell values
-        cells.values = cells.values - (
-            self._fluxes * dt / cells.volumes[..., np.newaxis, np.newaxis]
-        )
+        self.apply_fluxes(cells, dt)
 
         # Let's put here an handy post step if needed after the values update
         self.post_step(cells.values)
@@ -207,7 +209,7 @@ class Scheme(abc.ABC):
         # Keep ghost cells updated
         mesh.update_ghosts(t)
 
-    def post_init(self, cells: MeshCellSet):
+    def post_init(self, mesh: Mesh):
         r""":class:`Scheme` can implement a :meth:`post_init` in order to
         perform operations after the :meth:`Solver.init` initialize the
         solver state
@@ -225,7 +227,7 @@ class Scheme(abc.ABC):
         # equations without the auxiliary states
 
         # Initialize the datastructure containing the fluxes
-        self._fluxes: State = np.empty_like(cells.values)
+        pass
 
     def pre_step(self, cells: MeshCellSet, dt: float):
         """
