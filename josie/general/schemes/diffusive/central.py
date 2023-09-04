@@ -7,6 +7,7 @@ import numpy as np
 
 from josie.scheme.diffusive import DiffusiveScheme
 from josie.mesh.cellset import NeighboursCellSet, MeshCellSet
+from josie.mesh.mesh import Mesh
 
 
 class CentralDifferenceGradient(DiffusiveScheme):
@@ -20,7 +21,7 @@ class CentralDifferenceGradient(DiffusiveScheme):
         \frac{\pdeState_R - \pdeState_L}{\Delta x}
     """
 
-    def post_init(self, cells: MeshCellSet):
+    def post_init(self, mesh: Mesh):
         r"""Initialize the datastructure holding the norm of the relative
         vector between cells and their neighbours
 
@@ -31,11 +32,12 @@ class CentralDifferenceGradient(DiffusiveScheme):
 
         # TODO: Add num_dofs into the size to allow for multiple dofs in a
         # single cell
+        cells = mesh.cells
         nx, ny, _, _ = cells.values.shape
         dimensionality = cells.dimensionality
         num_neighbours = 2 * dimensionality
 
-        super().post_init(cells)
+        super().post_init(mesh)
 
         # Norm of the relative distance
         self._r = np.zeros((nx, ny, num_neighbours))

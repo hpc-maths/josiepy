@@ -6,6 +6,8 @@ import numpy as np
 
 from josie.mesh.cellset import MeshCellSet, NeighboursCellSet, MUSCLMeshCellSet
 
+from josie.mesh.mesh import Mesh
+
 from josie.scheme.convective import ConvectiveScheme
 
 from josie.mesh.cellset import DimensionPair
@@ -79,12 +81,15 @@ class MUSCL(ConvectiveScheme):
             neighs.surfaces,
         )
 
-    def post_init(self, cells: MeshCellSet):
+    def post_init(self, mesh: Mesh):
         r"""Initialize the datastructure holding the values at interface
         for each cell and face
         """
 
-        super().post_init(cells)
+        super().post_init(mesh)
+
+        self._fluxes: State = np.empty_like(mesh.cells.values)
+        cells = mesh.cells
 
         self.cells = MUSCLMeshCellSet(cells)
 

@@ -5,7 +5,6 @@
 from __future__ import annotations
 
 import abc
-import numpy as np
 
 from typing import TYPE_CHECKING
 
@@ -211,7 +210,7 @@ class Scheme(abc.ABC):
         # Keep ghost cells updated
         mesh.update_ghosts(t)
 
-    def post_init(self, cells: MeshCellSet):
+    def post_init(self, mesh: Mesh):
         r""":class:`Scheme` can implement a :meth:`post_init` in order to
         perform operations after the :meth:`Solver.init` initialize the
         solver state
@@ -229,7 +228,7 @@ class Scheme(abc.ABC):
         # equations without the auxiliary states
 
         # Initialize the datastructure containing the fluxes
-        self._fluxes: State = np.empty_like(cells.values)
+        pass
 
     def pre_step(self, cells: MeshCellSet, dt: float):
         """

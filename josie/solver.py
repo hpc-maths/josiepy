@@ -90,7 +90,7 @@ class Solver:
         self.mesh.update_ghosts(self.t)
 
         # Initialize the scheme datastructures (notably the fluxes)
-        self.scheme.post_init(self.mesh.cells)
+        self.scheme.post_init(self.mesh)
 
     def copy(self) -> Solver:
         """This methods copies the :class:`Solver` object into another"""
