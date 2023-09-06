@@ -5,6 +5,7 @@
 """ Handy objects to speed up the setup of a simulation for a problem governed
 by an Ordinary Differential Equation (ODE) (i.e. time-varying only)
 """
+import numpy as np
 from typing import Callable, Type, Union
 
 from josie.boundary.set import UnitCube
@@ -89,6 +90,7 @@ class OdeSolver(Solver):
                 cells.values[..., field] = Q0[field]
 
         self.init(init_fun)
+        scheme._fluxes = np.empty_like(mesh.cells.values)
 
     def solve(self, final_time: float, WriterClass: Type[Writer] = MemoryWriter):
         """This method solves the ODE system using a

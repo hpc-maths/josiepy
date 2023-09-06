@@ -32,8 +32,8 @@ class MUSCL(ConvectiveScheme):
             neigh_R = self.cells.neighbours[dir_R]
 
             slope = self.limiter(
-                self.cells.values - neigh_L.values,
-                neigh_R.values - self.cells.values,
+                self.cells.values - neigh_L.values[..., [0], :],
+                neigh_R.values[..., [0], :] - self.cells.values,
             )
 
             self.slopes[..., dir_R] = slope
@@ -88,15 +88,18 @@ class MUSCL(ConvectiveScheme):
 
         super().post_init(mesh)
 
-        self._fluxes: State = np.empty_like(mesh.cells.values)
+        self._fluxes = np.empty_like(mesh.cells.values)
         cells = mesh.cells
+        self.cells = MUSCLMeshCellSet(mesh.cells)
 
         self.cells = MUSCLMeshCellSet(cells)
 
-        self._fluxes = np.empty_like(self.cells.values)
-
         self.slopes = np.empty(
             self.cells.values.shape + (2**cells.dimensionality,)
+        ).view(cells._values.__class__)
+
+        self.values_face._values = np.empty(
+            self.cells._values.shape + (2**cells.dimensionality,)
         ).view(cells._values.__class__)
 
     def pre_accumulate(self, cells: MeshCellSet, dt: float, t: float):
@@ -108,7 +111,7 @@ class MUSCL(ConvectiveScheme):
         # Initialize state values at each face with the state value
         # of the cell
         for dir in range(2**cells.dimensionality):
-            self.cells._values_face[..., [dir], :] = self.cells._values.copy()
+            self.values_face._values[..., dir] = self.cells._values.copy()
 
         # Compute the slope for each direction according to the
         # chosen limiter

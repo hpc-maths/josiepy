@@ -6,6 +6,8 @@ from __future__ import annotations
 
 import abc
 
+import numpy as np
+
 from typing import TYPE_CHECKING
 
 from josie.problem import Problem

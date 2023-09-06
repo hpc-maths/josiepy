@@ -372,14 +372,6 @@ class MUSCLMeshCellSet(CellSet):
     _values_face: State
 
     @property  # type: ignore
-    def volumes(self) -> np.ndarray:  # type: ignore
-        return self._volumes[1:-1, 1:-1]
-
-    @volumes.setter
-    def volumes(self, value: np.ndarray):
-        self._volumes[1:-1, 1:-1] = value
-
-    @property  # type: ignore
     def _values(self) -> State:  # type: ignore
         return self._allvalues[:, :, [0]].view(State)
 

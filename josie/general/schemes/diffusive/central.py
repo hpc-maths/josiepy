@@ -38,6 +38,7 @@ class CentralDifferenceGradient(DiffusiveScheme):
         num_neighbours = 2 * dimensionality
 
         super().post_init(mesh)
+        self._fluxes = np.empty_like(mesh.cells.values)
 
         # Norm of the relative distance
         self._r = np.zeros((nx, ny, num_neighbours))
