@@ -4,15 +4,13 @@
 
 import numpy as np
 
-from josie.mesh.cellset import MeshCellSet, NeighboursCellSet
+from josie.mesh.cellset import MeshCellSet, NeighboursCellSet, MUSCLMeshCellSet
 
 from josie.mesh.mesh import Mesh
 
 from josie.scheme.convective import ConvectiveScheme
 
 from josie.mesh.cellset import DimensionPair
-
-from josie.state import State
 
 
 class MUSCL(ConvectiveScheme):
@@ -34,8 +32,8 @@ class MUSCL(ConvectiveScheme):
             neigh_R = cells.neighbours[dir_R]
 
             slope = self.limiter(
-                cells.values[..., [0], :] - neigh_L.values[..., [0], :],
-                neigh_R.values[..., [0], :] - cells.values[..., [0], :],
+                self.cells.values - neigh_L.values[..., [0], :],
+                neigh_R.values[..., [0], :] - self.cells.values,
             )
 
             self.slopes[..., dir_R] = slope
@@ -90,17 +88,18 @@ class MUSCL(ConvectiveScheme):
 
         super().post_init(mesh)
 
-        self._fluxes: State = np.empty_like(mesh.cells.values)
+        self._fluxes = np.empty_like(mesh.cells.values)
         cells = mesh.cells
+        self.cells = MUSCLMeshCellSet(mesh.cells)
 
         self.values_face = cells.copy()
 
         self.slopes = np.empty(
-            cells.values[..., [0], :].shape + (2**cells.dimensionality,)
+            self.cells.values.shape + (2**cells.dimensionality,)
         ).view(cells._values.__class__)
 
         self.values_face._values = np.empty(
-            cells._values[..., [0], :].shape + (2**cells.dimensionality,)
+            self.cells._values.shape + (2**cells.dimensionality,)
         ).view(cells._values.__class__)
 
         self.values_face.create_neighbours()
@@ -113,7 +112,7 @@ class MUSCL(ConvectiveScheme):
         # Initialize state values at each face with the state value
         # of the cell
         for dir in range(2**cells.dimensionality):
-            self.values_face._values[..., dir] = cells._values[..., [0], :].copy()
+            self.values_face._values[..., dir] = self.cells._values.copy()
 
         # Compute the slope for each direction according to the
         # chosen limiter

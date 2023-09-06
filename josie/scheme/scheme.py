@@ -6,6 +6,8 @@ from __future__ import annotations
 
 import abc
 
+import numpy as np
+
 from typing import TYPE_CHECKING
 
 from josie.problem import Problem
@@ -162,11 +164,12 @@ class Scheme(abc.ABC):
 
         pass
 
-    @abc.abstractmethod
     def apply_fluxes(self, cells: MeshCellSet, dt: float):
         r"""Apply/sum up the fluxes in the current state to compute the updated state"""
 
-        pass
+        cells.values = cells.values - np.einsum(
+            "...kl,...->...kl", self._fluxes, dt / cells.volumes
+        )
 
     def update(self, mesh: Mesh, dt: float, t: float):
         r"""This method implements the time step update. It accumulates all the

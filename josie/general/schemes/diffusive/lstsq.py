@@ -64,6 +64,7 @@ class LeastSquareGradient(DiffusiveScheme):
         dimensionality = cells.dimensionality
 
         super().post_init(mesh)
+        self._fluxes = np.empty_like(mesh.cells.values)
 
         self._init_gradient(mesh)
 

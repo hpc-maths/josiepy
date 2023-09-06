@@ -320,6 +320,7 @@ class SimpleCell(Cell):
             surfaces=surfaces,
             normals=normals,
             dimensionality=dimensionality,
+            min_length=np.nan,
         )
 
         # Loop to build connectivity

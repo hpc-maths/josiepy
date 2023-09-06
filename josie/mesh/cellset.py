@@ -74,7 +74,7 @@ class CellSet:
     centroids: np.ndarray
     values: State
     dimensionality: Dimensionality
-    min_length: float = np.nan
+    min_length: float
 
     def __getitem__(self, key: MeshIndex) -> CellSet:
         """Slice the :class:`CellSet` as a whole"""
@@ -86,6 +86,7 @@ class CellSet:
             centroids=self.centroids[key],
             values=self.values[key].view(State),
             dimensionality=self.dimensionality,
+            min_length=self.min_length,
         )
 
     def copy(self) -> CellSet:
@@ -98,6 +99,7 @@ class CellSet:
             centroids=self.centroids.copy(),
             values=self.values.copy(),
             dimensionality=self.dimensionality,
+            min_length=self.min_length,
         )
 
     def compute_min_length(self):
@@ -108,22 +110,16 @@ class CellSet:
         self.min_length = np.min(self.volumes[..., np.newaxis] / self.surfaces)
 
 
-class NeighboursCellSet(CellSet):
+class Neighbour:
     """A :class:`CellSet` that stores also the neighbours direction"""
 
-    def __init__(
-        self,
-        volumes,
-        surfaces,
-        normals,
-        centroids,
-        values,
-        direction,
-        dimensionality,
-    ):
-        super().__init__(volumes, surfaces, normals, centroids, values, dimensionality)
-
+    def __init__(self, direction, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.direction = direction
+
+
+class NeighboursCellSet(Neighbour, CellSet):
+    pass
 
 
 @dataclass
@@ -224,12 +220,14 @@ class MeshCellSet(CellSet):
         surfaces: np.ndarray,
         normals: np.ndarray,
         dimensionality: Dimensionality,
+        min_length: float,
     ):
         self._centroids = centroids
         self._volumes = volumes
         self._surfaces = surfaces
         self._normals = normals
         self.dimensionality = dimensionality
+        self.min_length = min_length
 
     def __getitem__(self, key: MeshIndex) -> CellSet:
         """For :class:`MeshCellSet`, differently from :class:`CellSet`, we
@@ -243,6 +241,7 @@ class MeshCellSet(CellSet):
             centroids=self._centroids[key],
             values=self._values[key].view(State),
             dimensionality=self.dimensionality,
+            min_length=self.min_length,
         )
 
     def copy(self) -> MeshCellSet:
@@ -253,6 +252,7 @@ class MeshCellSet(CellSet):
             surfaces=self._surfaces.copy(),
             normals=self._normals.copy(),
             dimensionality=self.dimensionality,
+            min_length=self.min_length,
         )
 
         if self._values is not None:
@@ -291,6 +291,7 @@ class MeshCellSet(CellSet):
                     surfaces=self.surfaces[..., normal_direction],
                     dimensionality=self.dimensionality,
                     direction=normal_direction,
+                    min_length=self.min_length,
                 )
             )
 
@@ -363,3 +364,96 @@ class MeshCellSet(CellSet):
 
         for boundary in boundaries:
             boundary.apply_bc(self, t)
+
+
+class MUSCLMeshCellSet(CellSet):
+    neighbours: List[MUSCLNeighboursCellSet]
+    _allvalues: State
+    _values_face: State
+
+    @property  # type: ignore
+    def _values(self) -> State:  # type: ignore
+        return self._allvalues[:, :, [0]].view(State)
+
+    @_values.setter
+    def _values(self, _values: State):
+        self._allvalues[:, :, [0], :] = _values
+
+    @property  # type: ignore
+    def values(self) -> State:  # type: ignore
+        return self._allvalues[1:-1, 1:-1, [0]].view(State)
+
+    @values.setter
+    def values(self, values: State):
+        self._allvalues[1:-1, 1:-1, [0], :] = values
+
+    @property  # type: ignore
+    def _values_face(self) -> State:  # type: ignore
+        return self._allvalues[:, :, 1:].view(State)
+
+    @_values_face.setter
+    def _values_face(self, _values_face: State):
+        self._allvalues[:, :, 1:, :] = _values_face
+
+    @property  # type: ignore
+    def values_face(self) -> State:  # type: ignore
+        return self._allvalues[1:-1, 1:-1, 1:].view(State)
+
+    @values_face.setter
+    def values_face(self, values_face: State):
+        self._allvalues[1:-1, 1:-1, 1:, :] = values_face
+
+    def __init__(self, cells: MeshCellSet):
+        self._centroids = cells._centroids
+        self._volumes = cells._volumes
+        self._surfaces = cells._surfaces
+        self._normals = cells._normals
+        self.dimensionality = cells.dimensionality
+        self._allvalues = cells._values
+
+        self.neighbours = []
+        for neighbour in cells.neighbours:
+            self.neighbours.append(
+                MUSCLNeighboursCellSet(
+                    centroids=neighbour.centroids,
+                    values=neighbour.values[:, :, [0]],
+                    allvalues=neighbour.values,
+                    volumes=neighbour.volumes,
+                    normals=neighbour.normals,
+                    surfaces=neighbour.surfaces,
+                    dimensionality=neighbour.dimensionality,
+                    direction=neighbour.direction,
+                    min_length=neighbour.min_length,
+                )
+            )
+
+
+@dataclass
+class MUSCLCellSet(CellSet):
+    allvalues: State
+
+    def __getitem__(self, key: MeshIndex) -> MUSCLCellSet:
+        """Slice the :class:`CellSet` as a whole"""
+
+        return MUSCLCellSet(
+            volumes=self.volumes[key],
+            surfaces=self.surfaces[key],
+            normals=self.normals[key],
+            centroids=self.centroids[key],
+            allvalues=self.values[key].view(State),
+            values=self.values[key].view(State),
+            dimensionality=self.dimensionality,
+            min_length=self.min_length,
+        )
+
+    @property  # type: ignore
+    def values_face(self) -> State:  # type: ignore
+        return self.allvalues[:, :, 1:].view(State)
+
+    @values_face.setter
+    def values_face(self, values_face: State):
+        self.allvalues[:, :, 1:, :] = values_face
+
+
+class MUSCLNeighboursCellSet(Neighbour, MUSCLCellSet):
+    pass
