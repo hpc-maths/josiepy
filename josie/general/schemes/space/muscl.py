@@ -148,8 +148,6 @@ class MUSCL_Hancock(MUSCL):
                 break
             dir_L = dim.value[0].value
             dir_R = dim.value[1].value
-            neigh_L = cells.neighbours[dir_L]
-            neigh_R = cells.neighbours[dir_R]
 
             Q_L = self.cells.values_face[..., [dir_L], :]
             Q_R = self.cells.values_face[..., [dir_R], :]
