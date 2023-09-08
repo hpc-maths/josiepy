@@ -89,8 +89,8 @@ class OdeSolver(Solver):
             for field in Q.fields:
                 cells.values[..., field] = Q0[field]
 
+        scheme._fluxes = np.empty((1, 1, 1, len(Q.fields)))
         self.init(init_fun)
-        scheme._fluxes = np.empty_like(mesh.cells.values)
 
     def solve(self, final_time: float, WriterClass: Type[Writer] = MemoryWriter):
         """This method solves the ODE system using a

@@ -61,7 +61,7 @@ class MUSCL(ConvectiveScheme):
 
     def apply_fluxes(self, cells: MeshCellSet, dt: float):
         mcells = MUSCLMeshCellSet(cells)
-        mcells.values -= np.einsum("...kl,...->...kl", self._fluxes, dt / cells.volumes)
+        mcells.values -= np.einsum("...kl,...->...kl", self._fluxes, dt / cells.volumes)  # type: ignore
 
     def F(self, cells: MeshCellSet, neighs: NeighboursCellSet):
         # Solve the Riemann problem to compute the intercell flux
@@ -89,18 +89,11 @@ class MUSCL(ConvectiveScheme):
         cells = mesh.cells
         self.cells = MUSCLMeshCellSet(mesh.cells)
 
-        self.values_face = cells.copy()
         self._fluxes = np.empty_like(self.cells.values)
 
         self.slopes = np.empty(
             self.cells.values.shape + (2**cells.dimensionality,)
         ).view(cells._values.__class__)
-
-        self.values_face._values = np.empty(
-            self.cells._values.shape + (2**cells.dimensionality,)
-        ).view(cells._values.__class__)
-
-        self.values_face.create_neighbours()
 
     def pre_accumulate(self, cells: MeshCellSet, dt: float, t: float):
         super().pre_accumulate(cells, dt, t)
@@ -164,7 +157,7 @@ class MUSCL_Hancock(MUSCL):
                 cells.neighbours[dir_R].normals,
             )
 
-            cons_states = cells._values.__class__.cons_state._subset_fields_map
+            cons_states = cells._values.__class__.cons_state._subset_fields_map  # type: ignore
             self.cells.values_face[..., [dir_L], [cons_states]] -= (  # type: ignore
                 0.5
                 * dt

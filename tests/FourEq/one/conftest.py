@@ -7,8 +7,8 @@ import pytest
 from dataclasses import dataclass
 
 from josie.FourEq.exact import Exact
-from josie.general.schemes.time.euler import ExplicitEuler
-from josie.general.schemes.space.muscl import MUSCL_Hancock
+from josie.general.schemes.time.rk import RK2
+from josie.general.schemes.space.muscl import MUSCL
 from josie.general.schemes.space.limiters import MinMod
 
 
@@ -63,7 +63,7 @@ def IntercellFlux(request):
 def Scheme(IntercellFlux):
     """Create all the different schemes"""
 
-    class CVVScheme(MUSCL_Hancock, MinMod, IntercellFlux, ExplicitEuler):
+    class CVVScheme(IntercellFlux, RK2, MUSCL, MinMod):
         pass
 
     return CVVScheme

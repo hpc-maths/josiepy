@@ -11,7 +11,7 @@ from josie.bc import Dirichlet
 from josie.boundary import Line
 from josie.math import Direction
 from josie.mesh import Mesh
-from josie.mesh.cell import SimpleCell
+from josie.mesh.cell import MUSCLCell
 from josie.mesh.cellset import MeshCellSet
 from josie.FourEq.solver import FourEqSolver
 from josie.FourEq.state import Q
@@ -82,7 +82,7 @@ def test_cvv(riemann_state, Scheme, plot, animate, request):
     top.bc = None
     bottom.bc = None
 
-    mesh = Mesh(left, bottom, right, top, SimpleCell)
+    mesh = Mesh(left, bottom, right, top, MUSCLCell)
     mesh.interpolate(50, 1)
     mesh.generate()
 
