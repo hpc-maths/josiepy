@@ -151,9 +151,6 @@ class MUSCL_Hancock(MUSCL):
             neigh_L = cells.neighbours[dir_L]
             neigh_R = cells.neighbours[dir_R]
 
-            n_L = neigh_L.normals
-            n_R = neigh_R.normals
-
             Q_L = self.cells.values_face[..., [dir_L], :]
             Q_R = self.cells.values_face[..., [dir_R], :]
             F_L = np.einsum(
