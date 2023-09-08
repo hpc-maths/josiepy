@@ -138,6 +138,8 @@ class RK(TimeScheme):
 
         super().post_init(mesh)
 
+        cells = mesh.cells
+        nx, ny, num_dofs, num_fields = cells.values.shape
         self._ks: np.ndarray = np.empty(self._fluxes.shape + (self.num_steps - 1,))
         self.step_cells = cells.copy()
 

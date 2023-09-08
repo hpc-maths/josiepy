@@ -13,7 +13,7 @@ from josie.euler.problem import EulerProblem
 from josie.euler.state import EulerState
 from josie.scheme.convective import ConvectiveScheme
 
-from josie.general.schemes.space.muscl import MUSCL
+from josie.scheme.scheme import Scheme
 
 
 if TYPE_CHECKING:
@@ -117,7 +117,7 @@ class EulerScheme(ConvectiveScheme):
         return np.min((dt, new_dt))
 
 
-class BerthonScheme(MUSCL):
+class BerthonScheme(Scheme):
     """An optional class to use the Berthon limiter in addition to the usual
     limiters for Euler equations. See in Berthon, Christophe. « Why the
     MUSCL–Hancock Scheme Is L1-Stable ». Numerische Mathematik, nᵒ 104 (2006):

@@ -49,7 +49,7 @@ def Scheme(BScheme):
 
     else:
 
-        class ToroScheme(MinMod, RK2, HLLC, BScheme):
+        class ToroScheme(MinMod, RK2, MUSCL, HLLC, BScheme):
             pass
 
     return ToroScheme
