@@ -52,11 +52,11 @@ def test_order_muscl(solver, plot, boundaries, init):
         dt = c * dx
         T = 0.1
 
-        x = solver.mesh.cells.centroids[..., 0]
+        x = solver.mesh.cells.centroids[..., 0, 0]
         x = x.reshape(x.size)
         Nt = int(np.ceil(T / dt))
         for t in np.linspace(0, Nt * dt, Nt + 1):
-            u = solver.mesh.cells.values[..., 0]
+            u = solver.mesh.cells.values[..., 0, 0]
             u = u.reshape(u.size)
 
             err = u - init(x - t)

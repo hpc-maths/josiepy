@@ -11,8 +11,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pytest
 
-from josie.general.schemes.time import ExplicitEuler
-from josie.general.schemes.space.muscl import MUSCL_Hancock
+from josie.general.schemes.time.rk import RK2
+from josie.general.schemes.space.muscl import MUSCL
 from josie.general.schemes.space.limiters import (
     MinMod,
     Minbee,
@@ -53,7 +53,7 @@ def Limiter(request):
 def Scheme(Limiter):
     """Create all the different schemes"""
 
-    class ToroScheme(Limiter, MUSCL_Hancock, ExplicitEuler, HLLC):
+    class ToroScheme(Limiter, RK2, MUSCL, HLLC):
         pass
 
     return ToroScheme
@@ -158,16 +158,16 @@ def test_toro(Scheme, plot, request):
     assert t >= final_time
 
     # Assert convergence on the final step
-    x = cells.centroids[..., Direction.X]
+    x = cells.centroids[..., 0, Direction.X]
     x = x.reshape(x.size)
 
-    rho = cells.values[..., EulerState.fields.rho]
+    rho = cells.values[..., 0, EulerState.fields.rho]
     rho = rho.reshape(rho.size)
 
-    U = cells.values[..., EulerState.fields.U]
+    U = cells.values[..., 0, EulerState.fields.U]
     U = U.reshape(U.size)
 
-    p = cells.values[..., EulerState.fields.p]
+    p = cells.values[..., 0, EulerState.fields.p]
     p = p.reshape(p.size)
 
     err_p = 0
