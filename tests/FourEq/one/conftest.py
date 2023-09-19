@@ -4,7 +4,12 @@
 
 import pytest
 
+import numpy as np
+
 from dataclasses import dataclass
+
+from josie.twofluid.fields import Phases
+from josie.FourEq.state import Q
 
 from josie.FourEq.exact import Exact
 from josie.general.schemes.time.rk import RK2
@@ -67,3 +72,45 @@ def Scheme(IntercellFlux):
         pass
 
     return CVVScheme
+
+
+@pytest.fixture
+def riemann2Q():
+    def riemann2Q(state, eos):
+        """Wrap all the operations to create a complete FourEq state from the
+        initial Riemann Problem data
+        """
+        # BC
+        arho1 = state.alpha * state.rho1
+        arho2 = (1.0 - state.alpha) * state.rho2
+        rho = arho1 + arho2
+        arho = state.alpha * rho
+        rhoU = rho * state.U
+        rhoV = 0.0
+        V = 0.0
+        p1 = eos[Phases.PHASE1].p(state.rho1)
+        p2 = eos[Phases.PHASE2].p(state.rho2)
+        c1 = eos[Phases.PHASE1].sound_velocity(state.rho1)
+        c2 = eos[Phases.PHASE2].sound_velocity(state.rho2)
+        P = state.alpha * p1 + (1.0 - state.alpha) * p2
+        c = np.sqrt((arho1 * c1**2 + arho2 * c2**2) / rho)
+
+        return Q(
+            arho,
+            rhoU,
+            rhoV,
+            rho,
+            state.U,
+            V,
+            P,
+            c,
+            state.alpha,
+            arho1,
+            p1,
+            c1,
+            arho2,
+            p2,
+            c2,
+        )
+
+    yield riemann2Q
