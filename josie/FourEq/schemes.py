@@ -79,16 +79,26 @@ class FourEqScheme(ConvectiveScheme):
                 ** 2
             )
 
-        dalpha = 1.0
+        dalpha = np.zeros_like(alpha)
         iter = 0
-        while np.any(dalpha / alpha > 1e-8):
+        eps = 1e-8
+        index = np.where(np.abs(phi(arho1, arho2, alpha)) > eps * 1e5)
+        while index[0].size > 0:
             iter += 1
-            dalpha = -phi(arho1, arho2, alpha) / dphi_dalpha(arho1, arho2, alpha)
-            alpha += dalpha
-        if np.max(alpha) > 1.0 or np.min(alpha) < 0.0:
-            exit()
+            dalpha[index] = -phi(
+                arho1[index], arho2[index], alpha[index]
+            ) / dphi_dalpha(arho1[index], arho2[index], alpha[index])
+            alpha[index] += dalpha[index]
 
-        values[..., fields.alpha] = alpha
+            # Prevent the NR method to explore out of the interval [0,1]
+            res = 1e-14
+            alpha[index] = np.minimum(alpha[index], 1 - res)
+            alpha[index] = np.maximum(alpha[index], 0 + res)
+
+            index = np.where(np.abs(phi(arho1, arho2, alpha)) > eps * 1e5)
+            if iter > 50 or np.isnan(np.max(phi(arho1, arho2, alpha))):
+                exit()
+
         values[..., fields.arho] = alpha * (arho1 + arho2)
 
     def auxilliaryVariableUpdate(self, values: Q):
@@ -106,7 +116,7 @@ class FourEqScheme(ConvectiveScheme):
         alphas = PhasePair(alpha, 1.0 - alpha)
         arhos = PhasePair(arho1, arho2)
 
-        values[..., fields.alpha] = alpha
+        values[..., fields.alpha] = alpha.copy()
         values[..., fields.rho] = rho
         values[..., fields.U] = rhoU / rho
         values[..., fields.V] = rhoV / rho
@@ -141,17 +151,7 @@ class FourEqScheme(ConvectiveScheme):
     def post_extrapolation(self, values: Q):
         # auxilliary variables update
 
-        if self.do_relaxation:
-            # Relaxation to update the volume fraction
-            if np.all(
-                [
-                    self.problem.eos[phase].__class__.__name__ == "LinearizedGas"
-                    for phase in Phases
-                ]
-            ):
-                self.relaxForLinearizedEOS(values)
-            else:
-                self.relaxation(values)
+        self.relaxation(values)
 
         # auxilliary variables update
         self.auxilliaryVariableUpdate(values)

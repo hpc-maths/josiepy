@@ -106,8 +106,8 @@ class Exact(FourEqScheme):
         return ddU_dP
 
     def solvePressure(self, P_init: np.ndarray, Q_L: Q, Q_R: Q, normals: np.ndarray):
-        P_old = P_init
-        P_new = P_init
+        P_old = P_init.copy()
+        P_new = P_init.copy()
         tol = 1e-8
         firstLoop = True
 
