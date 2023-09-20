@@ -163,20 +163,8 @@ class FourEqScheme(ConvectiveScheme):
         :class:`~.EOS`
         """
 
-        # auxilliary variables update
-        self.auxilliaryVariableUpdate(values)
-
-        if self.do_relaxation:
-            # Relaxation bto update the volume fraction
-            if np.all(
-                [
-                    self.problem.eos[phase].__class__.__name__ == "LinearizedGas"
-                    for phase in Phases
-                ]
-            ):
-                self.relaxForLinearizedEOS(values)
-            else:
-                self.relaxation(values)
+        # Relaxation bto update the volume fraction
+        self.relaxation(values)
 
         # auxilliary variables update
         self.auxilliaryVariableUpdate(values)

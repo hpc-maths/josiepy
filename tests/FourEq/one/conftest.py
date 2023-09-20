@@ -45,7 +45,7 @@ riemann_states = [
         CFL=0.5,
     ),
     RiemannProblem(
-        left=RiemannState(alpha=1.0 - eps, rho1=100.0, rho2=1e4, U=0.0),
+        left=RiemannState(alpha=1.0 - eps, rho1=100.0, rho2=1e3 + 3.96, U=0.0),
         right=RiemannState(alpha=eps, rho1=1.0, rho2=1e3, U=0.0),
         final_time=0.03,
         xd=0.3,
