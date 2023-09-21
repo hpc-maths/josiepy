@@ -12,7 +12,7 @@ from josie.twofluid.fields import Phases
 from josie.FourEq.state import Q
 
 from josie.FourEq.exact import Exact
-from josie.general.schemes.time.rk import RK2
+from josie.general.schemes.time.rk import RK2_relax
 from josie.general.schemes.space.muscl import MUSCL
 from josie.general.schemes.space.limiters import MinMod
 
@@ -51,6 +51,20 @@ riemann_states = [
         xd=0.3,
         CFL=0.5,
     ),
+    RiemannProblem(
+        left=RiemannState(alpha=1.0, rho1=1.0, rho2=1.0e3, U=0.15),
+        right=RiemannState(alpha=0.0, rho1=1.0, rho2=1.0e3, U=0.15),
+        final_time=3.333,
+        xd=0.25,
+        CFL=0.5,
+    ),
+    RiemannProblem(
+        left=RiemannState(alpha=1.0, rho1=100.0, rho2=1e3 + 3.96, U=0.0),
+        right=RiemannState(alpha=0.0, rho1=1.0, rho2=1e3, U=0.0),
+        final_time=0.03,
+        xd=0.3,
+        CFL=0.5,
+    ),
 ]
 
 
@@ -68,7 +82,7 @@ def IntercellFlux(request):
 def Scheme(IntercellFlux):
     """Create all the different schemes"""
 
-    class CVVScheme(IntercellFlux, RK2, MUSCL, MinMod):
+    class CVVScheme(IntercellFlux, RK2_relax, MUSCL, MinMod):
         pass
 
     return CVVScheme

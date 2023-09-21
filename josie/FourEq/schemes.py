@@ -56,16 +56,22 @@ class FourEqScheme(ConvectiveScheme):
     def relaxation(self, values: Q):
         fields = Q.fields
 
-        alpha = values[..., fields.alpha]
         arho1 = values[..., fields.arho1]
         arho2 = values[..., fields.arho2]
+
+        # Compute estimator of the relaxation within [0,1]
+        alpha = np.minimum(np.maximum(values[..., fields.arho] / (arho1 + arho2), 0), 1)
 
         # Solve for alpha using p1(arho1/alpha) = p2(arho2/alpha) with Newton
         # Note that arho1 and arho2 remain constant
         def phi(arho1: np.ndarray, arho2: np.ndarray, alpha: np.ndarray):
-            return self.problem.eos[Phases.PHASE1].p(arho1 / alpha) - self.problem.eos[
+            rho1 = np.full_like(arho1, np.nan)
+            rho2 = np.full_like(arho1, np.nan)
+            np.divide(arho1, alpha, where=alpha > 0, out=rho1)
+            np.divide(arho2, 1.0 - alpha, where=1.0 - alpha > 0, out=rho2)
+            return self.problem.eos[Phases.PHASE1].p(rho1) - self.problem.eos[
                 Phases.PHASE2
-            ].p(arho2 / (1.0 - alpha))
+            ].p(rho2)
 
         def dphi_dalpha(arho1: np.ndarray, arho2: np.ndarray, alpha: np.ndarray):
             # Note that dp_drho = c^2 for barotropic EOS
@@ -79,26 +85,37 @@ class FourEqScheme(ConvectiveScheme):
                 ** 2
             )
 
+        # Init NR method
         dalpha = np.zeros_like(alpha)
         iter = 0
+
+        # Index that locates the cell where there the pressures need to be relaxed
         eps = 1e-8
         index = np.where(np.abs(phi(arho1, arho2, alpha)) > eps * 1e5)
         while index[0].size > 0:
+            # Counter
             iter += 1
+
+            # NR step
             dalpha[index] = -phi(
                 arho1[index], arho2[index], alpha[index]
             ) / dphi_dalpha(arho1[index], arho2[index], alpha[index])
-            alpha[index] += dalpha[index]
 
             # Prevent the NR method to explore out of the interval [0,1]
-            res = 1e-14
-            alpha[index] = np.minimum(alpha[index], 1 - res)
-            alpha[index] = np.maximum(alpha[index], 0 + res)
+            alpha[index] += np.where(
+                dalpha[index] < 0,
+                np.maximum(dalpha[index], -0.9 * alpha[index]),
+                np.minimum(dalpha[index], 0.9 * (1 - alpha[index])),
+            )
 
+            # Update the index where the NR method is applied
             index = np.where(np.abs(phi(arho1, arho2, alpha)) > eps * 1e5)
-            if iter > 50 or np.isnan(np.max(phi(arho1, arho2, alpha))):
+
+            # Safety check
+            if iter > 50:
                 exit()
 
+        # Update the alpha-dependent conservative field
         values[..., fields.arho] = alpha * (arho1 + arho2)
 
     def auxilliaryVariableUpdate(self, values: Q):
@@ -113,6 +130,13 @@ class FourEqScheme(ConvectiveScheme):
         rho = arho1 + arho2
         alpha = arho / rho
 
+        if np.any(alpha < 0.0):
+            print(alpha)
+            exit()
+        if np.any(alpha > 1.0):
+            print(alpha)
+            exit()
+
         alphas = PhasePair(alpha, 1.0 - alpha)
         arhos = PhasePair(arho1, arho2)
 
@@ -121,7 +145,7 @@ class FourEqScheme(ConvectiveScheme):
         values[..., fields.U] = rhoU / rho
         values[..., fields.V] = rhoV / rho
 
-        c_sq = 0.0  # Auxliary variable for mixture speed of sound
+        c_sq = 0.0  # Auxiliary variable for mixture speed of sound
 
         for phase in Phases:
             phase_values = values.view(Q).get_phase(phase)
@@ -129,7 +153,8 @@ class FourEqScheme(ConvectiveScheme):
             alpha = alphas[phase]
             arho = arhos[phase]
 
-            rho = arho / alpha
+            rho = np.full_like(alpha, np.nan)
+            np.divide(arho, alpha, where=alpha > 0, out=rho)
             p = self.problem.eos[phase].p(rho)
             c = self.problem.eos[phase].sound_velocity(rho)
 
@@ -140,17 +165,22 @@ class FourEqScheme(ConvectiveScheme):
                 phase,
                 phase_values,
             )
-
-            c_sq += arho * c**2
+            if np.invert(np.isnan(c)):
+                c_sq += arho * c**2
 
         values[..., fields.c] = np.sqrt(c_sq / values[..., fields.rho])
-        values[..., fields.P] = (
-            alpha * values[..., fields.p1] + (1 - alpha) * values[..., fields.p2]
+
+        alpha = values[..., fields.alpha]
+        p1 = values[..., fields.p1]
+        p2 = values[..., fields.p2]
+        values[..., fields.P] = np.nan
+        values[..., fields.P] = np.where(
+            (alpha > 0) * (alpha < 1),
+            alpha * p1 + (1 - alpha) * p2,
+            np.where(alpha == 0, p2, p1),
         )
 
     def post_extrapolation(self, values: Q):
-        # auxilliary variables update
-
         self.relaxation(values)
 
         # auxilliary variables update
@@ -163,7 +193,7 @@ class FourEqScheme(ConvectiveScheme):
         :class:`~.EOS`
         """
 
-        # Relaxation bto update the volume fraction
+        # Relaxation to update the volume fraction
         self.relaxation(values)
 
         # auxilliary variables update
