@@ -67,8 +67,10 @@ class FourEqScheme(ConvectiveScheme):
         def phi(arho1: np.ndarray, arho2: np.ndarray, alpha: np.ndarray):
             rho1 = np.full_like(arho1, np.nan)
             rho2 = np.full_like(arho1, np.nan)
-            np.divide(arho1, alpha, where=alpha > 0, out=rho1)
-            np.divide(arho2, 1.0 - alpha, where=1.0 - alpha > 0, out=rho2)
+            np.divide(arho1, alpha, where=(alpha > 0) & (arho1 > 0), out=rho1)
+            np.divide(
+                arho2, 1.0 - alpha, where=(1.0 - alpha > 0) & (arho2 > 0), out=rho2
+            )
             return self.problem.eos[Phases.PHASE1].p(rho1) - self.problem.eos[
                 Phases.PHASE2
             ].p(rho2)
@@ -90,7 +92,7 @@ class FourEqScheme(ConvectiveScheme):
         iter = 0
 
         # Index that locates the cell where there the pressures need to be relaxed
-        eps = 1e-8
+        eps = 1e-6
         index = np.where(np.abs(phi(arho1, arho2, alpha)) > eps * 1e5)
         while index[0].size > 0:
             # Counter
@@ -107,9 +109,12 @@ class FourEqScheme(ConvectiveScheme):
                 np.maximum(dalpha[index], -0.9 * alpha[index]),
                 np.minimum(dalpha[index], 0.9 * (1 - alpha[index])),
             )
+            tol = 1e-8
+            alpha = np.where(alpha < tol, 0, alpha)
+            alpha = np.where(1 - alpha < tol, 1, alpha)
 
             # Update the index where the NR method is applied
-            index = np.where(np.abs(phi(arho1, arho2, alpha)) > eps * 1e5)
+            index = np.where((np.abs(phi(arho1, arho2, alpha)) > eps * 1e5))
 
             # Safety check
             if iter > 50:

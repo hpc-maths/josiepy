@@ -13,8 +13,9 @@ from josie.FourEq.state import Q
 
 from josie.FourEq.exact import Exact
 from josie.general.schemes.time.rk import RK2_relax
-from josie.general.schemes.space.muscl import MUSCL
-from josie.general.schemes.space.limiters import MinMod
+from josie.general.schemes.space.godunov import Godunov
+
+# from josie.general.schemes.space.limiters import MinMod
 
 
 @dataclass
@@ -82,7 +83,7 @@ def IntercellFlux(request):
 def Scheme(IntercellFlux):
     """Create all the different schemes"""
 
-    class CVVScheme(IntercellFlux, RK2_relax, MUSCL, MinMod):
+    class CVVScheme(IntercellFlux, RK2_relax, Godunov, MinMod):
         pass
 
     return CVVScheme
@@ -102,11 +103,23 @@ def riemann2Q():
         rhoU = rho * state.U
         rhoV = 0.0
         V = 0.0
-        p1 = eos[Phases.PHASE1].p(state.rho1)
-        p2 = eos[Phases.PHASE2].p(state.rho2)
+        if state.alpha > 0.0:
+            p1 = eos[Phases.PHASE1].p(state.rho1)
+        else:
+            p1 = np.nan
+        if state.alpha < 1.0:
+            p2 = eos[Phases.PHASE2].p(state.rho2)
+        else:
+            p2 = np.nan
         c1 = eos[Phases.PHASE1].sound_velocity(state.rho1)
         c2 = eos[Phases.PHASE2].sound_velocity(state.rho2)
-        P = state.alpha * p1 + (1.0 - state.alpha) * p2
+        if state.alpha > 0.0:
+            if state.alpha < 1.0:
+                P = state.alpha * p1 + (1.0 - state.alpha) * p2
+            else:
+                P = p1
+        else:
+            P = p2
         c = np.sqrt((arho1 * c1**2 + arho2 * c2**2) / rho)
 
         return Q(
