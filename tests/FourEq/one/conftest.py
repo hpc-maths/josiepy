@@ -47,7 +47,7 @@ def riemann_state(request, epsilon):
         yield RiemannProblem(
             left=RiemannState(alpha=1.0 - epsilon, rho1=1.0, rho2=1.0e3, U=0.15),
             right=RiemannState(alpha=epsilon, rho1=1.0, rho2=1.0e3, U=0.15),
-            final_time=5e-2,
+            final_time=3.33,
             xd=0.25,
             CFL=0.8,
         )

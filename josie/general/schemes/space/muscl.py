@@ -102,7 +102,7 @@ class MUSCL(ConvectiveScheme):
         self.slopes = np.empty(
             self.cells.values.view(state_cls).get_primitive().shape  # type: ignore
             + (2**cells.dimensionality,)
-        ).view(cells._values.__class__)
+        ).view(self.cells._values.__class__)
 
     def pre_accumulate(self, cells: MeshCellSet, dt: float, t: float):
         super().pre_accumulate(cells, dt, t)

@@ -388,7 +388,7 @@ class Exact(FourEqScheme):
         intercells.view(Q).set_conservative(Qc)
         # TODO: Relaxation not necessary but it corrects arho
         # when it is slightly negative
-        # self.relaxation(intercells)
+        self.relaxation(intercells)
         self.auxilliaryVariableUpdate(intercells)
         F = np.einsum("...mkl,...l->...mk", self.problem.F(intercells), normals)
 

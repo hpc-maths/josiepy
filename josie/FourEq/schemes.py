@@ -123,6 +123,45 @@ class FourEqScheme(ConvectiveScheme):
         # Update the alpha-dependent conservative field
         values[..., fields.arho] = alpha * (arho1 + arho2)
 
+    def prim2Q(self, values: Q):
+        fields = Q.fields
+
+        rho = values[..., fields.rho]
+        P = values[..., fields.P]
+        U = values[..., fields.U]
+        V = values[..., fields.V]
+
+        rho1 = self.problem.eos[Phases.PHASE1].rho(P)
+        rho2 = self.problem.eos[Phases.PHASE2].rho(P)
+        c1 = self.problem.eos[Phases.PHASE1].sound_velocity(rho1)
+        c2 = self.problem.eos[Phases.PHASE2].sound_velocity(rho2)
+
+        alpha = np.minimum(np.maximum((rho - rho2) / (rho1 - rho2), 0), 1)
+        # alpha = (rho - rho2) / (rho1 - rho2)
+
+        if np.any(alpha < 0.0):
+            print(alpha)
+            exit()
+        if np.any(alpha > 1.0):
+            np.set_printoptions(precision=14)
+            print(alpha)
+            exit()
+
+        values[..., fields.arho] = alpha * rho
+        values[..., fields.arho1] = alpha * rho1
+        values[..., fields.arho2] = (1 - alpha) * rho2
+        values[..., fields.rhoU] = rho * U
+        values[..., fields.rhoV] = rho * V
+
+        values[..., fields.c] = np.sqrt(
+            (alpha * rho1 * c1**2 + (1 - alpha) * rho2 * c2**2) / rho
+        )
+        values[..., fields.alpha] = alpha
+        values[..., fields.p1] = P
+        values[..., fields.p2] = P
+        values[..., fields.c1] = c1
+        values[..., fields.c2] = c2
+
     def auxilliaryVariableUpdate(self, values: Q):
         fields = Q.fields
 
@@ -186,10 +225,11 @@ class FourEqScheme(ConvectiveScheme):
         )
 
     def post_extrapolation(self, values: Q):
-        self.relaxation(values)
+        self.prim2Q(values)
+        # self.relaxation(values)
 
         # auxilliary variables update
-        self.auxilliaryVariableUpdate(values)
+        # self.auxilliaryVariableUpdate(values)
 
     def post_step(self, values: Q):
         """During the step we update the conservative values. After the
