@@ -92,7 +92,7 @@ class FourEqScheme(ConvectiveScheme):
         iter = 0
 
         # Index that locates the cell where there the pressures need to be relaxed
-        eps = 1e-6
+        eps = 1e-9
         index = np.where(np.abs(phi(arho1, arho2, alpha)) > eps * 1e5)
         while index[0].size > 0:
             # Counter
@@ -109,7 +109,7 @@ class FourEqScheme(ConvectiveScheme):
                 np.maximum(dalpha[index], -0.9 * alpha[index]),
                 np.minimum(dalpha[index], 0.9 * (1 - alpha[index])),
             )
-            tol = 1e-8
+            tol = 1e-6
             alpha = np.where(alpha < tol, 0, alpha)
             alpha = np.where(1 - alpha < tol, 1, alpha)
 

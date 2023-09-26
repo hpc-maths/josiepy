@@ -16,6 +16,7 @@ from josie.mesh.cellset import MeshCellSet
 from josie.FourEq.solver import FourEqSolver
 from josie.FourEq.state import Q
 from josie.FourEq.eos import TwoPhaseEOS, LinearizedGas
+from josie.FourEq.schemes import Rusanov
 
 
 def relative_error(a, b):
@@ -42,7 +43,10 @@ def test_cvv(riemann_state, riemann2Q, Scheme, plot, animate, request):
     bottom.bc = None
 
     mesh = Mesh(left, bottom, right, top, MUSCLCell)
-    mesh.interpolate(50, 1)
+    nCells = 50
+    if issubclass(Scheme, Rusanov):
+        nCells = 500
+    mesh.interpolate(nCells, 1)
     mesh.generate()
 
     def init_fun(cells: MeshCellSet):
@@ -73,12 +77,12 @@ def test_cvv(riemann_state, riemann2Q, Scheme, plot, animate, request):
         (im1,) = ax1.plot([], [], "-", label="Numerical")
         (im2,) = ax2.plot([], [], "-", label="Numerical")
         (im3,) = ax3.plot([], [], "-", label="Numerical")
-        (im4,) = ax4.plot([], [], "-", label="Numerical")
+        (im4,) = ax4.semilogy([], [], "-", label="Numerical")
 
         alpha_data = []
         rhoU_data = []
         arho1_data = []
-        arho2_data = []
+        P_data = []
 
         x = cells.centroids[..., 0, 0, Direction.X]
 
@@ -90,9 +94,9 @@ def test_cvv(riemann_state, riemann2Q, Scheme, plot, animate, request):
 
             ax2.set_xlim(0, 1)
             if riemann_state.xd == 0.25:
-                ax2.set_ylim(-5, 155)
+                ax2.set_ylim(1e-8, 1e3)
             else:
-                ax2.set_ylim(-5, 65)
+                ax2.set_ylim(1e-8, 1e2)
             ax2.set_xlabel("x")
             ax2.set_ylabel(r"$\rho U$")
 
@@ -105,12 +109,9 @@ def test_cvv(riemann_state, riemann2Q, Scheme, plot, animate, request):
             ax3.set_ylabel(r"$\alpha_1\rho_1$")
 
             ax4.set_xlim(0, 1)
-            if riemann_state.xd == 0.25:
-                ax4.set_ylim(-50, 1050)
-            else:
-                ax4.set_ylim(-50, 1250)
+            ax4.set_ylim(1e-10, 1e5)
             ax4.set_xlabel("x")
-            ax4.set_ylabel(r"$\alpha_2\rho_2$")
+            ax4.set_ylabel(r"$P-P0$")
 
             x = cells.centroids[..., Direction.X]
             x = x.reshape(x.size)
@@ -143,7 +144,7 @@ def test_cvv(riemann_state, riemann2Q, Scheme, plot, animate, request):
             alpha_data.append(np.array(cells.values[:, 0, 0, Q.fields.alpha]))
             rhoU_data.append(np.array(cells.values[:, 0, 0, Q.fields.rhoU]))
             arho1_data.append(np.array(cells.values[:, 0, 0, Q.fields.arho1]))
-            arho2_data.append(np.array(cells.values[:, 0, 0, Q.fields.arho2]))
+            P_data.append(np.array(np.abs(cells.values[:, 0, 0, Q.fields.P] - 1e5)))
         dt = scheme.CFL(cells, CFL)
 
         # TODO: Basic check. The best would be to check against analytical
@@ -169,13 +170,13 @@ def test_cvv(riemann_state, riemann2Q, Scheme, plot, animate, request):
         arho1 = cells.values[..., Q.fields.arho1]
         arho1 = arho1.reshape(arho1.size)
 
-        arho2 = cells.values[..., Q.fields.arho2]
-        arho2 = arho2.reshape(arho2.size)
+        P = np.abs(cells.values[..., Q.fields.P] - 1e5)
+        P = P.reshape(P.size)
 
         im1.set_data(x, alpha)
         im2.set_data(x, rhoU)
         im3.set_data(x, arho1)
-        im4.set_data(x, arho2)
+        im4.set_data(x, P)
 
         plt.tight_layout()
         plt.show()
@@ -187,7 +188,7 @@ def test_cvv(riemann_state, riemann2Q, Scheme, plot, animate, request):
             im1.set_data(x, alpha_data[frame])
             im2.set_data(x, rhoU_data[frame])
             im3.set_data(x, arho1_data[frame])
-            im4.set_data(x, arho2_data[frame])
+            im4.set_data(x, P_data[frame])
             return ax1, ax2, ax3, ax4, im1, im2, im3, im4
 
         _ = FuncAnimation(
@@ -206,7 +207,7 @@ def test_cvv(riemann_state, riemann2Q, Scheme, plot, animate, request):
             im1.set_data(x, alpha_data[frame])
             im2.set_data(x, rhoU_data[frame])
             im3.set_data(x, arho1_data[frame])
-            im4.set_data(x, arho2_data[frame])
+            im4.set_data(x, P_data[frame])
             return ax1, ax2, ax3, ax4, im1, im2, im3, im4
 
         _ = FuncAnimation(

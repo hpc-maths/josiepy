@@ -12,10 +12,11 @@ from josie.twofluid.fields import Phases
 from josie.FourEq.state import Q
 
 from josie.FourEq.exact import Exact
+from josie.FourEq.schemes import Rusanov
 from josie.general.schemes.time.rk import RK2_relax
 from josie.general.schemes.space.godunov import Godunov
-
-# from josie.general.schemes.space.limiters import MinMod
+from josie.general.schemes.space.muscl import MUSCL
+from josie.general.schemes.space.limiters import MinMod
 
 
 @dataclass
@@ -35,56 +36,49 @@ class RiemannProblem:
     CFL: float
 
 
-eps = 1e-7
-
-riemann_states = [
-    RiemannProblem(
-        left=RiemannState(alpha=1.0 - eps, rho1=1.0, rho2=1.0e3, U=0.15),
-        right=RiemannState(alpha=eps, rho1=1.0, rho2=1.0e3, U=0.15),
-        final_time=3.333,
-        xd=0.25,
-        CFL=0.5,
-    ),
-    RiemannProblem(
-        left=RiemannState(alpha=1.0 - eps, rho1=100.0, rho2=1e3 + 3.96, U=0.0),
-        right=RiemannState(alpha=eps, rho1=1.0, rho2=1e3, U=0.0),
-        final_time=0.03,
-        xd=0.3,
-        CFL=0.5,
-    ),
-    RiemannProblem(
-        left=RiemannState(alpha=1.0, rho1=1.0, rho2=1.0e3, U=0.15),
-        right=RiemannState(alpha=0.0, rho1=1.0, rho2=1.0e3, U=0.15),
-        final_time=3.333,
-        xd=0.25,
-        CFL=0.5,
-    ),
-    RiemannProblem(
-        left=RiemannState(alpha=1.0, rho1=100.0, rho2=1e3 + 3.96, U=0.0),
-        right=RiemannState(alpha=0.0, rho1=1.0, rho2=1e3, U=0.0),
-        final_time=0.03,
-        xd=0.3,
-        CFL=0.5,
-    ),
-]
-
-
-@pytest.fixture(params=sorted(riemann_states, key=id))
-def riemann_state(request):
+@pytest.fixture(params=[1e-7, 0.0])
+def epsilon(request):
     yield request.param
 
 
-@pytest.fixture(params=[Exact])
+@pytest.fixture(params=["Advection", "Shock"])
+def riemann_state(request, epsilon):
+    if request.param == "Advection":
+        yield RiemannProblem(
+            left=RiemannState(alpha=1.0 - epsilon, rho1=1.0, rho2=1.0e3, U=0.15),
+            right=RiemannState(alpha=epsilon, rho1=1.0, rho2=1.0e3, U=0.15),
+            final_time=5e-2,
+            xd=0.25,
+            CFL=0.8,
+        )
+    if request.param == "Shock":
+        yield RiemannProblem(
+            left=RiemannState(alpha=1.0 - epsilon, rho1=100.0, rho2=1e3 + 3.96, U=0.0),
+            right=RiemannState(alpha=epsilon, rho1=1.0, rho2=1e3, U=0.0),
+            final_time=0.03,
+            xd=0.3,
+            CFL=0.5,
+        )
+
+
+@pytest.fixture(params=[Exact, Rusanov])
 def IntercellFlux(request):
     yield request.param
 
 
-@pytest.fixture
-def Scheme(IntercellFlux):
+@pytest.fixture(params=["MUSCL", "Godunov"])
+def Scheme(request, IntercellFlux):
     """Create all the different schemes"""
 
-    class CVVScheme(IntercellFlux, RK2_relax, Godunov, MinMod):
-        pass
+    if request.param == "Godunov":
+
+        class CVVScheme(IntercellFlux, RK2_relax, Godunov):
+            pass
+
+    if request.param == "MUSCL":
+
+        class CVVScheme(IntercellFlux, RK2_relax, MUSCL, MinMod):
+            pass
 
     return CVVScheme
 
