@@ -72,15 +72,17 @@ def Scheme(request, IntercellFlux):
 
     if request.param == "Godunov":
 
-        class CVVScheme(IntercellFlux, RK2_relax, Godunov):
+        class GCVVScheme(IntercellFlux, RK2_relax, Godunov):
             pass
+
+        return GCVVScheme
 
     if request.param == "MUSCL":
 
-        class CVVScheme(IntercellFlux, RK2_relax, MUSCL, MinMod):
+        class MCVVScheme(IntercellFlux, RK2_relax, MUSCL, MinMod):
             pass
 
-    return CVVScheme
+        return MCVVScheme
 
 
 @pytest.fixture

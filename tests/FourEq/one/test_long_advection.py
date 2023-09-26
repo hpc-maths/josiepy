@@ -15,12 +15,21 @@ from josie.mesh.cellset import MeshCellSet
 from josie.FourEq.solver import FourEqSolver
 from josie.FourEq.state import Q
 from josie.FourEq.eos import TwoPhaseEOS, LinearizedGas
+from josie.FourEq.schemes import Rusanov
+
+from josie.general.schemes.space.muscl import MUSCL
+from josie.general.schemes.space.limiters import MinMod
+from josie.general.schemes.time.rk import RK2_relax
 
 from josie.bc import make_periodic
 from .conftest import RiemannState
 
 
-def test_cvv(riemann2Q, Scheme, plot, animate, request):
+class CVVScheme(MinMod, MUSCL, Rusanov, RK2_relax):
+    pass
+
+
+def test_cvv(riemann2Q, plot, animate, request):
     left = Line([0, 0], [0, 1])
     bottom = Line([0, 0], [1, 0])
     right = Line([1, 0], [1, 1])
@@ -31,16 +40,15 @@ def test_cvv(riemann2Q, Scheme, plot, animate, request):
         phase2=LinearizedGas(p0=1e5, rho0=1e3, c0=3.0),
     )
 
-    eps = 1e-7
-    Q_in = riemann2Q(RiemannState(alpha=eps, rho1=1.0, rho2=1.0e3, U=1.0), eos)
-    Q_out = riemann2Q(RiemannState(alpha=1.0 - eps, rho1=1.0, rho2=1.0e3, U=1.0), eos)
+    Q_in = riemann2Q(RiemannState(alpha=0, rho1=1.0, rho2=1.0e3, U=1.0), eos)
+    Q_out = riemann2Q(RiemannState(alpha=1.0, rho1=1.0, rho2=1.0e3, U=1.0), eos)
 
     left, right = make_periodic(left, right, Direction.X)
     top.bc = None
     bottom.bc = None
 
     mesh = Mesh(left, bottom, right, top, SimpleCell)
-    mesh.interpolate(50, 1)
+    mesh.interpolate(500, 1)
     mesh.generate()
 
     def init_fun(cells: MeshCellSet):
@@ -51,7 +59,7 @@ def test_cvv(riemann2Q, Scheme, plot, animate, request):
         cells.values[np.where(np.abs(xc - center) <= width / 2), ...] = Q_in
         cells.values[np.where(np.abs(xc - center) > width / 2), ...] = Q_out
 
-    scheme = Scheme(eos, do_relaxation=True)
+    scheme = CVVScheme(eos, do_relaxation=True)
     solver = FourEqSolver(mesh, scheme)
     solver.init(init_fun)
 
