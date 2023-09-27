@@ -5,21 +5,20 @@
 import numpy as np
 
 from josie.mesh.cellset import MeshCellSet, NeighboursCellSet
-from josie.mesh.mesh import Mesh
 from josie.state import State
 
 from josie.scheme.convective import ConvectiveScheme
 
 
 class Godunov(ConvectiveScheme):
-    def post_init(self, mesh: Mesh):
+    def post_init(self, cells: MeshCellSet):
         r"""Initialize the datastructure holding the values at interface
         for each cell and face
         """
 
-        super().post_init(mesh)
+        super().post_init(cells)
 
-        self._fluxes: State = np.empty_like(mesh.cells.values)
+        self._fluxes: State = np.empty_like(cells.values)
 
     def F(self, cells: MeshCellSet, neighs: NeighboursCellSet):
         # Solve the Riemann problem to compute the intercell flux
