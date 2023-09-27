@@ -143,7 +143,6 @@ class FourEqScheme(ConvectiveScheme):
             print(alpha)
             exit()
         if np.any(alpha > 1.0):
-            np.set_printoptions(precision=14)
             print(alpha)
             exit()
 
@@ -178,6 +177,9 @@ class FourEqScheme(ConvectiveScheme):
             print(alpha)
             exit()
         if np.any(alpha > 1.0):
+            print(alpha)
+            exit()
+        if np.any(np.isnan(alpha)):
             print(alpha)
             exit()
 

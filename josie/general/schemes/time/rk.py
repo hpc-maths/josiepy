@@ -272,6 +272,7 @@ class RK2_relax(TimeScheme):
         # TODO: Create a RelaxScheme class to account for relaxation processes
         self.relaxation(q.values)  # type: ignore
         self.auxilliaryVariableUpdate(q.values)
+        q.update_ghosts(mesh.boundaries, t)
 
         # Compute q2 fluxes
         self._fluxes.fill(0)
