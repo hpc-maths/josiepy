@@ -11,15 +11,15 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pytest
 
-from josie.general.schemes.time import ExplicitEuler
-from josie.general.schemes.space.muscl import MUSCL_Hancock
+from josie.general.schemes.time.rk import RK2
+from josie.general.schemes.space.muscl import MUSCL
 from josie.general.schemes.space.limiters import MinMod
 
 from josie.bc import Dirichlet
 from josie.boundary import Line
 from josie.math import Direction
 from josie.mesh import Mesh
-from josie.mesh.cell import SimpleCell
+from josie.mesh.cell import MUSCLCell
 from josie.mesh.cellset import MeshCellSet
 from josie.euler.eos import PerfectGas
 from josie.euler.schemes import BerthonScheme, HLLC
@@ -44,12 +44,12 @@ def Scheme(BScheme):
     """Create all the different schemes"""
     if BScheme is None:
 
-        class ToroScheme(MUSCL_Hancock, MinMod, ExplicitEuler, HLLC):
+        class ToroScheme(MinMod, RK2, MUSCL, HLLC):
             pass
 
     else:
 
-        class ToroScheme(MUSCL_Hancock, MinMod, ExplicitEuler, HLLC, BScheme):
+        class ToroScheme(MinMod, RK2, HLLC, BScheme):
             pass
 
     return ToroScheme
@@ -146,7 +146,7 @@ def test_toro(riemann, Scheme, plot, request):
     top.bc = None
     bottom.bc = None
 
-    mesh = Mesh(left, bottom, right, top, SimpleCell)
+    mesh = Mesh(left, bottom, right, top, MUSCLCell)
     mesh.interpolate(100, 1)
     mesh.generate()
 
@@ -193,16 +193,16 @@ def test_toro(riemann, Scheme, plot, request):
     assert t >= final_time
 
     # Assert convergence on the final step
-    x = cells.centroids[..., Direction.X]
+    x = cells.centroids[..., 0, Direction.X]
     x = x.reshape(x.size)
 
-    rho = cells.values[..., EulerState.fields.rho]
+    rho = cells.values[..., 0, EulerState.fields.rho]
     rho = rho.reshape(rho.size)
 
-    U = cells.values[..., EulerState.fields.U]
+    U = cells.values[..., 0, EulerState.fields.U]
     U = U.reshape(U.size)
 
-    p = cells.values[..., EulerState.fields.p]
+    p = cells.values[..., 0, EulerState.fields.p]
     p = p.reshape(p.size)
 
     err_p = 0

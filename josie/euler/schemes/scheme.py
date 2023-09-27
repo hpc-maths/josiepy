@@ -12,7 +12,8 @@ from josie.state import State
 from josie.euler.problem import EulerProblem
 from josie.euler.state import EulerState
 from josie.scheme.convective import ConvectiveScheme
-from josie.general.schemes.space import MUSCL
+
+from josie.general.schemes.space.muscl import MUSCL
 
 
 if TYPE_CHECKING:
@@ -138,9 +139,9 @@ class BerthonScheme(MUSCL):
 
             # Get the conservative fields (here in 1D only)
             fields = EulerState.fields
-            rho = cells.values[..., fields.rho]
-            U = cells.values[..., fields.U]
-            rhoE = cells.values[..., fields.rhoE]
+            rho = self.cells.values[..., fields.rho]
+            U = self.cells.values[..., fields.U]
+            rhoE = self.cells.values[..., fields.rhoE]
 
             # Density slope correction
             slope_R[..., fields.rho] = self.array_max_min(

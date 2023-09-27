@@ -24,6 +24,8 @@ class ExplicitEuler(TimeScheme):
         # Do the pre_accumulate
         self.pre_accumulate(mesh.cells, dt, t)
 
+        mesh.cells.update_ghosts(mesh.boundaries, t)
+
         # Accumulate the numerical fluxes over all neighbours
         for neighs in mesh.cells.neighbours:
             self.accumulate(mesh.cells, neighs, t)

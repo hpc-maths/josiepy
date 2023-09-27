@@ -13,7 +13,7 @@ import numpy as np
 
 from josie.boundary import Line
 from josie.mesh import Mesh
-from josie.mesh.cell import SimpleCell
+from josie.mesh.cell import MUSCLCell
 from josie.mesh.cellset import MeshCellSet
 from josie.FourEq.solver import FourEqSolver
 from josie.FourEq.state import Q
@@ -53,7 +53,7 @@ def test_bubble(plot, request):
     left, right = make_periodic(left, right, Direction.X)
     bottom, top = make_periodic(bottom, top, Direction.Y)
 
-    mesh = Mesh(left, bottom, right, top, SimpleCell)
+    mesh = Mesh(left, bottom, right, top, MUSCLCell)
     mesh.interpolate(100, 100)
     mesh.generate()
 

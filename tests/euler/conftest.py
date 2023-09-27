@@ -127,7 +127,7 @@ def IntercellFluxScheme(request):
 def Scheme(IntercellFluxScheme, TimeScheme):
     """Create all the different schemes"""
 
-    class ToroScheme(Godunov, IntercellFluxScheme, TimeScheme):
+    class ToroScheme(TimeScheme, Godunov, IntercellFluxScheme):
         pass
 
     return ToroScheme

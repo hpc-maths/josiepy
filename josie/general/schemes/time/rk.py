@@ -138,11 +138,7 @@ class RK(TimeScheme):
 
         super().post_init(cells)
 
-        nx, ny, num_dofs, num_fields = cells.values.shape
-
-        self._ks: np.ndarray = np.empty(
-            (nx, ny, num_dofs, num_fields, self.num_steps - 1)
-        )
+        self._ks: np.ndarray = np.empty(self._fluxes.shape + (self.num_steps - 1,))
         self.step_cells = cells.copy()
 
     def pre_step(self, cells: MeshCellSet, dt: float):
@@ -183,6 +179,8 @@ class RK(TimeScheme):
         self.step_cells.update_ghosts(mesh.boundaries, t)
 
         self.pre_accumulate(self.step_cells, dt, t)
+
+        self.step_cells.update_ghosts(mesh.boundaries, t)
 
         for neighs in self.step_cells.neighbours:
             self.accumulate(self.step_cells, neighs, t)

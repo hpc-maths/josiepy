@@ -9,7 +9,7 @@ from josie.general.schemes.space.limiters import No_Limiter
 from josie.mesh.cellset import MeshCellSet
 from josie.solver import Solver
 from josie.mesh import Mesh
-from josie.mesh.cell import SimpleCell
+from josie.mesh.cell import MUSCLCell
 
 from josie.advection.state import Q
 from josie.advection.schemes import Upwind
@@ -33,7 +33,7 @@ def test_order_muscl(solver, plot, boundaries, init):
     for nx in nx_tab:
         left, bottom, right, top = boundaries
 
-        mesh = Mesh(left, bottom, right, top, SimpleCell)
+        mesh = Mesh(left, bottom, right, top, MUSCLCell)
         mesh.interpolate(nx, 1)
         mesh.generate()
 
@@ -52,11 +52,11 @@ def test_order_muscl(solver, plot, boundaries, init):
         dt = c * dx
         T = 0.1
 
-        x = solver.mesh.cells.centroids[..., 0]
+        x = solver.mesh.cells.centroids[..., 0, 0]
         x = x.reshape(x.size)
         Nt = int(np.ceil(T / dt))
         for t in np.linspace(0, Nt * dt, Nt + 1):
-            u = solver.mesh.cells.values[..., 0]
+            u = solver.mesh.cells.values[..., 0, 0]
             u = u.reshape(u.size)
 
             err = u - init(x - t)

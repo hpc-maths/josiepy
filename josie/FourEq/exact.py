@@ -388,7 +388,7 @@ class Exact(FourEqScheme):
         U = np.linalg.norm(UV, axis=-1)
         c = cells.values[..., Q.fields.c]
 
-        sigma = np.max(np.abs(U) + c[..., np.newaxis])
+        sigma = np.max(np.abs(U) + c)
 
         dt = np.min((dt, CFL_value * dx / sigma))
 
