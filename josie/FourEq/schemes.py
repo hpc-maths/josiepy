@@ -140,7 +140,6 @@ class FourEqScheme(ConvectiveScheme):
 
     def post_extrapolation(self, values: Q):
         # auxilliary variables update
-        self.prim2Q(values)
 
         if self.do_relaxation:
             # Relaxation to update the volume fraction
