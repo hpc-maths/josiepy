@@ -2,10 +2,7 @@
 #
 # SPDX-License-Identifier: BSD-3-Clause
 
-import numpy as np
-
 from josie.mesh.cellset import MeshCellSet, NeighboursCellSet
-from josie.state import State
 
 from josie.scheme.convective import ConvectiveScheme
 

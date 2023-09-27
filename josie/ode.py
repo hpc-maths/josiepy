@@ -5,7 +5,6 @@
 """ Handy objects to speed up the setup of a simulation for a problem governed
 by an Ordinary Differential Equation (ODE) (i.e. time-varying only)
 """
-import numpy as np
 from typing import Callable, Type, Union
 
 from josie.boundary.set import UnitCube
