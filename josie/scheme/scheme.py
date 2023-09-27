@@ -229,7 +229,7 @@ class Scheme(abc.ABC):
         # equations without the auxiliary states
 
         # Initialize the datastructure containing the fluxes
-        pass
+        self._fluxes: State = np.empty_like(cells.values)
 
     def pre_step(self, cells: MeshCellSet, dt: float):
         """
