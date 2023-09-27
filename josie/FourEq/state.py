@@ -73,6 +73,7 @@ class Q(TwoFluidState):
 
     fields = FourEqFields
     cons_state = FourEqConsState
+    prim_state = FourEqConsState
     phase_state = FourEqPhaseState
 
     def get_conservative(self) -> FourEqConsState:

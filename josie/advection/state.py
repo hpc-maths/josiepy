@@ -14,3 +14,4 @@ class AdvectionConsState(SubsetState):
 class Q(ConsState):
     fields = State.list_to_enum(["u"])  # type: ignore
     cons_state = AdvectionConsState
+    prim_state = AdvectionConsState

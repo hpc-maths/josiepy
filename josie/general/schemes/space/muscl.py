@@ -29,9 +29,12 @@ class MUSCL(ConvectiveScheme):
             neigh_L = self.cells.neighbours[dir_L]
             neigh_R = self.cells.neighbours[dir_R]
 
+            state_cls = cells._values.__class__
             slope = self.limiter(
-                self.cells.values - neigh_L.values,
-                neigh_R.values - self.cells.values,
+                self.cells.values.view(state_cls).get_primitive()  # type: ignore
+                - neigh_L.values.view(state_cls).get_primitive(),  # type: ignore
+                neigh_R.values.view(state_cls).get_primitive()  # type: ignore
+                - self.cells.values.view(state_cls).get_primitive(),  # type: ignore
             )
 
             self.slopes[..., dir_R] = slope
@@ -53,8 +56,13 @@ class MUSCL(ConvectiveScheme):
     def linear_extrapolation(self, cells: MeshCellSet):
         # Compute linear extrapolated values at each face
         for direction in range(2**cells.dimensionality):
-            self.cells.values_face[..., [direction], :] = (
-                self.cells.values + 0.5 * self.slopes[..., direction]
+            state_cls = cells._values.__class__
+
+            self.cells.values_face[
+                ..., [direction], [state_cls.prim_state.fields]  # type: ignore
+            ] = (
+                self.cells.values.view(state_cls).get_primitive()  # type: ignore
+                + 0.5 * self.slopes[..., direction]
             )
 
     def apply_fluxes(self, cells: MeshCellSet, dt: float):
@@ -90,8 +98,10 @@ class MUSCL(ConvectiveScheme):
 
         self._fluxes = np.empty_like(self.cells.values)
 
+        state_cls = cells._values.__class__
         self.slopes = np.empty(
-            self.cells.values.shape + (2**cells.dimensionality,)
+            self.cells.values.view(state_cls).get_primitive().shape  # type: ignore
+            + (2**cells.dimensionality,)
         ).view(cells._values.__class__)
 
     def pre_accumulate(self, cells: MeshCellSet, dt: float, t: float):
