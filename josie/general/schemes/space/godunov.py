@@ -18,8 +18,6 @@ class Godunov(ConvectiveScheme):
 
         super().post_init(cells)
 
-        self._fluxes: State = np.empty_like(cells.values)
-
     def F(self, cells: MeshCellSet, neighs: NeighboursCellSet):
         # Solve the Riemann problem to compute the intercell flux
         # using cell states as initial conditions.

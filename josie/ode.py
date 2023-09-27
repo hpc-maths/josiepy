@@ -89,7 +89,6 @@ class OdeSolver(Solver):
             for field in Q.fields:
                 cells.values[..., field] = Q0[field]
 
-        scheme._fluxes = np.empty((1, 1, 1, len(Q.fields))).view(Q)
         self.init(init_fun)
 
     def solve(self, final_time: float, WriterClass: Type[Writer] = MemoryWriter):
