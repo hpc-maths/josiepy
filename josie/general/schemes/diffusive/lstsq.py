@@ -5,7 +5,6 @@
 import numpy as np
 
 from josie.mesh.cellset import MeshCellSet
-from josie.mesh.mesh import Mesh
 from josie.scheme.diffusive import DiffusiveScheme
 
 
@@ -35,16 +34,15 @@ class LeastSquareGradient(DiffusiveScheme):
 
     _gradient: np.ndarray
 
-    def _init_gradient(self, mesh: Mesh):
+    def _init_gradient(self, cells: MeshCellSet):
         r"""Initialize the datastructure holding the gradient
         :math:`\pdeGradient, \ipdeGradient` per each cell
         """
 
-        cells = mesh.cells
         nx, ny, num_dofs, num_fields = cells.values.shape
         dimensionality = cells.dimensionality
 
-        super().post_init(mesh)
+        super().post_init(cells)
 
         self._gradient = np.zeros((nx, ny, num_dofs, num_fields, dimensionality))
 
@@ -53,20 +51,19 @@ class LeastSquareGradient(DiffusiveScheme):
 
         self._gradient.fill(0)
 
-    def post_init(self, mesh: Mesh):
+    def post_init(self, cells: MeshCellSet):
         r"""Initialize the datastructure holding the matrix used to solve
         the Least Square problem and also the RHS of the linear system
 
         """
 
-        cells = mesh.cells
         nx, ny, num_dofs, num_fields = cells.values.shape
         dimensionality = cells.dimensionality
 
-        super().post_init(mesh)
-        self._fluxes = np.empty_like(mesh.cells.values)
+        super().post_init(cells)
+        self._fluxes = np.empty_like(cells.values)
 
-        self._init_gradient(mesh)
+        self._init_gradient(cells)
 
         self._A = np.zeros((nx, ny, dimensionality, dimensionality))
         self._RHS = np.zeros_like(self._gradient)

@@ -5,7 +5,6 @@
 from __future__ import annotations
 
 import abc
-
 import numpy as np
 
 from typing import TYPE_CHECKING
@@ -212,7 +211,7 @@ class Scheme(abc.ABC):
         # Keep ghost cells updated
         mesh.update_ghosts(t)
 
-    def post_init(self, mesh: Mesh):
+    def post_init(self, cells: MeshCellSet):
         r""":class:`Scheme` can implement a :meth:`post_init` in order to
         perform operations after the :meth:`Solver.init` initialize the
         solver state
