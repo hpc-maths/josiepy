@@ -2,9 +2,12 @@
 #
 # SPDX-License-Identifier: BSD-3-Clause
 
+import numpy as np
+
 from josie.mesh.cellset import MeshCellSet, NeighboursCellSet
 
 from josie.scheme.convective import ConvectiveScheme
+from josie.state import State
 
 
 class Godunov(ConvectiveScheme):
@@ -14,6 +17,7 @@ class Godunov(ConvectiveScheme):
         """
 
         super().post_init(cells)
+        self._fluxes: State = np.empty_like(cells.values)
 
     def F(self, cells: MeshCellSet, neighs: NeighboursCellSet):
         # Solve the Riemann problem to compute the intercell flux

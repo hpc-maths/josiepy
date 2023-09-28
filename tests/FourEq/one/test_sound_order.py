@@ -11,7 +11,7 @@ from dataclasses import dataclass
 from josie.boundary import Line
 from josie.math import Direction
 from josie.mesh import Mesh
-from josie.mesh.cell import SimpleCell
+from josie.mesh.cell import MUSCLCell
 from josie.mesh.cellset import MeshCellSet
 from josie.FourEq.solver import FourEqSolver
 from josie.FourEq.state import Q
@@ -100,7 +100,7 @@ def test_cvv(plot):
     bottom.bc = None
     L2_err = []
     ref_sol_nx = 6000
-    nx_tab = [50, 100, 300, 500, 1000, 2000, 3000]
+    nx_tab = [100, 300, 500, 1000, 2000, 3000]
     final_time = 1e-3
     plt.figure()
 
@@ -127,7 +127,7 @@ def test_cvv(plot):
 
     # compute ref
     print("Computing ref...")
-    mesh = Mesh(left, bottom, right, top, SimpleCell)
+    mesh = Mesh(left, bottom, right, top, MUSCLCell)
     mesh.interpolate(ref_sol_nx, 1)
     mesh.generate()
     solver = FourEqSolver(mesh, scheme)
@@ -145,7 +145,7 @@ def test_cvv(plot):
 
     for nx in nx_tab:
         print(nx)
-        mesh = Mesh(left, bottom, right, top, SimpleCell)
+        mesh = Mesh(left, bottom, right, top, MUSCLCell)
         mesh.interpolate(nx, 1)
         mesh.generate()
         solver = FourEqSolver(mesh, scheme)

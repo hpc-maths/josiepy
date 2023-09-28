@@ -260,23 +260,25 @@ class RK2_relax(TimeScheme):
         q = mesh.cells.copy()
         self._fluxes.fill(0)
         self.pre_accumulate(q, dt, t)
+        q.update_ghosts(mesh.boundaries, t)
 
         for neighs in q.neighbours:
             self.accumulate(q, neighs, t)
 
-        q.values -= (  # type: ignore
+        q.values[..., [0], :] -= (  # type: ignore
             dt / mesh.cells.volumes[..., np.newaxis, np.newaxis]
         ) * self._fluxes
 
         # q1 -> q1rel
         # TODO: Create a RelaxScheme class to account for relaxation processes
-        self.relaxation(q.values)  # type: ignore
-        self.auxilliaryVariableUpdate(q.values)
+        self.relaxation(q.values[..., 0, :])  # type: ignore
+        self.auxilliaryVariableUpdate(q.values[..., 0, :])
         q.update_ghosts(mesh.boundaries, t)
 
         # Compute q2 fluxes
         self._fluxes.fill(0)
         self.pre_accumulate(q, dt, t)
+        q.update_ghosts(mesh.boundaries, t)
 
         for neighs in q.neighbours:
             self.accumulate(q, neighs, t)
@@ -286,6 +288,6 @@ class RK2_relax(TimeScheme):
             / 2
             * mesh.cells.volumes[..., np.newaxis, np.newaxis]
             / dt
-            * (mesh.cells.values - q.values)
+            * (mesh.cells.values[..., [0], :] - q.values[..., [0], :])
             + 1 / 2 * self._fluxes
         )

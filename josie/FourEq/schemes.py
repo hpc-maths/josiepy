@@ -139,11 +139,11 @@ class FourEqScheme(ConvectiveScheme):
         alpha = np.minimum(np.maximum((rho - rho2) / (rho1 - rho2), 0), 1)
         # alpha = (rho - rho2) / (rho1 - rho2)
 
-        if np.any(alpha < 0.0):
+        if np.any(alpha < 0.0) or np.any(alpha > 1.0) or np.any(np.isnan(alpha)):
             print(alpha)
             exit()
-        if np.any(alpha > 1.0):
-            print(alpha)
+        if np.any(rho < 0):
+            print(rho)
             exit()
 
         values[..., fields.arho] = alpha * rho
@@ -320,10 +320,10 @@ class Rusanov(FourEqScheme):
 
         # Get the velocity components
         UV_slice = slice(Q.fields.U, Q.fields.V + 1)
-        UV = cells.values[..., UV_slice]
+        UV = cells.values[..., [0], UV_slice]
 
         U = np.linalg.norm(UV, axis=-1)
-        c = cells.values[..., Q.fields.c]
+        c = cells.values[..., [0], Q.fields.c]
 
         sigma = np.max(np.abs(U) + c[..., np.newaxis])
 

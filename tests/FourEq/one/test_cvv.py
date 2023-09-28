@@ -11,7 +11,8 @@ from josie.bc import Dirichlet
 from josie.boundary import Line
 from josie.math import Direction
 from josie.mesh import Mesh
-from josie.mesh.cell import MUSCLCell
+from josie.mesh.cell import MUSCLCell, SimpleCell
+from josie.general.schemes.space.muscl import MUSCL
 from josie.mesh.cellset import MeshCellSet
 from josie.FourEq.solver import FourEqSolver
 from josie.FourEq.state import Q
@@ -41,8 +42,10 @@ def test_cvv(riemann_state, riemann2Q, Scheme, plot, animate, request):
     right.bc = Dirichlet(Q_right)
     top.bc = None
     bottom.bc = None
-
-    mesh = Mesh(left, bottom, right, top, MUSCLCell)
+    if issubclass(Scheme, MUSCL):
+        mesh = Mesh(left, bottom, right, top, MUSCLCell)
+    else:
+        mesh = Mesh(left, bottom, right, top, SimpleCell)
     nCells = 50
     if issubclass(Scheme, Rusanov):
         nCells = 500
@@ -161,16 +164,16 @@ def test_cvv(riemann_state, riemann2Q, Scheme, plot, animate, request):
     if plot:
         # Plot final step solution
 
-        alpha = cells.values[..., Q.fields.alpha]
+        alpha = cells.values[..., 0, Q.fields.alpha]
         alpha = alpha.reshape(alpha.size)
 
-        rhoU = cells.values[..., Q.fields.rhoU]
+        rhoU = cells.values[..., 0, Q.fields.rhoU]
         rhoU = rhoU.reshape(rhoU.size)
 
-        arho1 = cells.values[..., Q.fields.arho1]
+        arho1 = cells.values[..., 0, Q.fields.arho1]
         arho1 = arho1.reshape(arho1.size)
 
-        P = np.abs(cells.values[..., Q.fields.P] - 1e5)
+        P = np.abs(cells.values[..., 0, Q.fields.P] - 1e5)
         P = P.reshape(P.size)
 
         im1.set_data(x, alpha)
