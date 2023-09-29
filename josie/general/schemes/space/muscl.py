@@ -59,7 +59,7 @@ class MUSCL(ConvectiveScheme):
             state_cls = cells._values.__class__
 
             self.cells.values_face[
-                ..., [direction], [state_cls.prim_state.fields]  # type: ignore
+                ..., [direction], [state_cls.prim_state._subset_fields_map]  # type: ignore
             ] = (
                 self.cells.values.view(state_cls).get_primitive()  # type: ignore
                 + 0.5 * self.slopes[..., direction]
