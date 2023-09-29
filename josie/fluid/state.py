@@ -16,6 +16,7 @@ class ConsState(State):
     """A mixin providing methods to retrieve the conservative part of a
     :class:`State`"""
 
+    prim_state: Type[SubsetState]
     cons_state: Type[SubsetState]
 
     def get_conservative(self) -> SubsetState:
@@ -25,6 +26,14 @@ class ConsState(State):
     def set_conservative(self, values: State):
         """Set the conservative part of the state"""
         self[..., self.cons_state._subset_fields_map] = values
+
+    def get_primitive(self) -> SubsetState:
+        """Returns the diffusive part of the state"""
+        return self[..., self.prim_state._subset_fields_map]  # type: ignore
+
+    def set_primitive(self, values: State):
+        """Set the diffusive part of the state"""
+        self[..., self.prim_state._subset_fields_map] = values
 
 
 class DiffState(State):

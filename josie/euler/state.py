@@ -50,3 +50,4 @@ class EulerState(SingleFluidState):
     """
     fields = EulerFields
     cons_state = EulerConsState
+    prim_state = EulerConsState
