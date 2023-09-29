@@ -16,7 +16,7 @@ from josie.general.schemes.space.godunov import Godunov
 from josie.general.schemes.space.muscl import MUSCL, MUSCL_Hancock
 from josie.general.schemes.space.limiters import No_Limiter
 from josie.mesh import Mesh
-from josie.mesh.cell import MUSCLCell
+from josie.mesh.cell import SimpleCell, MUSCLCell
 from josie.mesh.cellset import MeshCellSet
 from josie.solver import Solver
 
@@ -65,7 +65,10 @@ def scheme(TimeScheme, SpaceScheme):
 def solver(scheme, boundaries, init):
     left, bottom, right, top = boundaries
 
-    mesh = Mesh(left, bottom, right, top, MUSCLCell)
+    if issubclass(scheme, MUSCL):
+        mesh = Mesh(left, bottom, right, top, MUSCLCell)
+    else:
+        mesh = Mesh(left, bottom, right, top, SimpleCell)
     mesh.interpolate(40, 1)
     mesh.generate()
     solver = Solver(mesh, Q, scheme(AdvectionProblem(V)))
