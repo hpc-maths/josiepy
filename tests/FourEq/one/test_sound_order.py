@@ -100,7 +100,7 @@ def test_cvv(plot):
     bottom.bc = None
     L2_err = []
     ref_sol_nx = 6000
-    nx_tab = [100, 300, 500, 1000, 2000, 3000]
+    nx_tab = [50, 100, 300, 500, 1000, 2000, 3000]
     final_time = 1e-3
     plt.figure()
 
