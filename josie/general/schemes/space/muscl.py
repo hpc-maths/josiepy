@@ -98,8 +98,6 @@ class MUSCL(ConvectiveScheme):
 
         self.cells = MUSCLMeshCellSet(cells)
 
-        self._fluxes = np.empty_like(self.cells.values)
-
         state_cls = cells._values.__class__
         self.slopes = np.empty(
             self.cells.values.view(state_cls).get_primitive().shape  # type: ignore
@@ -131,7 +129,8 @@ class MUSCL(ConvectiveScheme):
         self.linear_extrapolation(cells)
 
         # Update the auxiliary components at each face
-        self.post_extrapolation(self.cells._allvalues)
+        for dir in range(2**cells.dimensionality):
+            self.post_extrapolation(self.cells.values_face[..., dir, :])
 
 
 class MUSCL_Hancock(MUSCL):
@@ -170,6 +169,8 @@ class MUSCL_Hancock(MUSCL):
 
             cons_states = cells._values.__class__.cons_state  # type: ignore
             cons_fields = cons_states._subset_fields_map  # type: ignore
+            # BUG: the use of the brackts slice [dir_K] [cons_fields] is not
+            # advised here and does not update the values_face
             self.cells.values_face[..., [dir_L], [cons_fields]] -= (  # type: ignore
                 0.5
                 * dt
@@ -201,4 +202,5 @@ class MUSCL_Hancock(MUSCL):
         self.update_values_face(cells, dt)
 
         # Update the auxiliary components at each face
-        self.post_extrapolation(self.cells._allvalues)
+        for dir in range(2**cells.dimensionality):
+            self.post_extrapolation(self.cells.values_face[..., dir, :])
