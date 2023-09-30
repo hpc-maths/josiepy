@@ -176,6 +176,7 @@ class RK(TimeScheme):
             * np.einsum("k,...k->...", a_s, self._ks[..., :step])
             / mesh.cells.volumes[..., np.newaxis, np.newaxis]
         )
+        self.auxilliaryVariableUpdate(self.step_cells.values[..., 0, :])
         self.step_cells.update_ghosts(mesh.boundaries, t)
 
         self.pre_accumulate(self.step_cells, dt, t)

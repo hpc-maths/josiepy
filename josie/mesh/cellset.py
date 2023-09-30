@@ -448,7 +448,7 @@ class MUSCLCellSet(CellSet):
             surfaces=self.surfaces[key],
             normals=self.normals[key],
             centroids=self.centroids[key],
-            allvalues=self.values[key].view(State),
+            allvalues=self.allvalues[key].view(State),
             values=self.values[key].view(State),
             dimensionality=self.dimensionality,
             min_length=self.min_length,
