@@ -186,7 +186,7 @@ class FourEqScheme(ConvectiveScheme):
         alphas = PhasePair(alpha, 1.0 - alpha)
         arhos = PhasePair(arho1, arho2)
 
-        values[..., fields.alpha] = alpha.copy()
+        values[..., fields.alpha] = alpha
         values[..., fields.rho] = rho
         values[..., fields.U] = rhoU / rho
         values[..., fields.V] = rhoV / rho
