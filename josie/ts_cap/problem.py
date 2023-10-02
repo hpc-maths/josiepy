@@ -14,11 +14,20 @@ from .state import Q, TsCapConsFields
 
 
 class TsCapProblem(ConvectiveProblem):
-    """A class representing a two-phase system problem governed by the
-    four equations model (barotropic EOS with velocity equilibrium)"""
+    """A class representing a two-phase system problem governed by a
+    four equation like model with capillarity"""
 
-    def __init__(self, eos: TwoPhaseEOS):
+    def __init__(
+        self,
+        eos: TwoPhaseEOS,
+        sigma: float,
+        Hmax: float,
+        norm_grada_min: float,
+    ):
         self.eos = eos
+        self.sigma = sigma
+        self.Hmax = Hmax
+        self.norm_grada_min = norm_grada_min
 
     def F(self, values: Q) -> np.ndarray:
         r""" """
@@ -47,6 +56,10 @@ class TsCapProblem(ConvectiveProblem):
         U = rhoU / rho
         V = rhoV / rho
         pbar = values[..., fields.pbar]
+        capSigma = values[..., fields.capSigma]
+        norm_grada = values[..., fields.norm_grada]
+        n_x = values[..., fields.n_x]
+        n_y = values[..., fields.n_y]
 
         # Four-eq like model
         F[..., TsCapConsFields.abarrho, Direction.X] = abarrho * U
@@ -63,6 +76,28 @@ class TsCapProblem(ConvectiveProblem):
         F[..., TsCapConsFields.rhoV, Direction.X] = rhoV * U
         F[..., TsCapConsFields.rhoV, Direction.Y] = rhoV * V + pbar
 
+        # Large-scale capillarity
+        F[..., TsCapConsFields.rhoU, Direction.X] += np.where(
+            norm_grada > self.norm_grada_min,
+            self.sigma * norm_grada * (n_x**2 - 1),
+            0,
+        )
+        F[..., TsCapConsFields.rhoU, Direction.Y] += np.where(
+            norm_grada > self.norm_grada_min,
+            self.sigma * norm_grada * n_x * n_y,
+            0,
+        )
+        F[..., TsCapConsFields.rhoV, Direction.X] += np.where(
+            norm_grada > self.norm_grada_min,
+            self.sigma * norm_grada * n_y * n_x,
+            0,
+        )
+        F[..., TsCapConsFields.rhoV, Direction.Y] += np.where(
+            norm_grada > self.norm_grada_min,
+            self.sigma * norm_grada * (n_y**2 - 1),
+            0,
+        )
+
         # Small-scale variables
         F[..., TsCapConsFields.arho1d, Direction.X] = arho1d * U
         F[..., TsCapConsFields.arho1d, Direction.Y] = arho1d * V
@@ -70,4 +105,6 @@ class TsCapProblem(ConvectiveProblem):
         F[..., TsCapConsFields.ad, Direction.X] = ad * U
         F[..., TsCapConsFields.ad, Direction.Y] = ad * V
 
+        F[..., TsCapConsFields.capSigma, Direction.X] = capSigma * U
+        F[..., TsCapConsFields.capSigma, Direction.Y] = capSigma * V
         return F

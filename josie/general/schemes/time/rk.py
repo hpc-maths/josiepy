@@ -176,7 +176,7 @@ class RK(TimeScheme):
             * np.einsum("k,...k->...", a_s, self._ks[..., :step])
             / mesh.cells.volumes[..., np.newaxis, np.newaxis]
         )
-        self.auxilliaryVariableUpdate(self.step_cells.values[..., 0, :])
+        self.auxilliaryVariableUpdate(self.step_cells._values[..., 0, :])
         self.step_cells.update_ghosts(mesh.boundaries, t)
 
         self.pre_accumulate(self.step_cells, dt, t)
@@ -271,8 +271,8 @@ class RK2_relax(TimeScheme):
 
         # q1 -> q1rel
         # TODO: Create a RelaxScheme class to account for relaxation processes
-        self.relaxation(q.values[..., 0, :])  # type: ignore
-        self.auxilliaryVariableUpdate(q.values[..., 0, :])
+        self.relaxation(q._values[..., 0, :])  # type: ignore
+        self.auxilliaryVariableUpdate(q._values[..., 0, :])
         q.update_ghosts(mesh.boundaries, t)
 
         # Compute q2 fluxes

@@ -12,7 +12,7 @@ from .state import Q
 
 
 class TsCapSolver(Solver):
-    """A solver for the TwoPhase system"""
+    """A solver for the TsCap system"""
 
     def __init__(self, mesh: Mesh, scheme: TsCapScheme):
         super().__init__(mesh, Q, scheme)

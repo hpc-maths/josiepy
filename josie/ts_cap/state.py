@@ -34,6 +34,23 @@ class TsCapFields(FluidFields):
 
     arho1d = 15
     ad = 16
+    capSigma = 17
+
+    grada_x = 18
+    grada_y = 19
+    n_x = 20
+    n_y = 21
+    norm_grada = 22
+    H = 23
+
+    MaX = 24
+    MaY = 25
+    WeX = 26
+    WeY = 27
+    c_cap1X = 28
+    c_cap1Y = 29
+    c_cap2X = 30
+    c_cap2Y = 31
 
 
 class TsCapConsFields(Fields):
@@ -47,6 +64,7 @@ class TsCapConsFields(Fields):
     arho2 = 4
     arho1d = 5
     ad = 6
+    capSigma = 7
 
 
 class TsCapPhaseFields(Fields):

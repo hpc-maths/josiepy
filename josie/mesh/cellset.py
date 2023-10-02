@@ -421,11 +421,13 @@ class MUSCLMeshCellSet(CellSet):
 
         self.neighbours = []
         for neighbour in cells.neighbours:
+            direction = NeighbourDirection[NormalDirection(neighbour.direction).name]
+            data_index = direction.value.data_index
             self.neighbours.append(
                 MUSCLNeighboursCellSet(
                     centroids=neighbour.centroids,
-                    values=neighbour.values[:, :, [0]],
-                    allvalues=neighbour.values,
+                    values=self._values[data_index],
+                    allvalues=self._allvalues[data_index],
                     volumes=neighbour.volumes,
                     normals=neighbour.normals,
                     surfaces=neighbour.surfaces,

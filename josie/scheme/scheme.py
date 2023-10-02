@@ -206,7 +206,7 @@ class Scheme(abc.ABC):
         self.apply_fluxes(cells, dt)
 
         # Let's put here an handy post step if needed after the values update
-        self.post_step(cells.values[..., 0, :])
+        self.post_step(cells._values[..., 0, :])
 
         # Keep ghost cells updated
         mesh.update_ghosts(t)
