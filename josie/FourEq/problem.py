@@ -40,15 +40,11 @@ class FourEqProblem(ConvectiveProblem):
         arho2 = values[..., fields.arho2]
         arho = values[..., fields.arho]
         rho = arho1 + arho2
-        alpha1 = arho / rho
-        alpha2 = 1.0 - alpha1
         rhoU = values[..., fields.rhoU]
         rhoV = values[..., fields.rhoV]
         U = rhoU / rho
         V = rhoV / rho
-        p1 = values[..., fields.p1]
-        p2 = values[..., fields.p2]
-        p = alpha1 * p1 + alpha2 * p2
+        p = values[..., fields.P]
 
         F[..., FourEqConsFields.arho, Direction.X] = arho * U
         F[..., FourEqConsFields.arho, Direction.Y] = arho * V

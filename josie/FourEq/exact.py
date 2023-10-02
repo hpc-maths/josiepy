@@ -6,7 +6,7 @@ import numpy as np
 
 from josie.mesh.cellset import MeshCellSet
 from .schemes import FourEqScheme
-from .state import Q, FourEqConsFields
+from .state import Q, FourEqConsFields, FourEqConsState
 from josie.twofluid.fields import Phases
 
 from .problem import FourEqProblem
@@ -24,7 +24,13 @@ class Exact(FourEqScheme):
         c1 = self.problem.eos[Phases.PHASE1].c0
         c2 = self.problem.eos[Phases.PHASE2].c0
 
-        return p0 - alpha * rho10 * c1**2 - (1.0 - alpha) * rho20 * c2**2
+        out = np.full_like(alpha, p0)
+        ind = np.where(alpha > 0)
+        out[ind] -= alpha[ind] * rho10 * c1**2
+        ind = np.where(1 - alpha > 0)
+        out[ind] -= (1.0 - alpha[ind]) * rho20 * c2**2
+
+        return out
 
     def deltaU(
         self,
@@ -106,57 +112,39 @@ class Exact(FourEqScheme):
         return ddU_dP
 
     def solvePressure(self, P_init: np.ndarray, Q_L: Q, Q_R: Q, normals: np.ndarray):
-        P_old = P_init
-        P_new = P_init
+        P = P_init.copy()
+        dP = np.zeros_like(P)
         tol = 1e-8
         firstLoop = True
 
         # No Newton algorithm where exact pressure equilibrium
-        ind = np.where(Q_L[..., Q.fields.P] != Q_R[..., Q.fields.P])[0]
-
+        ind = np.where(self.deltaU(Q_L, Q_R, P, normals) != 0.0)[0]
+        P0tilde = np.maximum(
+            self.P0(Q_L[..., Q.fields.alpha]), self.P0(Q_R[..., Q.fields.alpha])
+        )
         # Newton-Raphson loop
         while len(ind) > 0 or firstLoop:
             if firstLoop:
                 firstLoop = False
-
-            P_old[ind, ...] = P_new[ind, ...]
-            P_new[ind, ...] = P_old[ind, ...] - self.deltaU(
+            dP.fill(0)
+            dP[ind, ...] = -self.deltaU(
                 Q_L[ind, ...],
                 Q_R[ind, ...],
-                P_old[ind, ...],
+                P[ind, ...],
                 normals[ind, ...],
-            ) / self.ddeltaU_dP(Q_L[ind, ...], Q_R[ind, ...], P_old[ind, ...])
+            ) / self.ddeltaU_dP(Q_L[ind, ...], Q_R[ind, ...], P[ind, ...])
+            P[ind, ...] += np.maximum(
+                dP[ind, ...], 0.9 * (P0tilde[ind, ...] - P[ind, ...])
+            )
 
-            ind = np.where(np.abs(P_new - P_old) / (0.5 * (P_new + P_old)) > tol)[0]
-        return P_new
+            ind = np.where(np.abs(dP / P) > tol)[0]
 
-    def intercellFlux(
-        self,
-        Q_L: Q,
-        Q_R: Q,
-        normals: np.ndarray,
-        surfaces: np.ndarray,
-    ):
-        r"""Exact solver scheme
+        return P
 
-        Parameters
-        ----------
-        cells:
-            A :class:`MeshCellSet` containing the state of the mesh cells
-
-        neighs
-            A :class:`NeighboursCellSet` containing data of neighbour cells
-            corresponding to the :attr:`values`
-
-        Returns
-        -------
-        F
-            The value of the numerical convective flux multiplied by the
-            surface value :math:`\numConvective`
-        """
-        FS = np.zeros_like(Q_L).view(Q)
-
+    def solve_RP(self, Q_L: Q, Q_R: Q, Qc: FourEqConsState, normals: np.ndarray):
         fields = Q.fields
+        cfields = FourEqConsFields
+        Qc_R = Q_R.view(Q).get_conservative()
 
         arho1_L = Q_L[..., fields.arho1]
         arho2_L = Q_L[..., fields.arho2]
@@ -182,10 +170,14 @@ class Exact(FourEqScheme):
         c_R = Q_R[..., fields.c]
         alpha_R = Q_R[..., fields.alpha]
         rho_R = Q_R[..., fields.rho]
+        P0_R = self.P0(alpha_R)
 
         # Solve for Pstar
         # Could change the init pressure
-        P_star = self.solvePressure(0.5 * (P_L + P_R), Q_L, Q_R, normals)
+        P0tilde = np.maximum(P0_L, P0_R)
+        P_star = self.solvePressure(
+            np.maximum(0.5 * (P_L + P_R), 1.1 * P0tilde), Q_L, Q_R, normals
+        )
 
         # Compute Ustar
         U_star = U_L.copy()
@@ -198,12 +190,6 @@ class Exact(FourEqScheme):
         U_star[ind] -= (P_star[ind] - P_L[ind]) / np.sqrt(
             rho_L[ind] * (P_star[ind] - P0_L[ind])
         )
-
-        # Prepare state
-        Qc_L = Q_L.view(Q).get_conservative()
-        Qc_R = Q_R.view(Q).get_conservative()
-        Qc = Qc_L
-        cfields = FourEqConsFields
 
         # If 0 < Ustar
         #   If left shock
@@ -361,9 +347,48 @@ class Exact(FourEqScheme):
         Qc[ind_tmp + (cfields.arho1,)] = arho1_R_star[ind]
         Qc[ind_tmp + (cfields.arho2,)] = arho2_R_star[ind]
 
+        return Qc
+
+    def intercellFlux(
+        self,
+        Q_L: Q,
+        Q_R: Q,
+        normals: np.ndarray,
+        surfaces: np.ndarray,
+    ):
+        r"""Exact solver scheme
+
+        Parameters
+        ----------
+        cells:
+            A :class:`MeshCellSet` containing the state of the mesh cells
+
+        neighs
+            A :class:`NeighboursCellSet` containing data of neighbour cells
+            corresponding to the :attr:`values`
+
+        Returns
+        -------
+        F
+            The value of the numerical convective flux multiplied by the
+            surface value :math:`\numConvective`
+        """
+        FS = np.zeros_like(Q_L).view(Q)
+
+        # Prepare state
+        Qc_L = Q_L.view(Q).get_conservative()
+        Qc = Qc_L.copy()
+
+        # Test if discontinuity
+        ind = np.where(np.any(Q_L != Q_R, axis=-1))
+        Qc[ind] = self.solve_RP(Q_L, Q_R, Qc.copy(), normals)[ind]
+
         # Compute flux
         intercells = Q_L.copy()
         intercells.view(Q).set_conservative(Qc)
+        # TODO: Relaxation not necessary but it corrects arho
+        # when it is slightly negative
+        self.relaxation(intercells)
         self.auxilliaryVariableUpdate(intercells)
         F = np.einsum("...mkl,...l->...mk", self.problem.F(intercells), normals)
 

@@ -44,6 +44,16 @@ class FourEqConsFields(Fields):
     arho2 = 4
 
 
+class FourEqPrimFields(Fields):
+    """Indexing fields for a substate associated to a phase"""
+
+    alpha = 0
+    rho = 1
+    P = 2
+    U = 3
+    V = 4
+
+
 class FourEqPhaseFields(Fields):
     """Indexing fields for a substate associated to a phase"""
 
@@ -56,6 +66,13 @@ class FourEqPhaseState(PhaseState):
     """State array for one single phase"""
 
     fields = FourEqPhaseFields
+    full_state_fields = FourEqFields
+
+
+class FourEqPrimState(SubsetState):
+    """State array for one single phase"""
+
+    fields = FourEqPrimFields
     full_state_fields = FourEqFields
 
 
@@ -73,7 +90,7 @@ class Q(TwoFluidState):
 
     fields = FourEqFields
     cons_state = FourEqConsState
-    prim_state = FourEqConsState
+    prim_state = FourEqPrimState
     phase_state = FourEqPhaseState
 
     def get_conservative(self) -> FourEqConsState:

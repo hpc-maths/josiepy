@@ -7,24 +7,29 @@ from matplotlib.animation import FuncAnimation
 import numpy as np
 
 
-from josie.bc import Dirichlet
 from josie.boundary import Line
 from josie.math import Direction
 from josie.mesh import Mesh
-from josie.mesh.cell import MUSCLCell, SimpleCell
-from josie.general.schemes.space.muscl import MUSCL
+from josie.mesh.cell import MUSCLCell
 from josie.mesh.cellset import MeshCellSet
 from josie.FourEq.solver import FourEqSolver
 from josie.FourEq.state import Q
 from josie.FourEq.eos import TwoPhaseEOS, LinearizedGas
 from josie.FourEq.schemes import Rusanov
 
+from josie.general.schemes.space.muscl import MUSCL
+from josie.general.schemes.space.limiters import MinMod
+from josie.general.schemes.time.rk import RK2_relax
 
-def relative_error(a, b):
-    return np.abs(a - b)
+from josie.bc import make_periodic
+from .conftest import RiemannState
 
 
-def test_cvv(riemann_state, riemann2Q, Scheme, plot, animate, request):
+class CVVScheme(MinMod, MUSCL, Rusanov, RK2_relax):
+    pass
+
+
+def test_cvv(riemann2Q, plot, animate, request):
     left = Line([0, 0], [0, 1])
     bottom = Line([0, 0], [1, 0])
     right = Line([1, 0], [1, 1])
@@ -32,39 +37,35 @@ def test_cvv(riemann_state, riemann2Q, Scheme, plot, animate, request):
 
     eos = TwoPhaseEOS(
         phase1=LinearizedGas(p0=1e5, rho0=1.0, c0=3.0),
-        phase2=LinearizedGas(p0=1e5, rho0=1e3, c0=15.0),
+        phase2=LinearizedGas(p0=1e5, rho0=1e3, c0=3.0),
     )
 
-    Q_left = riemann2Q(riemann_state.left, eos)
-    Q_right = riemann2Q(riemann_state.right, eos)
+    Q_in = riemann2Q(RiemannState(alpha=0, rho1=1.0, rho2=1.0e3, U=1.0), eos)
+    Q_out = riemann2Q(RiemannState(alpha=1.0, rho1=1.0, rho2=1.0e3, U=1.0), eos)
 
-    left.bc = Dirichlet(Q_left)
-    right.bc = Dirichlet(Q_right)
+    left, right = make_periodic(left, right, Direction.X)
     top.bc = None
     bottom.bc = None
-    if issubclass(Scheme, MUSCL):
-        mesh = Mesh(left, bottom, right, top, MUSCLCell)
-    else:
-        mesh = Mesh(left, bottom, right, top, SimpleCell)
-    nCells = 50
-    if issubclass(Scheme, Rusanov):
-        nCells = 500
-    mesh.interpolate(nCells, 1)
+
+    mesh = Mesh(left, bottom, right, top, MUSCLCell)
+    mesh.interpolate(500, 1)
     mesh.generate()
 
     def init_fun(cells: MeshCellSet):
         xc = cells.centroids[..., 0]
 
-        cells.values[np.where(xc > riemann_state.xd), ...] = Q_right
-        cells.values[np.where(xc <= riemann_state.xd), ...] = Q_left
+        center = 0.5
+        width = 0.5
+        cells.values[np.where(np.abs(xc - center) <= width / 2), ...] = Q_in
+        cells.values[np.where(np.abs(xc - center) > width / 2), ...] = Q_out
 
-    scheme = Scheme(eos, do_relaxation=True)
+    scheme = CVVScheme(eos, do_relaxation=True)
     solver = FourEqSolver(mesh, scheme)
     solver.init(init_fun)
 
-    final_time = riemann_state.final_time
+    final_time = 1
     t = 0.0
-    CFL = riemann_state.CFL
+    CFL = 0.8
 
     cells = solver.mesh.cells
     dt = scheme.CFL(cells, CFL)
@@ -72,20 +73,11 @@ def test_cvv(riemann_state, riemann2Q, Scheme, plot, animate, request):
     if plot or animate:
         fig = plt.figure()
         fig.suptitle(request.node.name)
-        ax1 = plt.subplot(221)
-        ax2 = plt.subplot(222)
-        ax3 = plt.subplot(223)
-        ax4 = plt.subplot(224)
+        ax1 = plt.subplot(111)
 
         (im1,) = ax1.plot([], [], "-", label="Numerical")
-        (im2,) = ax2.plot([], [], "-", label="Numerical")
-        (im3,) = ax3.plot([], [], "-", label="Numerical")
-        (im4,) = ax4.semilogy([], [], "-", label="Numerical")
 
         alpha_data = []
-        rhoU_data = []
-        arho1_data = []
-        P_data = []
 
         x = cells.centroids[..., 0, 0, Direction.X]
 
@@ -95,45 +87,21 @@ def test_cvv(riemann_state, riemann2Q, Scheme, plot, animate, request):
             ax1.set_xlabel("x")
             ax1.set_ylabel(r"$\alpha$")
 
-            ax2.set_xlim(0, 1)
-            if riemann_state.xd == 0.25:
-                ax2.set_ylim(1e-8, 1e3)
-            else:
-                ax2.set_ylim(1e-8, 1e2)
-            ax2.set_xlabel("x")
-            ax2.set_ylabel(r"$\rho U$")
-
-            ax3.set_xlim(0, 1)
-            if riemann_state.xd == 0.25:
-                ax3.set_ylim(-0.05, 1.05)
-            else:
-                ax3.set_ylim(-5, 105)
-            ax3.set_xlabel("x")
-            ax3.set_ylabel(r"$\alpha_1\rho_1$")
-
-            ax4.set_xlim(0, 1)
-            ax4.set_ylim(1e-10, 1e5)
-            ax4.set_xlabel("x")
-            ax4.set_ylabel(r"$P-P0$")
-
             x = cells.centroids[..., Direction.X]
             x = x.reshape(x.size)
 
             # Legend
             ax1.legend()
-            ax2.legend()
-            ax3.legend()
-            ax4.legend()
 
-            return im1, im2, im3, im4
+            return im1
 
     if plot:
-        _, _, _, _ = init()
+        _ = init()
 
     if animate:
         nFrames = 30
         allFrames = True
-        time_interval = riemann_state.final_time / nFrames
+        time_interval = final_time / nFrames
 
     # TODO: Use josie.io.strategy and josie.io.writer to save the plot every
     # time instant.  In particular it might useful to choose a Strategy (or
@@ -145,9 +113,6 @@ def test_cvv(riemann_state, riemann2Q, Scheme, plot, animate, request):
         ):
             cells = solver.mesh.cells
             alpha_data.append(np.array(cells.values[:, 0, 0, Q.fields.alpha]))
-            rhoU_data.append(np.array(cells.values[:, 0, 0, Q.fields.rhoU]))
-            arho1_data.append(np.array(cells.values[:, 0, 0, Q.fields.arho1]))
-            P_data.append(np.array(np.abs(cells.values[:, 0, 0, Q.fields.P] - 1e5)))
         dt = scheme.CFL(cells, CFL)
 
         # TODO: Basic check. The best would be to check against analytical
@@ -164,22 +129,19 @@ def test_cvv(riemann_state, riemann2Q, Scheme, plot, animate, request):
     if plot:
         # Plot final step solution
 
-        alpha = cells.values[..., 0, Q.fields.alpha]
+        alpha = cells.values[..., Q.fields.alpha]
         alpha = alpha.reshape(alpha.size)
 
-        rhoU = cells.values[..., 0, Q.fields.rhoU]
+        rhoU = cells.values[..., Q.fields.rhoU]
         rhoU = rhoU.reshape(rhoU.size)
 
-        arho1 = cells.values[..., 0, Q.fields.arho1]
+        arho1 = cells.values[..., Q.fields.arho1]
         arho1 = arho1.reshape(arho1.size)
 
-        P = np.abs(cells.values[..., 0, Q.fields.P] - 1e5)
-        P = P.reshape(P.size)
+        arho2 = cells.values[..., Q.fields.arho2]
+        arho2 = arho2.reshape(arho2.size)
 
         im1.set_data(x, alpha)
-        im2.set_data(x, rhoU)
-        im3.set_data(x, arho1)
-        im4.set_data(x, P)
 
         plt.tight_layout()
         plt.show()
@@ -189,10 +151,7 @@ def test_cvv(riemann_state, riemann2Q, Scheme, plot, animate, request):
 
         def update(frame):
             im1.set_data(x, alpha_data[frame])
-            im2.set_data(x, rhoU_data[frame])
-            im3.set_data(x, arho1_data[frame])
-            im4.set_data(x, P_data[frame])
-            return ax1, ax2, ax3, ax4, im1, im2, im3, im4
+            return ax1, im1
 
         _ = FuncAnimation(
             fig,
@@ -208,10 +167,7 @@ def test_cvv(riemann_state, riemann2Q, Scheme, plot, animate, request):
 
         def update(frame):
             im1.set_data(x, alpha_data[frame])
-            im2.set_data(x, rhoU_data[frame])
-            im3.set_data(x, arho1_data[frame])
-            im4.set_data(x, P_data[frame])
-            return ax1, ax2, ax3, ax4, im1, im2, im3, im4
+            return ax1, im1
 
         _ = FuncAnimation(
             fig,
