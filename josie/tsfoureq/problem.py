@@ -38,16 +38,19 @@ class TSFourEqProblem(ConvectiveProblem):
 
         arho1 = values[..., fields.arho1]
         arho2 = values[..., fields.arho2]
-        arho = values[..., fields.arho]
-        rho = arho1 + arho2
+        arho1d = values[..., fields.arho1d]
+        abarrho = values[..., fields.abarrho]
+        rho = arho1 + arho2 + arho1d
+        ad = values[..., fields.ad]
         rhoU = values[..., fields.rhoU]
         rhoV = values[..., fields.rhoV]
         U = rhoU / rho
         V = rhoV / rho
-        p = values[..., fields.P]
+        pbar = values[..., fields.pbar]
 
-        F[..., TSFourEqConsFields.arho, Direction.X] = arho * U
-        F[..., TSFourEqConsFields.arho, Direction.Y] = arho * V
+        # Four-eq like model
+        F[..., TSFourEqConsFields.abarrho, Direction.X] = abarrho * U
+        F[..., TSFourEqConsFields.abarrho, Direction.Y] = abarrho * V
 
         F[..., TSFourEqConsFields.arho1, Direction.X] = arho1 * U
         F[..., TSFourEqConsFields.arho1, Direction.Y] = arho1 * V
@@ -55,9 +58,16 @@ class TSFourEqProblem(ConvectiveProblem):
         F[..., TSFourEqConsFields.arho2, Direction.X] = arho2 * U
         F[..., TSFourEqConsFields.arho2, Direction.Y] = arho2 * V
 
-        F[..., TSFourEqConsFields.rhoU, Direction.X] = rhoU * U + p
+        F[..., TSFourEqConsFields.rhoU, Direction.X] = rhoU * U + pbar
         F[..., TSFourEqConsFields.rhoU, Direction.Y] = rhoU * V
         F[..., TSFourEqConsFields.rhoV, Direction.X] = rhoV * U
-        F[..., TSFourEqConsFields.rhoV, Direction.Y] = rhoV * V + p
+        F[..., TSFourEqConsFields.rhoV, Direction.Y] = rhoV * V + pbar
+
+        # Small-scale variables
+        F[..., TSFourEqConsFields.arho1d, Direction.X] = arho1d * U
+        F[..., TSFourEqConsFields.arho1d, Direction.Y] = arho1d * V
+
+        F[..., TSFourEqConsFields.ad, Direction.X] = ad * U
+        F[..., TSFourEqConsFields.ad, Direction.Y] = ad * V
 
         return F

@@ -13,16 +13,16 @@ from josie.state import SubsetState
 
 
 class TSFourEqFields(FluidFields):
-    arho = 0
+    abarrho = 0
     rhoU = 1
     rhoV = 2
     rho = 3
     U = 4
     V = 5
-    P = 6
-    c = 7
+    pbar = 6
+    cFd = 7
 
-    alpha = 8
+    abar = 8
 
     arho1 = 9
     p1 = 10
@@ -32,26 +32,21 @@ class TSFourEqFields(FluidFields):
     p2 = 13
     c2 = 14
 
+    arho1d = 15
+    ad = 16
+
 
 class TSFourEqConsFields(Fields):
     """Indexing fields for the consevative part of the full state"""
 
-    arho = 0
+    abarrho = 0
     rhoU = 1
     rhoV = 2
 
     arho1 = 3
     arho2 = 4
-
-
-class TSFourEqPrimFields(Fields):
-    """Indexing fields for a substate associated to a phase"""
-
-    alpha = 0
-    rho = 1
-    P = 2
-    U = 3
-    V = 4
+    arho1d = 5
+    ad = 6
 
 
 class TSFourEqPhaseFields(Fields):
@@ -69,13 +64,6 @@ class TSFourEqPhaseState(PhaseState):
     full_state_fields = TSFourEqFields
 
 
-class TSFourEqPrimState(SubsetState):
-    """State array for one single phase"""
-
-    fields = TSFourEqPrimFields
-    full_state_fields = TSFourEqFields
-
-
 class TSFourEqConsState(SubsetState):
     """State array for conservative part of the state"""
 
@@ -90,7 +78,7 @@ class Q(TwoFluidState):
 
     fields = TSFourEqFields
     cons_state = TSFourEqConsState
-    prim_state = TSFourEqPrimState
+    prim_state = TSFourEqConsState
     phase_state = TSFourEqPhaseState
 
     def get_conservative(self) -> TSFourEqConsState:

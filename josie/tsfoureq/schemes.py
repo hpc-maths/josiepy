@@ -29,8 +29,10 @@ class TSFourEqScheme(ConvectiveScheme):
     def relaxForLinearizedEOS(self, values: Q):
         fields = Q.fields
 
-        arho1 = values[..., fields.arho1]
-        arho2 = values[..., fields.arho2]
+        ad = values[..., fields.ad]
+        arho1 = values[..., fields.arho1] / (1 - ad)
+        arho2 = values[..., fields.arho2] / (1 - ad)
+        arho1d = values[..., fields.arho1d]
 
         rho10 = self.problem.eos[Phases.PHASE1].rho0
         rho20 = self.problem.eos[Phases.PHASE2].rho0
@@ -48,8 +50,10 @@ class TSFourEqScheme(ConvectiveScheme):
         ) / (2.0 * arho2 * c2**2)
 
         alpha = betaPos / (1.0 + betaPos)
-        values[..., fields.alpha] = alpha
-        values[..., fields.arho] = alpha * (arho1 + arho2)
+        values[..., fields.abar] = alpha
+        values[..., fields.abarrho] = alpha * (
+            arho1 * (1 - ad) + arho2 * (1 - ad) + arho1d
+        )
 
     """General relaxation procedure for all other EOS"""
 
@@ -58,134 +62,117 @@ class TSFourEqScheme(ConvectiveScheme):
 
         arho1 = values[..., fields.arho1]
         arho2 = values[..., fields.arho2]
+        arho1d = values[..., fields.arho1d]
+        ad = values[..., fields.ad]
+        abarrho = values[..., fields.abarrho]
+        rho = arho1 + arho2 + arho1d
 
         # Compute estimator of the relaxation within [0,1]
-        alpha = np.minimum(np.maximum(values[..., fields.arho] / (arho1 + arho2), 0), 1)
+        abar = np.minimum(np.maximum(abarrho / rho, 0), 1)
 
-        # Solve for alpha using p1(arho1/alpha) = p2(arho2/alpha) with Newton
-        # Note that arho1 and arho2 remain constant
-        def phi(arho1: np.ndarray, arho2: np.ndarray, alpha: np.ndarray):
+        values[..., fields.abar] = abar
+
+        # Note that rho remain constant
+        def phi(
+            arho1: np.ndarray,
+            arho2: np.ndarray,
+            abar: np.ndarray,
+            ad: np.ndarray,
+        ):
             rho1 = np.full_like(arho1, np.nan)
             rho2 = np.full_like(arho1, np.nan)
-            np.divide(arho1, alpha, where=(alpha > 0) & (arho1 > 0), out=rho1)
+            np.divide(arho1, abar * (1 - ad), where=(abar > 0) & (arho1 > 0), out=rho1)
             np.divide(
-                arho2, 1.0 - alpha, where=(1.0 - alpha > 0) & (arho2 > 0), out=rho2
+                arho2,
+                (1 - abar) * (1 - ad),
+                where=((1.0 - abar) > 0) & (arho2 > 0),
+                out=rho2,
             )
-            return self.problem.eos[Phases.PHASE1].p(rho1) - self.problem.eos[
-                Phases.PHASE2
-            ].p(rho2)
+            return (1 - ad) * (
+                self.problem.eos[Phases.PHASE1].p(rho1)
+                - self.problem.eos[Phases.PHASE2].p(rho2)
+            )
 
-        def dphi_dalpha(arho1: np.ndarray, arho2: np.ndarray, alpha: np.ndarray):
+        def dphi_dabar(
+            arho1: np.ndarray, arho2: np.ndarray, abar: np.ndarray, ad: np.ndarray
+        ):
             # Note that dp_drho = c^2 for barotropic EOS
             return (
                 -arho1
-                / (alpha**2)
-                * self.problem.eos[Phases.PHASE1].sound_velocity(arho1 / alpha) ** 2
+                / (abar**2)
+                * self.problem.eos[Phases.PHASE1].sound_velocity(
+                    arho1 / abar / (1 - ad)
+                )
+                ** 2
                 - arho2
-                / ((1.0 - alpha) ** 2)
-                * self.problem.eos[Phases.PHASE2].sound_velocity(arho2 / (1.0 - alpha))
+                / ((1.0 - abar) ** 2)
+                * self.problem.eos[Phases.PHASE2].sound_velocity(
+                    arho2 / (1.0 - abar) / (1 - ad)
+                )
                 ** 2
             )
 
         # Init NR method
-        dalpha = np.zeros_like(alpha)
+        dabar = np.zeros_like(abar)
         iter = 0
 
         # Index that locates the cell where there the pressures need to be relaxed
         eps = 1e-9
-        index = np.where(np.abs(phi(arho1, arho2, alpha)) > eps * 1e5)
+        tol = 1e-5
+        p0 = self.problem.eos[Phases.PHASE1].p0
+        index = np.where(
+            (np.abs(phi(arho1, arho2, abar, ad)) > tol * p0)
+            & (abar > eps)
+            & (1 - abar > eps)
+        )
         while index[0].size > 0:
             # Counter
             iter += 1
 
             # NR step
-            dalpha[index] = -phi(
-                arho1[index], arho2[index], alpha[index]
-            ) / dphi_dalpha(arho1[index], arho2[index], alpha[index])
+            dabar[index] = -phi(arho1[index], arho2[index], abar[index], ad[index]) / (
+                dphi_dabar(arho1[index], arho2[index], abar[index], ad[index])
+            )
 
             # Prevent the NR method to explore out of the interval [0,1]
-            alpha[index] += np.where(
-                dalpha[index] < 0,
-                np.maximum(dalpha[index], -0.9 * alpha[index]),
-                np.minimum(dalpha[index], 0.9 * (1 - alpha[index])),
+            abar[index] += np.where(
+                dabar[index] < 0,
+                np.maximum(dabar[index], -0.9 * abar[index]),
+                np.minimum(dabar[index], 0.9 * (1 - abar[index])),
             )
-            tol = 1e-6
-            alpha = np.where(alpha < tol, 0, alpha)
-            alpha = np.where(1 - alpha < tol, 1, alpha)
 
             # Update the index where the NR method is applied
-            index = np.where((np.abs(phi(arho1, arho2, alpha)) > eps * 1e5))
+            index = np.where(
+                (np.abs(phi(arho1, arho2, abar, ad)) > tol * p0)
+                & (abar > eps)
+                & (1 - abar > eps)
+            )
 
             # Safety check
             if iter > 50:
                 exit()
 
-        # Update the alpha-dependent conservative field
-        values[..., fields.arho] = alpha * (arho1 + arho2)
-
-    def prim2Q(self, values: Q):
-        fields = Q.fields
-
-        rho = values[..., fields.rho]
-        P = values[..., fields.P]
-        U = values[..., fields.U]
-        V = values[..., fields.V]
-
-        rho1 = self.problem.eos[Phases.PHASE1].rho(P)
-        rho2 = self.problem.eos[Phases.PHASE2].rho(P)
-        c1 = self.problem.eos[Phases.PHASE1].sound_velocity(rho1)
-        c2 = self.problem.eos[Phases.PHASE2].sound_velocity(rho2)
-
-        alpha = np.minimum(np.maximum((rho - rho2) / (rho1 - rho2), 0), 1)
-        # alpha = (rho - rho2) / (rho1 - rho2)
-
-        if np.any(alpha < 0.0) or np.any(alpha > 1.0):
-            print(alpha)
-            exit()
-        if np.any(rho < 0):
-            print(rho)
-            exit()
-
-        values[..., fields.arho] = alpha * rho
-        values[..., fields.arho1] = alpha * rho1
-        values[..., fields.arho2] = (1 - alpha) * rho2
-        values[..., fields.rhoU] = rho * U
-        values[..., fields.rhoV] = rho * V
-
-        values[..., fields.c] = np.sqrt(
-            (alpha * rho1 * c1**2 + (1 - alpha) * rho2 * c2**2) / rho
-        )
-        values[..., fields.alpha] = alpha
-        values[..., fields.p1] = P
-        values[..., fields.p2] = P
-        values[..., fields.c1] = c1
-        values[..., fields.c2] = c2
+        # Update the abar-dependent conservative field
+        values[..., fields.abarrho] = abar * rho
 
     def auxilliaryVariableUpdate(self, values: Q):
         fields = Q.fields
 
-        arho = values[..., fields.arho]
+        abarrho = values[..., fields.abarrho]
         arho1 = values[..., fields.arho1]
         arho2 = values[..., fields.arho2]
+        arho1d = values[..., fields.arho1d]
         rhoU = values[..., fields.rhoU]
         rhoV = values[..., fields.rhoV]
+        ad = values[..., fields.ad]
 
-        rho = arho1 + arho2
-        alpha = arho / rho
+        rho = arho1 + arho2 + arho1d
+        abar = abarrho / rho
 
-        if np.any(alpha < 0.0):
-            print(alpha)
-            exit()
-        # if np.any(alpha > 1.0):
-        #     print(np.where(alpha > 1))
-        #     print(alpha[np.where(alpha > 1)])
-        #     print(alpha)
-        #     exit()
-
-        alphas = PhasePair(alpha, 1.0 - alpha)
+        alphabars = PhasePair(abar, 1.0 - abar)
         arhos = PhasePair(arho1, arho2)
 
-        values[..., fields.alpha] = alpha
+        values[..., fields.abar] = abar
         values[..., fields.rho] = rho
         values[..., fields.U] = rhoU / rho
         values[..., fields.V] = rhoV / rho
@@ -195,11 +182,10 @@ class TSFourEqScheme(ConvectiveScheme):
         for phase in Phases:
             phase_values = values.view(Q).get_phase(phase)
 
-            alpha = alphas[phase]
+            alphabar = alphabars[phase]
             arho = arhos[phase]
 
-            rho = np.full_like(alpha, np.nan)
-            np.divide(arho, alpha, where=alpha > 0, out=rho)
+            rho = arho / alphabar / (1 - ad)
             p = self.problem.eos[phase].p(rho)
             c = self.problem.eos[phase].sound_velocity(rho)
 
@@ -210,27 +196,35 @@ class TSFourEqScheme(ConvectiveScheme):
                 phase,
                 phase_values,
             )
-            if np.invert(np.isnan(c)):
-                c_sq += arho * c**2
 
-        values[..., fields.c] = np.sqrt(c_sq / values[..., fields.rho])
+            c_sq += arho * c**2
 
-        alpha = values[..., fields.alpha]
+        values[..., fields.cFd] = np.sqrt(c_sq / values[..., fields.rho]) / (1 - ad)
+
+        abar = values[..., fields.abar]
         p1 = values[..., fields.p1]
         p2 = values[..., fields.p2]
-        values[..., fields.P] = np.nan
-        values[..., fields.P] = np.where(
-            (alpha > 0) * (alpha < 1),
-            alpha * p1 + (1 - alpha) * p2,
-            np.where(alpha == 0, p2, p1),
+        values[..., fields.pbar] = np.nan
+        values[..., fields.pbar] = np.where(
+            (abar > 0) * (abar < 1),
+            abar * p1 + (1 - abar) * p2,
+            np.where(abar == 0, p2, p1),
         )
 
     def post_extrapolation(self, values: Q):
-        self.prim2Q(values)
-        # self.relaxation(values)
+        """During the step we update the conservative values. After the
+        step we update the non-conservative variables. This method updates
+        the values of the non-conservative (auxiliary) variables using the
+        :class:`~.EOS`
+        """
 
         # auxilliary variables update
-        # self.auxilliaryVariableUpdate(values)
+        self.auxilliaryVariableUpdate(values)
+
+        self.relaxation(values)
+
+        # auxilliary variables update
+        self.auxilliaryVariableUpdate(values)
 
     def post_step(self, values: Q):
         """During the step we update the conservative values. After the
@@ -244,6 +238,28 @@ class TSFourEqScheme(ConvectiveScheme):
 
         # auxilliary variables update
         self.auxilliaryVariableUpdate(values)
+
+    def CFL(
+        self,
+        cells: MeshCellSet,
+        CFL_value,
+    ) -> float:
+        dt = super().CFL(cells, CFL_value)
+
+        dx = cells.min_length
+
+        # Get the velocity components
+        UV_slice = slice(Q.fields.U, Q.fields.V + 1)
+        UV = cells.values[..., UV_slice]
+
+        U = np.linalg.norm(UV, axis=-1, keepdims=True)
+        c = cells.values[..., Q.fields.cFd]
+
+        sigma = np.max(np.abs(U) + c[..., np.newaxis])
+
+        dt = np.min((dt, CFL_value * dx / sigma))
+
+        return dt
 
 
 class Rusanov(TSFourEqScheme):
@@ -286,8 +302,8 @@ class Rusanov(TSFourEqScheme):
         # Find the normal velocity
         U = np.einsum("...mkl,...l->...mk", UV, normals)
         U_neigh = np.einsum("...mkl,...l->...mk", UV_neighs, normals)
-        c = Q_L[..., fields.c]
-        c_neigh = Q_R[..., fields.c]
+        c = Q_L[..., fields.cFd]
+        c_neigh = Q_R[..., fields.cFd]
 
         # Let's retrieve the values of the sigma for current cell
         sigma = EulerRusanov.compute_sigma(U, U_neigh, c, c_neigh)
@@ -307,25 +323,3 @@ class Rusanov(TSFourEqScheme):
         )
 
         return FS
-
-    def CFL(
-        self,
-        cells: MeshCellSet,
-        CFL_value,
-    ) -> float:
-        dt = super().CFL(cells, CFL_value)
-
-        dx = cells.min_length
-
-        # Get the velocity components
-        UV_slice = slice(Q.fields.U, Q.fields.V + 1)
-        UV = cells.values[..., [0], UV_slice]
-
-        U = np.linalg.norm(UV, axis=-1)
-        c = cells.values[..., [0], Q.fields.c]
-
-        sigma = np.max(np.abs(U) + c[..., np.newaxis])
-
-        dt = np.min((dt, CFL_value * dx / sigma))
-
-        return dt
