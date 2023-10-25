@@ -99,6 +99,7 @@ def test_atom(plot, request, atom_param):
     We = atom_param.We  # We = rho * (U_l-U_g) * L / sigma
     sigma = atom_param.sigma
     R = 0.2
+    nSmoothPass = 5
 
     U_inlet = We / eos[Phases.PHASE1].rho0 / R * sigma
 
@@ -115,6 +116,7 @@ def test_atom(plot, request, atom_param):
         dx,
         dy,
         norm_grada_min,
+        nSmoothPass,
     )
 
     schemeCap = TsCapCapScheme(
@@ -124,6 +126,7 @@ def test_atom(plot, request, atom_param):
         dx,
         dy,
         norm_grada_min,
+        nSmoothPass,
     )
 
     schemeHyp.tmp_arr = np.zeros((int(box_ratio * N), N, 4))
