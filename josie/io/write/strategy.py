@@ -113,7 +113,7 @@ class IterationStrategy(Strategy):
 
         self._it += 1
 
-        if self._it % self.n:
+        if not (self._it % self.n):
             self.should_write = True
 
         return dt

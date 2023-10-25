@@ -7,11 +7,27 @@ import numpy as np
 from .schemes import TsCapScheme
 from .state import Q, TsCapConsFields, TsCapConsState
 from josie.twofluid.fields import Phases
+from ..dimension import MAX_DIMENSIONALITY
+
+from .eos import TwoPhaseEOS
 
 
 # This is rigorously valid only in the case of
 # linearized gas EOS according to 'Chanteperdix et al., 2002'
-class Exact(TsCapScheme):
+class ExactHyp(TsCapScheme):
+    def post_init(self, cells):
+        super().post_init(cells)
+
+        self.dU = np.zeros_like(cells.values[..., 0])
+        self.ddU_dP = np.zeros_like(cells.values[..., 0])
+
+    def post_extrapolation(self, values: Q):
+        # self.prim2Q(values)
+        self.relaxation(values)
+
+        # auxilliary variables update
+        self.auxilliaryVariableUpdateNoGeo(values)
+
     def P0(self, abar: np.ndarray):
         p0 = self.problem.eos[Phases.PHASE1].p0
         rho10 = self.problem.eos[Phases.PHASE1].rho0
@@ -19,25 +35,24 @@ class Exact(TsCapScheme):
         c1 = self.problem.eos[Phases.PHASE1].c0
         c2 = self.problem.eos[Phases.PHASE2].c0
 
-        out = np.full_like(abar, p0)
-        ind = np.where(abar > 0)
-        out[ind] -= abar[ind] * rho10 * c1**2
-        ind = np.where(1 - abar > 0)
-        out[ind] -= (1.0 - abar[ind]) * rho20 * c2**2
+        self.P0_ = np.where(abar > 0, p0 - abar * rho10 * c1**2, p0)
+        self.P0_ = np.where(
+            1 - abar > 0, self.P0_ - (1.0 - abar) * rho20 * c2**2, self.P0_
+        )
 
-        return out
+        return self.P0_
 
     def deltaU(
         self,
         Q_L: np.ndarray,
         Q_R: np.ndarray,
         P: np.ndarray,
-        normals: np.ndarray,
+        dUn: np.ndarray,
+        P0L: np.ndarray,
+        P0R: np.ndarray,
     ):
         fields = Q.fields
 
-        abar_L = Q_L[..., fields.abar]
-        abar_R = Q_R[..., fields.abar]
         ad_L = Q_L[..., fields.ad]
         ad_R = Q_R[..., fields.ad]
         P_L = Q_L[..., fields.pbar]
@@ -46,57 +61,33 @@ class Exact(TsCapScheme):
         rho_R = Q_R[..., fields.rho]
         c_L = Q_L[..., fields.cFd]
         c_R = Q_R[..., fields.cFd]
-        P0L = self.P0(abar_L)
-        P0R = self.P0(abar_R)
 
-        # To be modified for 2D where U is U dot n
-        U_L = np.einsum(
-            "...kl,...l->...k",
-            np.stack((Q_L[..., fields.U], Q_L[..., fields.V]), axis=-1),
-            normals,
-        )
-        U_R = np.einsum(
-            "...kl,...l->...k",
-            np.stack((Q_R[..., fields.U], Q_R[..., fields.V]), axis=-1),
-            normals,
-        )
+        self.dU = dUn.copy()
 
-        dU = U_L - U_R
-
-        ind = np.where(P <= P_L)
-        dU[ind] += (
-            c_L[ind]
-            * (1 - ad_L[ind])
-            * np.log((P_L[ind] - P0L[ind]) / (P[ind] - P0L[ind]))
+        self.dU += np.where(
+            P <= P_L,
+            c_L * (1 - ad_L) * np.log((P_L - P0L) / (P - P0L)),
+            -np.sqrt(1 - ad_L) * (P - P_L) / np.sqrt(rho_L * (P - P0L)),
         )
-        ind = np.where(P > P_L)
-        dU[ind] += (
-            -np.sqrt(1 - ad_L[ind])
-            * (P[ind] - P_L[ind])
-            / np.sqrt(rho_L[ind] * (P[ind] - P0L[ind]))
+        self.dU -= np.where(
+            P <= P_R,
+            -c_R * (1 - ad_R) * np.log((P_R - P0R) / (P - P0R)),
+            np.sqrt(1 - ad_R) * (P - P_R) / np.sqrt(rho_R * (P - P0R)),
         )
 
-        ind = np.where(P <= P_R)
-        dU[ind] -= (
-            -c_R[ind]
-            * (1 - ad_R[ind])
-            * np.log((P_R[ind] - P0R[ind]) / (P[ind] - P0R[ind]))
-        )
-        ind = np.where(P > P_R)
-        dU[ind] -= (
-            np.sqrt(1 - ad_R[ind])
-            * (P[ind] - P_R[ind])
-            / np.sqrt(rho_R[ind] * (P[ind] - P0R[ind]))
-        )
+        return self.dU
 
-        return dU
-
-    def ddeltaU_dP(self, Q_L: np.ndarray, Q_R: np.ndarray, P: np.ndarray):
+    def ddeltaU_dP(
+        self,
+        Q_L: np.ndarray,
+        Q_R: np.ndarray,
+        P: np.ndarray,
+        P0L: np.ndarray,
+        P0R: np.ndarray,
+    ):
         fields = Q.fields
 
         # To be modified for 2D where U is U dot n
-        abar_L = Q_L[..., fields.abar]
-        abar_R = Q_R[..., fields.abar]
         ad_L = Q_L[..., fields.ad]
         ad_R = Q_R[..., fields.ad]
         P_L = Q_L[..., fields.pbar]
@@ -105,58 +96,62 @@ class Exact(TsCapScheme):
         rho_R = Q_R[..., fields.rho]
         c_L = Q_L[..., fields.cFd]
         c_R = Q_R[..., fields.cFd]
-        P0L = self.P0(abar_L)
-        P0R = self.P0(abar_R)
 
-        ddU_dP = np.zeros_like(abar_L)
-
-        ind = np.where(P <= P_L)
-        ddU_dP[ind] += c_L[ind] * (1 - ad_L[ind]) / (P0L[ind] - P[ind])
-        ind = np.where(P > P_L)
-        ddU_dP[ind] += (
-            np.sqrt(1 - ad_L[ind])
-            * (2.0 * P0L[ind] - P[ind] - P_L[ind])
-            / (2.0 * (P[ind] - P0L[ind]) * np.sqrt((P[ind] - P0L[ind]) * rho_L[ind]))
+        self.ddU_dP = np.where(
+            P <= P_L,
+            c_L * (1 - ad_L) / (P0L - P),
+            (
+                np.sqrt(1 - ad_L)
+                * (2.0 * P0L - P - P_L)
+                / (2.0 * (P - P0L) * np.sqrt((P - P0L) * rho_L))
+            ),
+        )
+        self.ddU_dP += np.where(
+            P <= P_R,
+            c_R * (1 - ad_R) / (P0R - P),
+            (
+                np.sqrt(1 - ad_R)
+                * (2.0 * P0R - P - P_R)
+                / (2.0 * (P - P0R) * np.sqrt((P - P0R) * rho_R))
+            ),
         )
 
-        ind = np.where(P <= P_R)
-        ddU_dP[ind] += c_R[ind] * (1 - ad_R[ind]) / (P0R[ind] - P[ind])
-        ind = np.where(P > P_R)
-        ddU_dP[ind] += (
-            np.sqrt(1 - ad_R[ind])
-            * (2.0 * P0R[ind] - P[ind] - P_R[ind])
-            / (2.0 * (P[ind] - P0R[ind]) * np.sqrt((P[ind] - P0R[ind]) * rho_R[ind]))
-        )
+        return self.ddU_dP
 
-        return ddU_dP
-
-    def solvePressure(self, P_init: np.ndarray, Q_L: Q, Q_R: Q, normals: np.ndarray):
-        P = P_init.copy()
-        dP = np.zeros_like(P)
+    def solvePressure(
+        self,
+        P_init: np.ndarray,
+        Q_L: Q,
+        Q_R: Q,
+        dUn: np.ndarray,
+        P0L: np.ndarray,
+        P0R: np.ndarray,
+    ):
+        P = P_init
         tol = 1e-8
         firstLoop = True
 
         # No Newton algorithm where exact pressure equilibrium
-        ind = np.where(self.deltaU(Q_L, Q_R, P, normals) != 0.0)[0]
+        ind = np.where(self.deltaU(Q_L, Q_R, P, dUn, P0L, P0R) != 0.0)[0]
         P0tilde = np.maximum(
             self.P0(Q_L[..., Q.fields.abar]), self.P0(Q_R[..., Q.fields.abar])
         )
+
         # Newton-Raphson loop
         while len(ind) > 0 or firstLoop:
             if firstLoop:
                 firstLoop = False
-            dP.fill(0)
-            dP[ind, ...] = -self.deltaU(
-                Q_L[ind, ...],
-                Q_R[ind, ...],
-                P[ind, ...],
-                normals[ind, ...],
-            ) / self.ddeltaU_dP(Q_L[ind, ...], Q_R[ind, ...], P[ind, ...])
-            P[ind, ...] += np.maximum(
-                dP[ind, ...], 0.9 * (P0tilde[ind, ...] - P[ind, ...])
-            )
+            self.dP = -self.deltaU(
+                Q_L,
+                Q_R,
+                P,
+                dUn,
+                P0L,
+                P0R,
+            ) / self.ddeltaU_dP(Q_L, Q_R, P, P0L, P0R)
+            P += np.maximum(self.dP, 0.9 * (P0tilde - P))
 
-            ind = np.where(np.abs(dP / P) > tol)[0]
+            ind = np.where(np.abs(self.dP / P) > tol)[0]
 
         return P
 
@@ -207,57 +202,51 @@ class Exact(TsCapScheme):
         cfields = TsCapConsFields
         Qc_R = Q_R.view(Q).get_conservative()
 
+        # Left state
         arho1_L = Q_L[..., fields.arho1]
         arho2_L = Q_L[..., fields.arho2]
         arho1d_L = Q_L[..., fields.arho1d]
         P_L = Q_L[..., fields.pbar]
         U_L = np.einsum(
-            "...kl,...l->...k",
-            np.stack((Q_L[..., fields.U], Q_L[..., fields.V]), axis=-1),
-            normals,
-        )
+            "...l,...->...l", Q_L[..., fields.U], normals[..., 0]
+        ) + np.einsum("...l,...->...l", Q_L[..., fields.V], normals[..., 1])
         c_L = Q_L[..., fields.cFd]
         abar_L = Q_L[..., fields.abar]
         ad_L = Q_L[..., fields.ad]
         rho_L = Q_L[..., fields.rho]
-        P0_L = self.P0(abar_L)
+        P0L = self.P0(abar_L)
 
+        # Right state
         arho1_R = Q_R[..., fields.arho1]
         arho2_R = Q_R[..., fields.arho2]
         arho1d_R = Q_R[..., fields.arho1d]
         P_R = Q_R[..., fields.pbar]
         U_R = np.einsum(
-            "...kl,...l->...k",
-            np.stack((Q_R[..., fields.U], Q_R[..., fields.V]), axis=-1),
-            normals,
-        )
+            "...l,...->...l", Q_R[..., fields.U], normals[..., 0]
+        ) + np.einsum("...l,...->...l", Q_R[..., fields.V], normals[..., 1])
         c_R = Q_R[..., fields.cFd]
         abar_R = Q_R[..., fields.abar]
         ad_R = Q_R[..., fields.ad]
         rho_R = Q_R[..., fields.rho]
-        P0_R = self.P0(abar_R)
+        P0R = self.P0(abar_R)
 
         # Solve for Pstar
         # Could change the init pressure
-        P0tilde = np.maximum(P0_L, P0_R)
+        P0tilde = np.maximum(P0L, P0R)
         P_star = self.solvePressure(
-            np.maximum(0.5 * (P_L + P_R), 1.1 * P0tilde), Q_L, Q_R, normals
+            np.maximum(0.5 * (P_L + P_R), P0tilde + 0.1 * np.abs(P0tilde)),
+            Q_L,
+            Q_R,
+            U_L - U_R,
+            P0L,
+            P0R,
         )
 
         # Compute Ustar
-        U_star = U_L.copy()
-        ind = np.where(P_star <= P_L)
-        U_star[ind] += (
-            c_L[ind]
-            * (1 - ad_L[ind])
-            * np.log((P_L[ind] - P0_L[ind]) / (P_star[ind] - P0_L[ind]))
-        )
-
-        ind = np.where(P_star > P_L)
-        U_star[ind] -= (
-            np.sqrt(1 - ad_L[ind])
-            * (P_star[ind] - P_L[ind])
-            / np.sqrt(rho_L[ind] * (P_star[ind] - P0_L[ind]))
+        U_star = np.where(
+            P_star <= P_L,
+            U_L + c_L * (1 - ad_L) * np.log((P_L - P0L) / (P_star - P0L)),
+            U_L - np.sqrt(1 - ad_L) * (P_star - P_L) / np.sqrt(rho_L * (P_star - P0L)),
         )
 
         # If 0 < Ustar
@@ -265,6 +254,7 @@ class Exact(TsCapScheme):
         #       If right of left shock -> Qc_L_star
 
         # If left shock
+        ind = np.where(P_star > P_L)
         r = np.ones_like(ad_L) * np.nan
         r[ind] = 1 + (1 - ad_L[ind]) / (
             ad_L[ind]
@@ -277,12 +267,15 @@ class Exact(TsCapScheme):
         rho_L_star = arho1_L_star + arho2_L_star + arho1d_L_star
 
         S_L = np.empty_like(U_L) * np.nan
-        ind = np.where(P_star > P_L)
+        ind = np.where((P_star > P_L) & (r > 1))
         S_L[ind] = U_star[ind] + (U_L[ind] - U_star[ind]) / (1 - r[ind])
+        ind = np.where((P_star > P_L) & (r == 1))
+        S_L[ind] = U_star[ind] + (U_L[ind] - U_star[ind]) * (-np.inf)
+
         # If left of left shock -> already done
         # If right of left shock -> Qc_L_star
 
-        ind = np.where((0 < U_star) * (P_star > P_L) * (S_L < 0))
+        ind = np.where((0 < U_star) & (P_star > P_L) & (S_L < 0))
         ind_tmp = ind[:3]
 
         # TODO: to be changed for 2D
@@ -386,7 +379,12 @@ class Exact(TsCapScheme):
 
         # If 0 > Ustar
         #   If right shock
-        r = 1 + (1 - ad_R) / (ad_R + (rho_R * c_R**2 * (1 - ad_R)) / (P_star - P_R))
+        r = np.full_like(ad_L, np.nan)
+        ind = np.where(P_star > P_R)
+        r[ind] = 1 + (1 - ad_R[ind]) / (
+            ad_R[ind]
+            + (rho_R[ind] * c_R[ind] ** 2 * (1 - ad_R[ind])) / (P_star[ind] - P_R[ind])
+        )
         arho1_R_star = arho1_R * r
         arho2_R_star = arho2_R * r
         arho1d_R_star = arho1d_R * r
@@ -394,8 +392,10 @@ class Exact(TsCapScheme):
         rho_R_star = arho1_R_star + arho2_R_star + arho1d_R_star
 
         S_star_R = np.empty_like(U_R) * np.nan
-        ind = np.where(P_star > P_R)
+        ind = np.where((P_star > P_R) & (r > 1))
         S_star_R[ind] = U_star[ind] + (U_R[ind] - U_star[ind]) / (1 - r[ind])
+        ind = np.where((P_star > P_R) & (r == 1))
+        S_star_R[ind] = U_star[ind] + (U_R[ind] - U_star[ind]) / (-np.inf)
 
         #   If right of right shock -> Qc_R
         ind = np.where((0 >= U_star) * (P_star > P_R) * (S_star_R < 0))
@@ -546,8 +546,8 @@ class Exact(TsCapScheme):
         # Compute flux
         intercells = Q_L.copy()
         intercells.view(Q).set_conservative(Qc)
-        self.auxilliaryVariableUpdate(intercells)
-        F = np.einsum("...mkl,...l->...mk", self.problem.F(intercells), normals)
+        self.auxilliaryVariableUpdateNoGeo(intercells)
+        F = np.einsum("...mkl,...l->...mk", self.problem.F_hyper(intercells), normals)
 
         # Multiply by surfaces
         FS.set_conservative(surfaces[..., np.newaxis, np.newaxis] * F)

@@ -4,6 +4,7 @@
 
 import numpy as np
 import pytest
+import cProfile
 
 import logging
 from datetime import datetime
@@ -15,16 +16,18 @@ from josie.boundary import Line
 from josie.mesh import Mesh
 from josie.mesh.cell import MUSCLCell
 from josie.mesh.cellset import MeshCellSet
-from josie.ts_cap.solver import TsCapSolver
+from josie.ts_cap.solver import TsCapSolver, TsCapLieSolver
 from josie.ts_cap.state import Q
 from josie.bn.eos import TwoPhaseEOS
 from josie.FourEq.eos import LinearizedGas
 
 from josie.ts_cap.schemes import Rusanov
+from josie.ts_cap.exact import ExactHyp
+from josie.ts_cap.arithmetic import ArithmeticCap
 from josie.general.schemes.space.muscl import MUSCL
 from josie.general.schemes.space.limiters import MinMod
 
-from josie.general.schemes.time.rk import RK2_relax
+from josie.general.schemes.time.rk import RK2_relax, RK2
 from josie.bc import make_periodic, Direction
 
 from dataclasses import dataclass
@@ -34,6 +37,14 @@ from josie.twofluid.fields import Phases
 
 
 class TsCapScheme(Rusanov, RK2_relax, MUSCL, MinMod):
+    pass
+
+
+class TsCapHypScheme(ExactHyp, RK2_relax, MUSCL, MinMod):
+    pass
+
+
+class TsCapCapScheme(ArithmeticCap, RK2, MUSCL, MinMod):
     pass
 
 
@@ -50,11 +61,11 @@ class AtomParam:
 atom_params = [
     AtomParam(
         name="Sheet stripping",
-        We=200,
+        We=100,
         sigma=1e-2,
         rho0=1e1,
         final_time=3,
-        final_time_test=3e-3,
+        final_time_test=3e-2,
     ),
 ]
 
@@ -80,7 +91,7 @@ def test_atom(plot, request, atom_param):
     bottom, top = make_periodic(bottom, top, Direction.Y)
 
     mesh = Mesh(left, bottom, right, top, MUSCLCell)
-    N = 111
+    N = 51
     mesh.interpolate(int(box_ratio * N), N)
     mesh.generate()
 
@@ -97,7 +108,7 @@ def test_atom(plot, request, atom_param):
     norm_grada_min = 0.01 * 1 / dx
     norm_grada_min = 0
 
-    scheme = TsCapScheme(
+    schemeHyp = TsCapHypScheme(
         eos,
         sigma,
         Hmax,
@@ -106,7 +117,17 @@ def test_atom(plot, request, atom_param):
         norm_grada_min,
     )
 
-    scheme.tmp_arr = np.zeros((int(box_ratio * N), N, 5))
+    schemeCap = TsCapCapScheme(
+        eos,
+        sigma,
+        Hmax,
+        dx,
+        dy,
+        norm_grada_min,
+    )
+
+    schemeHyp.tmp_arr = np.zeros((int(box_ratio * N), N, 4))
+    schemeCap.tmp_arr = np.zeros((int(box_ratio * N), N, 4))
 
     def rbf(R: float, r: np.ndarray):
         eps = R / 2
@@ -146,7 +167,7 @@ def test_atom(plot, request, atom_param):
         # Update geometry
         abar = w
         cells._values[..., fields.abar] = abar
-        solver.scheme.updateGeometry(cells._values)
+        solver.schemes[0].updateGeometry(cells._values)
 
         # Adjust pressure in the droplet
         H = cells._values[..., fields.H]
@@ -195,15 +216,15 @@ def test_atom(plot, request, atom_param):
         r = np.sqrt((x_c - x_0) ** 2 + (y_c - y_0) ** 2)
         mollify_state(cells, r, ad, U_0, U_1, V)
 
-    solver = TsCapSolver(mesh, scheme)
+    solver = TsCapLieSolver(mesh, [schemeHyp, schemeCap])
     solver.init(init_fun)
 
     solver.mesh.update_ghosts(0)
-    solver.scheme.auxilliaryVariableUpdate(solver.mesh.cells._values)
+    solver.schemes[0].auxilliaryVariableUpdate(solver.mesh.cells._values)
     solver.mesh.update_ghosts(0)
 
-    # final_time = atom_params.final_time
-    final_time = atom_param.final_time_test
+    final_time = atom_param.final_time
+    # final_time = atom_param.final_time_test
     CFL = 0.4
 
     now = datetime.now().strftime("%Y%m%d%H%M%S")
@@ -224,10 +245,14 @@ def test_atom(plot, request, atom_param):
     if final_time == atom_param.final_time:
         dt_save = final_time / 300
     else:
-        dt_save = final_time
+        dt_save = final_time / 30
     strategy = TimeStrategy(dt_save=dt_save, animate=False)
     writer = XDMFWriter(
         f"droplet-atom-{now}.xdmf", strategy, solver, final_time=final_time, CFL=CFL
     )
 
+    profiler = cProfile.Profile()
+    profiler.enable()
     writer.solve()
+    profiler.disable()
+    profiler.dump_stats("static_split.prof")

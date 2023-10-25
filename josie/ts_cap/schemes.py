@@ -23,6 +23,7 @@ class TsCapScheme(ConvectiveScheme):
     dx: float
     dy: float
     tmp_arr: np.ndarray
+    nSmoothPass: int
 
     def __init__(
         self,
@@ -32,11 +33,30 @@ class TsCapScheme(ConvectiveScheme):
         dx: float,
         dy: float,
         norm_grada_min: float,
+        nSmoothPass: int,
     ):
         super().__init__(TsCapProblem(eos, sigma, Hmax, norm_grada_min))
 
         self.dx = dx
         self.dy = dy
+        self.nSmoothPass = nSmoothPass
+        dim = 2
+        if dim > 0:
+            self.directions = [
+                NeighbourDirection.LEFT,
+                NeighbourDirection.RIGHT,
+            ]
+
+        if dim > 1:
+            self.directions.extend((NeighbourDirection.BOTTOM, NeighbourDirection.TOP))
+
+    def post_init(self, cells):
+        super().post_init(cells)
+
+        # self.mean = np.zeros_like(cells.values[..., 0])
+        # self.cnt = np.zeros_like(cells.values[..., 0])
+        # self.std = np.zeros_like(cells.values[..., 0])
+        self.phi_out = np.zeros_like(cells.values[..., 0])
 
     def nan_gradient(self, data, dx, dy):
         """Compute the gradient of a 2D array in the 2 directions, 2 nd order
@@ -90,29 +110,48 @@ class TsCapScheme(ConvectiveScheme):
             exit()
 
     def remove_outlier(self, field, n):
-        dim = 2
-        if dim > 0:
-            directions = [
-                NeighbourDirection.LEFT,
-                NeighbourDirection.RIGHT,
-            ]
-
-        if dim > 1:
-            directions.extend((NeighbourDirection.BOTTOM, NeighbourDirection.TOP))
+        self.mask = np.zeros_like(field[1:-1, 1:-1])
+        self.cnt = np.zeros_like(field[1:-1, 1:-1])
+        self.mean = np.zeros_like(field[1:-1, 1:-1])
+        self.std = np.zeros_like(field[1:-1, 1:-1])
         if n == 0:
             return field
         else:
             self.tmp_arr.fill(np.nan)
             # Compute mean over the patch of neigbours
-            for i, dir in enumerate(directions):
-                self.tmp_arr[..., i + 1] = field[dir.value.data_index]
+            # for i, dir in enumerate(self.directions):
+            #     self.tmp_arr[..., i + 1] = field[dir.value.data_index]
+
+            # field[1:-1, 1:-1] = np.where(
+            #     (~np.isnan(field[1:-1, 1:-1])),
+            #     np.where(
+            #         np.abs(field[1:-1, 1:-1] - np.nanmean(self.tmp_arr, axis=-1))
+            #         > np.nanstd(self.tmp_arr, axis=-1),
+            #         np.nanmean(self.tmp_arr, axis=-1),
+            #         field[1:-1, 1:-1],
+            #     ),
+            #     np.nan,
+            # )
+            self.cnt.fill(0)
+            self.mean.fill(0)
+            self.std.fill(0)
+            for dir in self.directions:
+                self.mask = ~np.isnan(field[dir.value.data_index])
+                self.cnt += ~np.isnan(field[dir.value.data_index])
+                self.mean += np.where(self.mask, field[dir.value.data_index], 0)
+            self.mean /= self.cnt
+            for dir in self.directions:
+                self.mask = ~np.isnan(field[dir.value.data_index])
+                self.std += np.where(
+                    self.mask, (field[dir.value.data_index] - self.mean) ** 2, 0
+                )
+            self.std = np.sqrt(self.std / self.cnt)
 
             field[1:-1, 1:-1] = np.where(
                 (~np.isnan(field[1:-1, 1:-1])),
                 np.where(
-                    np.abs(field[1:-1, 1:-1] - np.nanmean(self.tmp_arr, axis=-1))
-                    > np.nanstd(self.tmp_arr, axis=-1),
-                    np.nanmean(self.tmp_arr, axis=-1),
+                    np.abs(field[1:-1, 1:-1] - self.mean) > self.std,
+                    self.mean,
                     field[1:-1, 1:-1],
                 ),
                 np.nan,
@@ -159,10 +198,21 @@ class TsCapScheme(ConvectiveScheme):
                 where=((1.0 - abar) > 0) & (arho2 > 0),
                 out=rho2,
             )
-            return (1 - ad) * (
-                self.problem.eos[Phases.PHASE1].p(rho1)
-                - self.problem.eos[Phases.PHASE2].p(rho2)
-            ) - self.problem.sigma * Hlim
+            self.phi_out = np.where(
+                (abar > 0) & (arho1 > 0),
+                self.problem.eos[Phases.PHASE1].p(arho1 / abar / (1 - ad)),
+                np.nan,
+            )
+            self.phi_out -= np.where(
+                ((1.0 - abar) > 0) & (arho2 > 0),
+                self.problem.eos[Phases.PHASE2].p(arho2 / (1 - abar) / (1 - ad)),
+                np.nan,
+            )
+            return (1 - ad) * self.phi_out - self.problem.sigma * Hlim
+            # return (1 - ad) * (
+            #     self.problem.eos[Phases.PHASE1].p(rho1)
+            #     - self.problem.eos[Phases.PHASE2].p(rho2)
+            # ) - self.problem.sigma * Hlim
 
         def dphi_dabar(
             arho1: np.ndarray, arho2: np.ndarray, abar: np.ndarray, ad: np.ndarray
@@ -321,15 +371,17 @@ class TsCapScheme(ConvectiveScheme):
         np.divide(
             grada_y, norm_grada, where=norm_grada > self.problem.norm_grada_min, out=n_y
         )
+        ind = np.where((norm_grada > 0) & (np.isnan(n_x)))
+        if ind[0].size > 0:
+            exit()
 
         H = -(self.nan_gradient(n_x, dx, dy)[0] + self.nan_gradient(n_y, dx, dy)[1])
 
         # Smoothening
-        nLevel = 20
         if len(H.shape) == 3:
-            H[..., 0] = self.remove_outlier(H[..., 0], nLevel)
+            H[..., 0] = self.remove_outlier(H[..., 0], self.nSmoothPass)
         elif len(H.shape) == 2:
-            H = self.remove_outlier(H, nLevel)
+            H = self.remove_outlier(H, self.nSmoothPass)
 
         values[..., fields.grada_x] = grada_x
         values[..., fields.grada_y] = grada_y
@@ -434,12 +486,99 @@ class TsCapScheme(ConvectiveScheme):
         values[..., fields.c_cap2X] = c_cap2X
         values[..., fields.c_cap2Y] = c_cap2Y
 
-    def post_extrapolation(self, values: Q):
-        # self.prim2Q(values)
-        self.relaxation(values)
+    def auxilliaryVariableUpdateNoGeo(self, values: Q):
+        fields = Q.fields
+        sigma = self.problem.sigma
 
-        # auxilliary variables update
-        self.auxilliaryVariableUpdate(values)
+        # Get variables updated by the scheme
+        abarrho = values[..., fields.abarrho]
+        arho1 = values[..., fields.arho1]
+        arho2 = values[..., fields.arho2]
+        arho1d = values[..., fields.arho1d]
+        rhoU = values[..., fields.rhoU]
+        rhoV = values[..., fields.rhoV]
+        ad = values[..., fields.ad]
+
+        # Updating the auxiliary variables
+        rho = arho1 + arho2 + arho1d
+        abar = abarrho / rho
+        U = rhoU / rho
+        V = rhoV / rho
+
+        abars = PhasePair(abar, 1.0 - abar)
+        arhos = PhasePair(arho1, arho2)
+
+        values[..., fields.abar] = abar
+        values[..., fields.rho] = rho
+        values[..., fields.U] = U
+        values[..., fields.V] = V
+
+        c_sq = np.zeros_like(arho1)  # Auxiliary variable for mixture speed of sound
+
+        for phase in Phases:
+            phase_values = values.view(Q).get_phase(phase)
+
+            abar = abars[phase]
+            arho = arhos[phase]
+
+            rho = np.full_like(arho, np.nan)
+            np.divide(arho, abar * (1 - ad), where=(abar > 0), out=rho)
+            p = self.problem.eos[phase].p(rho)
+            c = self.problem.eos[phase].sound_velocity(rho)
+
+            phase_values[..., TsCapPhaseFields.p] = p
+            phase_values[..., TsCapPhaseFields.c] = c
+
+            values.view(Q).set_phase(
+                phase,
+                phase_values,
+            )
+
+            c_sq += np.where(arho > 0, arho * c**2, 0)
+
+        cFd = np.sqrt(c_sq / values[..., fields.rho]) / (1 - ad)
+
+        MaX = U / cFd
+        MaY = V / cFd
+        norm_grada = values[..., fields.norm_grada]
+        n_x = values[..., fields.n_x]
+        n_y = values[..., fields.n_y]
+        WeX = np.empty_like(norm_grada)
+        WeX[:] = np.nan
+        np.divide(sigma * norm_grada, rho * U**2, where=U**2 > 0, out=WeX)
+        WeY = np.empty_like(norm_grada)
+        WeY[:] = np.nan
+        np.divide(sigma * norm_grada, rho * V**2, where=V**2 > 0, out=WeY)
+        r = np.empty_like(norm_grada)
+        r[:] = np.nan
+        np.divide(MaX**2, WeX, where=WeX > 0, out=r)
+        c_cap1X = cFd * (1 + 0.5 * r * n_x**2 * (1 - n_x**2))
+        c_cap2X = cFd * (1 - n_x**2) * np.sqrt(r)
+        r[:] = np.nan
+        np.divide(MaY**2, WeY, where=WeY > 0, out=r)
+        c_cap1Y = cFd * (1 + 0.5 * r * n_y**2 * (1 - n_y**2))
+        c_cap2Y = cFd * (1 - n_y**2) * np.sqrt(r)
+
+        # Update the auxilliary variables
+        abar = values[..., fields.abar]
+        p1 = values[..., fields.p1]
+        p2 = values[..., fields.p2]
+        values[..., fields.pbar] = np.nan
+        values[..., fields.pbar] = np.where(
+            (abar > 0) * (abar < 1),
+            abar * p1 + (1 - abar) * p2,
+            np.where(abar == 0, p2, p1),
+        )
+
+        values[..., fields.cFd] = cFd
+        values[..., fields.MaX] = MaX
+        values[..., fields.MaY] = MaY
+        values[..., fields.WeX] = WeX
+        values[..., fields.WeY] = WeY
+        values[..., fields.c_cap1X] = c_cap1X
+        values[..., fields.c_cap1Y] = c_cap1Y
+        values[..., fields.c_cap2X] = c_cap2X
+        values[..., fields.c_cap2Y] = c_cap2Y
 
     def post_step(self, values: Q):
         """During the step we update the conservative values. After the
@@ -568,3 +707,11 @@ class Rusanov(TsCapScheme):
         )
 
         return FS
+
+    def post_extrapolation(self, values: Q):
+        # self.prim2Q(values)
+        self.relaxation(values)
+
+        # auxilliary variables update
+        self.auxilliaryVariableUpdateNoGeo(values)
+        # self.auxilliaryVariableUpdate(values)

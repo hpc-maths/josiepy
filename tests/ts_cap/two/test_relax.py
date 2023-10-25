@@ -7,98 +7,86 @@ import numpy as np
 import logging
 from datetime import datetime
 from josie.io.write.writer import XDMFWriter
-from josie.io.write.strategy import TimeStrategy
+from josie.io.write.strategy import TimeStrategy, IterationStrategy
 
 
 from josie.boundary import Line
+from josie.bc import make_periodic, Direction
 from josie.mesh import Mesh
 from josie.mesh.cell import MUSCLCell
 from josie.mesh.cellset import MeshCellSet
-from josie.ts_cap.solver import TsCapSolver
 from josie.ts_cap.state import Q
 from josie.bn.eos import TwoPhaseEOS
 from josie.FourEq.eos import LinearizedGas
-
-from josie.ts_cap.schemes import Rusanov
-from josie.general.schemes.space.muscl import MUSCL
-from josie.general.schemes.space.limiters import MinMod
-
-from josie.general.schemes.time.rk import RK2_relax
-from josie.bc import make_periodic, Direction
-
-
+from josie.euler.eos import PerfectGas, StiffenedGas
 from josie.twofluid.fields import Phases
 
 
-class TsCapScheme(Rusanov, RK2_relax, MUSCL, MinMod):
-    pass
-
-
-def test_dummy(plot, request):
-    left = Line([0, 0], [0, 1])
-    bottom = Line([0, 0], [1, 0])
-    right = Line([1, 0], [1, 1])
-    top = Line([0, 1], [1, 1])
-
-    eos = TwoPhaseEOS(
-        phase1=LinearizedGas(p0=1e2, rho0=1e3, c0=1e1),
-        phase2=LinearizedGas(p0=1e2, rho0=1e0, c0=1e1),
-    )
+def test_relax(plot, request, init_schemes, shape_fun, init_solver, nSmoothPass):
+    L = 0.5
+    left = Line([0, 0], [0, L])
+    bottom = Line([0, 0], [L, 0])
+    right = Line([L, 0], [L, L])
+    top = Line([0, L], [L, L])
 
     left, right = make_periodic(left, right, Direction.X)
     bottom, top = make_periodic(bottom, top, Direction.Y)
 
     mesh = Mesh(left, bottom, right, top, MUSCLCell)
-    N = 51
+    N = 91
     mesh.interpolate(N, N)
     mesh.generate()
 
-    sigma = 1e-2
+    final_time = 1
+    CFL = 0.4
+
+    sigma = 1e-1
     Hmax = 1e3
     dx = mesh.cells._centroids[1, 1, 0, 0] - mesh.cells._centroids[0, 1, 0, 0]
     dy = mesh.cells._centroids[1, 1, 0, 1] - mesh.cells._centroids[1, 0, 0, 1]
     norm_grada_min = 0.01 * 1 / dx
     norm_grada_min = 0
 
-    scheme = TsCapScheme(
-        eos,
-        sigma,
-        Hmax,
-        dx,
-        dy,
-        norm_grada_min,
+    eos_ref = TwoPhaseEOS(
+        phase1=StiffenedGas(gamma=2.1, p0=1e6),
+        phase2=PerfectGas(gamma=1.4),
+    )
+    p_init = 1e2
+    rho_liq = 1e1
+    rho_gas = 1e0
+    eos = TwoPhaseEOS(
+        phase1=LinearizedGas(
+            p0=p_init,
+            rho0=rho_liq,
+            # c0=eos_ref[Phases.PHASE1].sound_velocity(rho_liq, p_init),
+            c0=1e1,
+        ),
+        phase2=LinearizedGas(
+            p0=p_init,
+            rho0=rho_gas,
+            # c0=eos_ref[Phases.PHASE2].sound_velocity(rho_gas, p_init),
+            c0=1e1,
+        ),
     )
 
-    scheme.tmp_arr = np.zeros((N, N, 5))
+    schemes = init_schemes(eos, sigma, Hmax, dx, dy, norm_grada_min, nSmoothPass)
 
-    def rbf(R: float, r: np.ndarray):
-        eps = R / 2
+    def init_fun(cells: MeshCellSet):
+        # include ghost cells
+        x_c = cells._centroids[..., 0]
+        y_c = cells._centroids[..., 1]
+        x_0 = L / 2
+        y_0 = L / 2
 
-        def f(x):
-            return np.maximum(np.exp(2 * x**2 * (x**2 - 3) / (x**2 - 1) ** 2), 0)
-
-        arr = np.where(
-            (r >= R) * (r < R + eps),
-            f((r - R) / eps),
-            np.where(r < R, 1, 0),
-        )
-
-        # Enforce symmetry along
-        # X-axis
-        arr = 0.5 * (arr + arr[::-1, :])
-        # Y-axis
-        arr = 0.5 * (arr + arr[:, ::-1])
-        # XY-axis
-        arr = 0.5 * (arr + np.transpose(arr, axes=(1, 0, 2)))
-
-        return arr
-
-    def mollify_state(cells, r, ad, U_0, U_1, V):
+        ad = 0
+        U_0 = 0
+        U_1 = 0
+        V = 0
         fields = Q.fields
-        R = 0.2
+        R = 0.1
 
         # Mollifier
-        w = rbf(R, r)
+        w = shape_fun(R, x_c, y_c, x_0, y_0)
 
         # No small-scale
         ad = 0
@@ -107,14 +95,14 @@ def test_dummy(plot, request):
         # Update geometry
         abar = w
         cells._values[..., fields.abar] = abar
-        solver.scheme.updateGeometry(cells._values)
+        schemes[0].updateGeometry(cells._values[..., 0, :])
 
         # Adjust pressure in the droplet
         H = cells._values[..., fields.H]
         p1 = np.full_like(abar, np.nan)
         p1 = np.where(
             abar == 1,
-            eos[Phases.PHASE2].p0 + sigma / R,
+            eos[Phases.PHASE2].p0,
             np.where(
                 (abar < 1) & (abar > 0), eos[Phases.PHASE2].p0 + sigma * H, np.nan
             ),
@@ -140,37 +128,15 @@ def test_dummy(plot, request):
         cells._values[..., fields.rhoU] = rhoU
         cells._values[..., fields.rhoV] = rhoV
 
-    def init_fun(cells: MeshCellSet):
-        # include ghost cells
-        x_c = cells._centroids[..., 0]
-        y_c = cells._centroids[..., 1]
-        x_0 = 0.5
-        y_0 = 0.5
-
-        ad = 0
-        U_0 = 0
-        U_1 = 0
-        V = 0
-
-        r = np.sqrt((x_c - x_0) ** 2 + (y_c - y_0) ** 2)
-        mollify_state(cells, r, ad, U_0, U_1, V)
-
-    solver = TsCapSolver(mesh, scheme)
-    solver.init(init_fun)
-
-    solver.mesh.update_ghosts(0)
-    solver.scheme.auxilliaryVariableUpdate(solver.mesh.cells._values)
-    solver.mesh.update_ghosts(0)
-
-    final_time = 3e-2
-    CFL = 0.4
+    solver = init_solver(mesh, schemes, init_fun)
 
     now = datetime.now().strftime("%Y%m%d%H%M%S")
 
     logger = logging.getLogger("josie")
     logger.setLevel(logging.DEBUG)
 
-    fh = logging.FileHandler(f"static-circle-{now}.log")
+    test_name = request.node.name.replace("[", "-").replace("]", "-")
+    fh = logging.FileHandler(test_name + f"{now}.log")
     fh.setLevel(logging.DEBUG)
     formatter = logging.Formatter(
         "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
@@ -180,9 +146,15 @@ def test_dummy(plot, request):
     logger.addHandler(fh)
 
     # Write strategy
-    strategy = TimeStrategy(dt_save=final_time, animate=False)
+    strategy = TimeStrategy(dt_save=final_time / 200, animate=False)
     writer = XDMFWriter(
-        f"static-circle-{now}.xdmf", strategy, solver, final_time=final_time, CFL=CFL
+        test_name + f"{now}.xdmf", strategy, solver, final_time=final_time, CFL=CFL
     )
 
+    import cProfile
+
+    profiler = cProfile.Profile()
+    profiler.enable()
     writer.solve()
+    profiler.disable()
+    profiler.dump_stats(test_name + f"{now}.prof")

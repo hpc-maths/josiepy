@@ -3,4 +3,5 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 from .schemes import Rusanov
-from .exact import Exact
+from .exact import ExactHyp
+from .arithmetic import ArithmeticCap

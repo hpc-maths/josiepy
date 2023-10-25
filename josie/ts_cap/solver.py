@@ -4,11 +4,13 @@
 
 from __future__ import annotations
 
-from josie.solver import Solver
+from josie.solver import Solver, SolverLieSplitting
 from josie.mesh import Mesh
 
 from .schemes import TsCapScheme
 from .state import Q
+
+from typing import List
 
 
 class TsCapSolver(Solver):
@@ -16,3 +18,10 @@ class TsCapSolver(Solver):
 
     def __init__(self, mesh: Mesh, scheme: TsCapScheme):
         super().__init__(mesh, Q, scheme)
+
+
+class TsCapLieSolver(SolverLieSplitting):
+    """A solver for the TsCap system"""
+
+    def __init__(self, mesh: Mesh, schemes: List[TsCapScheme]):
+        super().__init__(mesh, Q, schemes)

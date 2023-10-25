@@ -29,11 +29,13 @@ class TsCapProblem(ConvectiveProblem):
         self.Hmax = Hmax
         self.norm_grada_min = norm_grada_min
 
-    def F(self, values: Q) -> np.ndarray:
-        r""" """
+    def F_hyper(self, values: Q) -> np.ndarray:
+        r"""Hyperbolic flux"""
+
+        fields = Q.fields
+
         num_cells_x, num_cells_y, num_dofs, _ = values.shape
 
-        # Flux tensor
         F = np.zeros(
             (
                 num_cells_x,
@@ -43,7 +45,6 @@ class TsCapProblem(ConvectiveProblem):
                 MAX_DIMENSIONALITY,
             )
         )
-        fields = Q.fields
 
         arho1 = values[..., fields.arho1]
         arho2 = values[..., fields.arho2]
@@ -57,24 +58,53 @@ class TsCapProblem(ConvectiveProblem):
         V = rhoV / rho
         pbar = values[..., fields.pbar]
         capSigma = values[..., fields.capSigma]
+
+        # Four-eq like model
+        F[..., TsCapConsFields.abarrho, Direction.X] += abarrho * U
+        F[..., TsCapConsFields.abarrho, Direction.Y] += abarrho * V
+
+        F[..., TsCapConsFields.arho1, Direction.X] += arho1 * U
+        F[..., TsCapConsFields.arho1, Direction.Y] += arho1 * V
+
+        F[..., TsCapConsFields.arho2, Direction.X] += arho2 * U
+        F[..., TsCapConsFields.arho2, Direction.Y] += arho2 * V
+
+        F[..., TsCapConsFields.rhoU, Direction.X] += rhoU * U + pbar
+        F[..., TsCapConsFields.rhoU, Direction.Y] += rhoU * V
+        F[..., TsCapConsFields.rhoV, Direction.X] += rhoV * U
+        F[..., TsCapConsFields.rhoV, Direction.Y] += rhoV * V + pbar
+
+        # Small-scale variables
+        F[..., TsCapConsFields.arho1d, Direction.X] += arho1d * U
+        F[..., TsCapConsFields.arho1d, Direction.Y] += arho1d * V
+
+        F[..., TsCapConsFields.ad, Direction.X] += ad * U
+        F[..., TsCapConsFields.ad, Direction.Y] += ad * V
+
+        F[..., TsCapConsFields.capSigma, Direction.X] += capSigma * U
+        F[..., TsCapConsFields.capSigma, Direction.Y] += capSigma * V
+        return F
+
+    def F_cap(self, values: Q) -> np.ndarray:
+        r"""Capillarity flux"""
+
+        fields = Q.fields
+
+        num_cells_x, num_cells_y, num_dofs, _ = values.shape
+
+        F = np.zeros(
+            (
+                num_cells_x,
+                num_cells_y,
+                num_dofs,
+                len(TsCapConsFields),
+                MAX_DIMENSIONALITY,
+            )
+        )
+
         norm_grada = values[..., fields.norm_grada]
         n_x = values[..., fields.n_x]
         n_y = values[..., fields.n_y]
-
-        # Four-eq like model
-        F[..., TsCapConsFields.abarrho, Direction.X] = abarrho * U
-        F[..., TsCapConsFields.abarrho, Direction.Y] = abarrho * V
-
-        F[..., TsCapConsFields.arho1, Direction.X] = arho1 * U
-        F[..., TsCapConsFields.arho1, Direction.Y] = arho1 * V
-
-        F[..., TsCapConsFields.arho2, Direction.X] = arho2 * U
-        F[..., TsCapConsFields.arho2, Direction.Y] = arho2 * V
-
-        F[..., TsCapConsFields.rhoU, Direction.X] = rhoU * U + pbar
-        F[..., TsCapConsFields.rhoU, Direction.Y] = rhoU * V
-        F[..., TsCapConsFields.rhoV, Direction.X] = rhoV * U
-        F[..., TsCapConsFields.rhoV, Direction.Y] = rhoV * V + pbar
 
         # Large-scale capillarity
         F[..., TsCapConsFields.rhoU, Direction.X] += np.where(
@@ -97,14 +127,24 @@ class TsCapProblem(ConvectiveProblem):
             self.sigma * norm_grada * (n_y**2 - 1),
             0,
         )
+        return F
 
-        # Small-scale variables
-        F[..., TsCapConsFields.arho1d, Direction.X] = arho1d * U
-        F[..., TsCapConsFields.arho1d, Direction.Y] = arho1d * V
+    def F(self, values: Q) -> np.ndarray:
+        r""" """
+        num_cells_x, num_cells_y, num_dofs, _ = values.shape
 
-        F[..., TsCapConsFields.ad, Direction.X] = ad * U
-        F[..., TsCapConsFields.ad, Direction.Y] = ad * V
+        # Flux tensor
+        F = np.zeros(
+            (
+                num_cells_x,
+                num_cells_y,
+                num_dofs,
+                len(TsCapConsFields),
+                MAX_DIMENSIONALITY,
+            )
+        )
 
-        F[..., TsCapConsFields.capSigma, Direction.X] = capSigma * U
-        F[..., TsCapConsFields.capSigma, Direction.Y] = capSigma * V
+        F += self.F_hyper(values)
+        F += self.F_cap(values)
+
         return F

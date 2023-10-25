@@ -80,8 +80,10 @@ class MUSCL(ConvectiveScheme):
 
         direction = neighs.direction
         oppDirection = direction + 1 if direction % 2 == 0 else direction - 1
-        Q_L = self.cells.values_face[..., [direction], :]
-        Q_R = self.cells.neighbours[direction].values_face[..., [oppDirection], :]
+        Q_L = self.cells.values_face[..., direction : direction + 1, :]
+        Q_R = self.cells.neighbours[direction].values_face[
+            ..., oppDirection : oppDirection + 1, :
+        ]
         return self.intercellFlux(
             Q_L,
             Q_R,
