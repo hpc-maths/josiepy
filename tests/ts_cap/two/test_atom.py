@@ -67,6 +67,30 @@ atom_params = [
         final_time=3,
         final_time_test=3e-2,
     ),
+    AtomParam(
+        name="We 5",
+        We=5,
+        sigma=1e-2,
+        rho0=1e1,
+        final_time=3,
+        final_time_test=3e-2,
+    ),
+    AtomParam(
+        name="We 10",
+        We=10,
+        sigma=1e-2,
+        rho0=1e1,
+        final_time=3,
+        final_time_test=3e-2,
+    ),
+    AtomParam(
+        name="We 50",
+        We=50,
+        sigma=1e-2,
+        rho0=1e1,
+        final_time=3,
+        final_time_test=3e-2,
+    ),
 ]
 
 
@@ -75,8 +99,9 @@ atom_params = [
 )
 def test_atom(plot, request, atom_param):
     box_ratio = 2
-    height = 1
+    height = 2
     width = box_ratio * height
+
     left = Line([0, 0], [0, height])
     bottom = Line([0, 0], [width, 0])
     right = Line([width, 0], [width, height])
@@ -91,7 +116,7 @@ def test_atom(plot, request, atom_param):
     bottom, top = make_periodic(bottom, top, Direction.Y)
 
     mesh = Mesh(left, bottom, right, top, MUSCLCell)
-    N = 51
+    N = 71
     mesh.interpolate(int(box_ratio * N), N)
     mesh.generate()
 
@@ -146,14 +171,14 @@ def test_atom(plot, request, atom_param):
 
         # Enforce symmetry along
         # X-axis
-        ny = arr.shape[1]
+        # ny = arr.shape[1]
         # arr = 0.5 * (arr + arr[::-1, :])
         # Y-axis
-        arr = 0.5 * (arr + arr[:, ::-1])
+        # arr = 0.5 * (arr + arr[:, ::-1])
         # XY-axis
-        arr[:ny, :ny] = 0.5 * (
-            arr[:ny, :ny] + np.transpose(arr[:ny, :ny], axes=(1, 0, 2))
-        )
+        # arr[:ny, :ny] = 0.5 * (
+        #     arr[:ny, :ny] + np.transpose(arr[:ny, :ny], axes=(1, 0, 2))
+        # )
 
         return arr
 
@@ -246,7 +271,7 @@ def test_atom(plot, request, atom_param):
 
     # Write strategy
     if final_time == atom_param.final_time:
-        dt_save = final_time / 300
+        dt_save = final_time / 150
     else:
         dt_save = final_time / 30
     strategy = TimeStrategy(dt_save=dt_save, animate=False)

@@ -22,8 +22,13 @@ from josie.euler.eos import PerfectGas, StiffenedGas
 from josie.twofluid.fields import Phases
 
 
-def test_relax(plot, request, init_schemes, shape_fun, init_solver, nSmoothPass):
-    L = 0.5
+@pytest.fixture(params=[1e-2, 1e-1, 5e-1, 1])
+def sigma(request):
+    yield request.param
+
+
+def test_relax(plot, request, init_schemes, shape_fun, init_solver, sigma, nSmoothPass):
+    L = 1
     left = Line([0, 0], [0, L])
     bottom = Line([0, 0], [L, 0])
     right = Line([L, 0], [L, L])
@@ -33,14 +38,14 @@ def test_relax(plot, request, init_schemes, shape_fun, init_solver, nSmoothPass)
     bottom, top = make_periodic(bottom, top, Direction.Y)
 
     mesh = Mesh(left, bottom, right, top, MUSCLCell)
-    N = 91
+    N = 81
     mesh.interpolate(N, N)
     mesh.generate()
 
     final_time = 1
     CFL = 0.4
 
-    sigma = 1e-1
+    # sigma = 1e-1
     Hmax = 1e3
     dx = mesh.cells._centroids[1, 1, 0, 0] - mesh.cells._centroids[0, 1, 0, 0]
     dy = mesh.cells._centroids[1, 1, 0, 1] - mesh.cells._centroids[1, 0, 0, 1]
