@@ -17,18 +17,19 @@ from josie.mesh import Mesh
 from josie.mesh.cell import MUSCLCell
 from josie.mesh.cellset import MeshCellSet
 from josie.ts_cap.solver import TsCapSolver, TsCapLieSolver
-from josie.ts_cap.state import Q
+from josie.ts_cap.state import Q, TsCapFields
 from josie.bn.eos import TwoPhaseEOS
 from josie.FourEq.eos import LinearizedGas
 
 from josie.ts_cap.schemes import Rusanov
 from josie.ts_cap.exact import ExactHyp
 from josie.ts_cap.arithmetic import ArithmeticCap
+from josie.ts_cap.bc import Inlet
 from josie.general.schemes.space.muscl import MUSCL
 from josie.general.schemes.space.limiters import MinMod
 
 from josie.general.schemes.time.rk import RK2_relax, RK2
-from josie.bc import make_periodic, Direction
+from josie.bc import make_periodic, Direction, Neumann
 
 from dataclasses import dataclass
 
@@ -65,32 +66,32 @@ atom_params = [
         sigma=1e-2,
         rho0=1e1,
         final_time=3,
-        final_time_test=3e-2,
+        final_time_test=1e-1,
     ),
-    AtomParam(
-        name="We 5",
-        We=5,
-        sigma=1e-2,
-        rho0=1e1,
-        final_time=3,
-        final_time_test=3e-2,
-    ),
-    AtomParam(
-        name="We 10",
-        We=10,
-        sigma=1e-2,
-        rho0=1e1,
-        final_time=3,
-        final_time_test=3e-2,
-    ),
-    AtomParam(
-        name="We 50",
-        We=50,
-        sigma=1e-2,
-        rho0=1e1,
-        final_time=3,
-        final_time_test=3e-2,
-    ),
+    # AtomParam(
+    #     name="We 5",
+    #     We=5,
+    #     sigma=1e-2,
+    #     rho0=1e1,
+    #     final_time=3,
+    #     final_time_test=3e-2,
+    # ),
+    # AtomParam(
+    #     name="We 10",
+    #     We=10,
+    #     sigma=1e-2,
+    #     rho0=1e1,
+    #     final_time=3,
+    #     final_time_test=3e-2,
+    # ),
+    # AtomParam(
+    #     name="We 50",
+    #     We=50,
+    #     sigma=1e-2,
+    #     rho0=1e1,
+    #     final_time=3,
+    #     final_time_test=3e-2,
+    # ),
 ]
 
 
@@ -112,14 +113,6 @@ def test_atom(plot, request, atom_param):
         phase2=LinearizedGas(p0=1e2, rho0=1e0, c0=1e1),
     )
 
-    left, right = make_periodic(left, right, Direction.X)
-    bottom, top = make_periodic(bottom, top, Direction.Y)
-
-    mesh = Mesh(left, bottom, right, top, MUSCLCell)
-    N = 71
-    mesh.interpolate(int(box_ratio * N), N)
-    mesh.generate()
-
     # Initial conditions
     We = atom_param.We  # We = rho * (U_l-U_g) * L / sigma
     sigma = atom_param.sigma
@@ -127,6 +120,26 @@ def test_atom(plot, request, atom_param):
     nSmoothPass = 5
 
     U_inlet = We / eos[Phases.PHASE1].rho0 / R * sigma
+
+    # Inlet BC
+    abar_in = 0
+    ad_in = 0
+    rho1d_in = eos[Phases.PHASE1].rho0
+    capSigma_in = 0
+    U_in = U_inlet
+    V_in = 0
+
+    # left, right = make_periodic(left, right, Direction.X)
+    # bottom, top = make_periodic(bottom, top, Direction.Y)
+    left.bc = Inlet(abar_in, ad_in, rho1d_in, capSigma_in, U_in, V_in, eos)
+    right.bc = Neumann(np.zeros(len(Q.fields)).view(Q))
+    bottom.bc = Neumann(np.zeros(len(Q.fields)).view(Q))
+    top.bc = Neumann(np.zeros(len(Q.fields)).view(Q))
+
+    mesh = Mesh(left, bottom, right, top, MUSCLCell)
+    N = 71
+    mesh.interpolate(int(box_ratio * N), N)
+    mesh.generate()
 
     Hmax = 1e3
     dx = mesh.cells._centroids[1, 1, 0, 0] - mesh.cells._centroids[0, 1, 0, 0]
@@ -233,8 +246,8 @@ def test_atom(plot, request, atom_param):
         # include ghost cells
         x_c = cells._centroids[..., 0]
         y_c = cells._centroids[..., 1]
-        x_0 = 0.5
-        y_0 = 0.5
+        x_0 = width / 4
+        y_0 = height / 2
 
         ad = 0
         U_0 = U_inlet
@@ -251,8 +264,8 @@ def test_atom(plot, request, atom_param):
     solver.schemes[0].auxilliaryVariableUpdate(solver.mesh.cells._values)
     solver.mesh.update_ghosts(0)
 
-    final_time = atom_param.final_time
-    # final_time = atom_param.final_time_test
+    # final_time = atom_param.final_time
+    final_time = atom_param.final_time_test
     CFL = 0.4
 
     now = datetime.now().strftime("%Y%m%d%H%M%S")

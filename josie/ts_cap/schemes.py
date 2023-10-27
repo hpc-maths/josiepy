@@ -638,6 +638,7 @@ class TsCapScheme(ConvectiveScheme):
                 )
             )
         ):
+            np.set_printoptions(linewidth=250)
             print(U[..., 0])
             exit()
 
