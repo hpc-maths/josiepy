@@ -147,7 +147,7 @@ class Solver:
 
 
 class SolverLieSplitting(Solver):
-    def __init__(self, mesh: Mesh, Q: Type[State], schemes: List[Scheme]):
+    def __init__(self, mesh: Mesh, Q: Type[State], schemes: Sequence[Scheme]):
         self.mesh = mesh
         self.Q = Q
         self.schemes = schemes

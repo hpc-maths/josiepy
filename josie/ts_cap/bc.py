@@ -22,7 +22,8 @@ if TYPE_CHECKING:
 
 
 class Inlet(BoundaryCondition):
-    """Imposes an inlet boundary condition i.e. velocity a zero gradient pressure condition is set.
+    """Imposes an inlet boundary condition i.e. velocity a
+    zero gradient pressure condition is set.
 
     Parameters
     ----------

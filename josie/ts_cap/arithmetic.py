@@ -5,9 +5,7 @@
 import numpy as np
 
 from .schemes import TsCapScheme
-from .state import Q, TsCapConsFields, TsCapConsState
-from josie.twofluid.fields import Phases
-from ..dimension import MAX_DIMENSIONALITY
+from .state import Q
 
 
 class ArithmeticCap(TsCapScheme):

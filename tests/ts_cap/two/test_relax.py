@@ -18,7 +18,8 @@ from josie.mesh.cellset import MeshCellSet
 from josie.ts_cap.state import Q
 from josie.bn.eos import TwoPhaseEOS
 from josie.FourEq.eos import LinearizedGas
-from josie.euler.eos import PerfectGas, StiffenedGas
+
+# from josie.euler.eos import PerfectGas, StiffenedGas
 from josie.twofluid.fields import Phases
 
 
@@ -50,10 +51,10 @@ def test_relax(plot, write, request, init_schemes, shape_fun, init_solver, nSmoo
     norm_grada_min = 0.01 * 1 / dx
     norm_grada_min = 0
 
-    eos_ref = TwoPhaseEOS(
-        phase1=StiffenedGas(gamma=2.1, p0=1e6),
-        phase2=PerfectGas(gamma=1.4),
-    )
+    # eos_ref = TwoPhaseEOS(
+    #     phase1=StiffenedGas(gamma=2.1, p0=1e6),
+    #     phase2=PerfectGas(gamma=1.4),
+    # )
     p_init = 1e2
     rho_liq = 1e1
     rho_gas = 1e0

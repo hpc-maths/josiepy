@@ -5,11 +5,8 @@
 import numpy as np
 
 from .schemes import TsCapScheme
-from .state import Q, TsCapConsFields, TsCapConsState
+from .state import Q
 from josie.twofluid.fields import Phases
-from ..dimension import MAX_DIMENSIONALITY
-
-from .eos import TwoPhaseEOS
 
 
 # This is rigorously valid only in the case of

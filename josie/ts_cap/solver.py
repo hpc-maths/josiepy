@@ -10,7 +10,7 @@ from josie.mesh import Mesh
 from .schemes import TsCapScheme
 from .state import Q
 
-from typing import List
+from typing import Sequence
 
 
 class TsCapSolver(Solver):
@@ -23,5 +23,5 @@ class TsCapSolver(Solver):
 class TsCapLieSolver(SolverLieSplitting):
     """A solver for the TsCap system"""
 
-    def __init__(self, mesh: Mesh, schemes: List[TsCapScheme]):
+    def __init__(self, mesh: Mesh, schemes: Sequence[TsCapScheme]):
         super().__init__(mesh, Q, schemes)
