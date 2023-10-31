@@ -48,8 +48,35 @@ cvv_riemann_state = RiemannExactProblem(
 )
 
 
-def relative_error(a, b):
-    return np.abs(a - b)
+def check_results(name, test_val, exact_val):
+    f = Q.fields
+    test_fields = [f.abar, f.rhoU, f.arho1, f.ad]
+
+    # N = 100
+    results_norm = {
+        "riemann_state0-Godunov-Rusanov": [0.25, 0.25, 0.24, 0.004],
+        "riemann_state0-Godunov-Exact": [0.03, 0.18, 0.03, 0.002],
+        "riemann_state0-MUSCL-Rusanov": [0.16, 0.18, 0.15, 0.0022],
+        "riemann_state0-MUSCL-Exact": [0.035, 0.13, 0.035, 0.0015],
+        "riemann_state1-Godunov-Rusanov": [0.24, 0.27, 0.23, 0.24],
+        "riemann_state1-Godunov-Exact": [0.03, 0.19, 0.035, 0.035],
+        "riemann_state1-MUSCL-Rusanov": [0.15, 0.19, 0.15, 0.15],
+        "riemann_state1-MUSCL-Exact": [0.03, 0.15, 0.035, 0.035],
+        "riemann_state2-Godunov-Rusanov": [0.24, 0.25, 0.24, 0.16],
+        "riemann_state2-Godunov-Exact": [0.04, 0.18, 0.035, 0.025],
+        "riemann_state2-MUSCL-Rusanov": [0.16, 0.18, 0.15, 0.1],
+        "riemann_state2-MUSCL-Exact": [0.04, 0.13, 0.04, 0.025],
+    }
+    testBool = True
+
+    for i, field in enumerate(test_fields):
+        if (
+            np.linalg.norm(exact_val[..., field] - test_val[..., field].flatten())
+            / np.linalg.norm(exact_val[..., field])
+        ) > results_norm[name][i]:
+            testBool = False
+
+    return testBool
 
 
 def riemann2Q(state, eos):
@@ -196,7 +223,7 @@ def test_toro(riemann_state, Scheme, plot, animate, request):
         mesh = Mesh(left, bottom, right, top, MUSCLCell)
     else:
         mesh = Mesh(left, bottom, right, top, SimpleCell)
-    mesh.interpolate(50, 1)
+    mesh.interpolate(100, 1)
     mesh.generate()
 
     def init_fun(cells: MeshCellSet):
@@ -353,6 +380,17 @@ def test_toro(riemann_state, Scheme, plot, animate, request):
         t += dt
         print(f"Time: {t}, dt: {dt}")
 
+    sol_exact = sol_exact_riemann(
+        riemann_state.left,
+        riemann_state.right,
+        riemann_state.left_star,
+        riemann_state.right_star,
+        eos,
+        x - riemann_state.xd,
+        t,
+    )
+    assert check_results(request.node.name[10:-1], cells.values[..., 0, :], sol_exact)
+
     # Check that we reached the final time
     assert t >= final_time
 
@@ -377,15 +415,6 @@ def test_toro(riemann_state, Scheme, plot, animate, request):
         # alpha = cells.values[..., 0, Q.fields.abar]
         # alpha = alpha.reshape(alpha.size) * (1 - ad)
 
-        sol_exact = sol_exact_riemann(
-            riemann_state.left,
-            riemann_state.right,
-            riemann_state.left_star,
-            riemann_state.right_star,
-            eos,
-            x - riemann_state.xd,
-            t,
-        )
         sol_exact_cvv = sol_exact_riemann(
             cvv_riemann_state.left,
             cvv_riemann_state.right,

@@ -7,11 +7,11 @@ import numpy as np
 import logging
 from datetime import datetime
 from josie.io.write.writer import XDMFWriter
-from josie.io.write.strategy import TimeStrategy, IterationStrategy
+from josie.io.write.strategy import TimeStrategy
 
 
 from josie.boundary import Line
-from josie.bc import make_periodic, Direction
+from josie.bc import Neumann
 from josie.mesh import Mesh
 from josie.mesh.cell import MUSCLCell
 from josie.mesh.cellset import MeshCellSet
@@ -22,30 +22,28 @@ from josie.euler.eos import PerfectGas, StiffenedGas
 from josie.twofluid.fields import Phases
 
 
-@pytest.fixture(params=[1e-2, 1e-1, 5e-1, 1])
-def sigma(request):
-    yield request.param
-
-
-def test_relax(plot, request, init_schemes, shape_fun, init_solver, sigma, nSmoothPass):
+def test_relax(plot, write, request, init_schemes, shape_fun, init_solver, nSmoothPass):
     L = 1
     left = Line([0, 0], [0, L])
     bottom = Line([0, 0], [L, 0])
     right = Line([L, 0], [L, L])
     top = Line([0, L], [L, L])
 
-    left, right = make_periodic(left, right, Direction.X)
-    bottom, top = make_periodic(bottom, top, Direction.Y)
+    left.bc = Neumann(np.zeros(len(Q.fields)).view(Q))
+    right.bc = Neumann(np.zeros(len(Q.fields)).view(Q))
+    bottom.bc = Neumann(np.zeros(len(Q.fields)).view(Q))
+    top.bc = Neumann(np.zeros(len(Q.fields)).view(Q))
 
     mesh = Mesh(left, bottom, right, top, MUSCLCell)
-    N = 81
+    N = 50
     mesh.interpolate(N, N)
     mesh.generate()
 
     final_time = 1
+    final_time_test = 1e-2
     CFL = 0.4
 
-    # sigma = 1e-1
+    sigma = 1e-2
     Hmax = 1e3
     dx = mesh.cells._centroids[1, 1, 0, 0] - mesh.cells._centroids[0, 1, 0, 0]
     dy = mesh.cells._centroids[1, 1, 0, 1] - mesh.cells._centroids[1, 0, 0, 1]
@@ -132,34 +130,40 @@ def test_relax(plot, request, init_schemes, shape_fun, init_solver, sigma, nSmoo
         cells._values[..., fields.arho2] = arho2
         cells._values[..., fields.rhoU] = rhoU
         cells._values[..., fields.rhoV] = rhoV
+        schemes[0].auxilliaryVariableUpdate(cells._values)
 
     solver = init_solver(mesh, schemes, init_fun)
 
-    now = datetime.now().strftime("%Y%m%d%H%M%S")
+    if write:
+        now = datetime.now().strftime("%Y%m%d%H%M%S")
 
-    logger = logging.getLogger("josie")
-    logger.setLevel(logging.DEBUG)
+        logger = logging.getLogger("josie")
+        logger.setLevel(logging.DEBUG)
 
-    test_name = request.node.name.replace("[", "-").replace("]", "-")
-    fh = logging.FileHandler(test_name + f"{now}.log")
-    fh.setLevel(logging.DEBUG)
-    formatter = logging.Formatter(
-        "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-    )
-    fh.setFormatter(formatter)
+        test_name = request.node.name.replace("[", "-").replace("]", "-")
+        fh = logging.FileHandler(test_name + f"{now}.log")
+        fh.setLevel(logging.DEBUG)
+        formatter = logging.Formatter(
+            "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+        )
+        fh.setFormatter(formatter)
 
-    logger.addHandler(fh)
+        logger.addHandler(fh)
 
-    # Write strategy
-    strategy = TimeStrategy(dt_save=final_time / 200, animate=False)
-    writer = XDMFWriter(
-        test_name + f"{now}.xdmf", strategy, solver, final_time=final_time, CFL=CFL
-    )
+        # Write strategy
+        strategy = TimeStrategy(dt_save=final_time / 20, animate=False)
+        writer = XDMFWriter(
+            test_name + f"{now}.xdmf", strategy, solver, final_time=final_time, CFL=CFL
+        )
+        writer.solve()
+    else:
+        final_time = final_time_test
+        t = 0.0
+        while t <= final_time:
+            dt = solver.CFL(CFL)
 
-    import cProfile
+            assert ~np.isnan(dt)
+            solver.step(dt)
 
-    profiler = cProfile.Profile()
-    profiler.enable()
-    writer.solve()
-    profiler.disable()
-    profiler.dump_stats(test_name + f"{now}.prof")
+            t += dt
+            print(f"Time: {t}, dt: {dt}")

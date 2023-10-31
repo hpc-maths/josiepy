@@ -18,12 +18,8 @@ class ExactHyp(TsCapScheme):
     def post_init(self, cells):
         super().post_init(cells)
 
-        self.dU = np.zeros_like(cells.values[..., 0])
-        self.ddU_dP = np.zeros_like(cells.values[..., 0])
-
     def post_extrapolation(self, values: Q):
-        # self.prim2Q(values)
-        self.relaxation(values)
+        self.prim2Qc(values)
 
         # auxilliary variables update
         self.auxilliaryVariableUpdateNoGeo(values)
@@ -62,20 +58,19 @@ class ExactHyp(TsCapScheme):
         c_L = Q_L[..., fields.cFd]
         c_R = Q_R[..., fields.cFd]
 
-        self.dU = dUn.copy()
-
-        self.dU += np.where(
-            P <= P_L,
-            c_L * (1 - ad_L) * np.log((P_L - P0L) / (P - P0L)),
-            -np.sqrt(1 - ad_L) * (P - P_L) / np.sqrt(rho_L * (P - P0L)),
+        return (
+            dUn
+            + np.where(
+                P <= P_L,
+                c_L * (1 - ad_L) * np.log((P_L - P0L) / (P - P0L)),
+                -np.sqrt(1 - ad_L) * (P - P_L) / np.sqrt(rho_L * (P - P0L)),
+            )
+            - np.where(
+                P <= P_R,
+                -c_R * (1 - ad_R) * np.log((P_R - P0R) / (P - P0R)),
+                np.sqrt(1 - ad_R) * (P - P_R) / np.sqrt(rho_R * (P - P0R)),
+            )
         )
-        self.dU -= np.where(
-            P <= P_R,
-            -c_R * (1 - ad_R) * np.log((P_R - P0R) / (P - P0R)),
-            np.sqrt(1 - ad_R) * (P - P_R) / np.sqrt(rho_R * (P - P0R)),
-        )
-
-        return self.dU
 
     def ddeltaU_dP(
         self,
@@ -97,7 +92,7 @@ class ExactHyp(TsCapScheme):
         c_L = Q_L[..., fields.cFd]
         c_R = Q_R[..., fields.cFd]
 
-        self.ddU_dP = np.where(
+        return np.where(
             P <= P_L,
             c_L * (1 - ad_L) / (P0L - P),
             (
@@ -105,8 +100,7 @@ class ExactHyp(TsCapScheme):
                 * (2.0 * P0L - P - P_L)
                 / (2.0 * (P - P0L) * np.sqrt((P - P0L) * rho_L))
             ),
-        )
-        self.ddU_dP += np.where(
+        ) + np.where(
             P <= P_R,
             c_R * (1 - ad_R) / (P0R - P),
             (
@@ -116,7 +110,43 @@ class ExactHyp(TsCapScheme):
             ),
         )
 
-        return self.ddU_dP
+    def d2deltaU_dP2(
+        self,
+        Q_L: np.ndarray,
+        Q_R: np.ndarray,
+        P: np.ndarray,
+        P0L: np.ndarray,
+        P0R: np.ndarray,
+    ):
+        fields = Q.fields
+
+        # To be modified for 2D where U is U dot n
+        ad_L = Q_L[..., fields.ad]
+        ad_R = Q_R[..., fields.ad]
+        P_L = Q_L[..., fields.pbar]
+        P_R = Q_R[..., fields.pbar]
+        rho_L = Q_L[..., fields.rho]
+        rho_R = Q_R[..., fields.rho]
+        c_L = Q_L[..., fields.cFd]
+        c_R = Q_R[..., fields.cFd]
+
+        return np.where(
+            P <= P_L,
+            c_L * (1 - ad_L) / (P0L - P) ** 2,
+            (
+                np.sqrt(1 - ad_L)
+                * (-4.0 * P0L + P + 3.0 * P_L)
+                / (4.0 * (P - P0L) ** 2 * np.sqrt((P - P0L) * rho_L))
+            ),
+        ) + np.where(
+            P <= P_R,
+            c_R * (1 - ad_R) / (P0R - P) ** 2,
+            (
+                np.sqrt(1 - ad_R)
+                * (-4.0 * P0R + P + 3 * P_R)
+                / (4.0 * (P - P0R) ** 2 * np.sqrt((P - P0R) * rho_R))
+            ),
+        )
 
     def solvePressure(
         self,
@@ -141,14 +171,17 @@ class ExactHyp(TsCapScheme):
         while len(ind) > 0 or firstLoop:
             if firstLoop:
                 firstLoop = False
-            self.dP = -self.deltaU(
+            F = self.deltaU(
                 Q_L,
                 Q_R,
                 P,
                 dUn,
                 P0L,
                 P0R,
-            ) / self.ddeltaU_dP(Q_L, Q_R, P, P0L, P0R)
+            )
+            dF = self.ddeltaU_dP(Q_L, Q_R, P, P0L, P0R)
+            ddF = self.d2deltaU_dP2(Q_L, Q_R, P, P0L, P0R)
+            self.dP = -2 * F * dF / (2 * dF**2 - F * ddF)
             P += np.maximum(self.dP, 0.9 * (P0tilde - P))
 
             ind = np.where(np.abs(self.dP / P) > tol)[0]
@@ -157,37 +190,41 @@ class ExactHyp(TsCapScheme):
 
     @classmethod
     def solveAlpha1dFan(cls, RHS: np.ndarray, ad: np.ndarray):
-        ad_fan_old = np.copy(ad)
-        ad_fan_new = np.copy(ad)
+        ad_fan = ad.copy()
+        dad_fan = np.zeros_like(ad_fan)
         tol = 1e-8
         firstLoop = True
 
-        ind = np.where(ad > 0)
+        ind = np.where((ad > 0))
 
         # Newton-Raphson loop
-        while (
-            firstLoop
-            or (
-                np.abs(ad_fan_new[ind] - ad_fan_old[ind])
-                / (0.5 * (ad_fan_new[ind] + ad_fan_old[ind]))
-                > tol
-            ).any()
-        ):
+        while len(ind[0]) or firstLoop:
             if firstLoop:
                 firstLoop = False
 
-            ad_fan_old[ind] = ad_fan_new[ind]
-            ad_fan_new[ind] = ad_fan_old[ind] - (
+            dad_fan.fill(0)
+            dad_fan[ind] = -(
                 cls.F_adFan(
-                    ad_fan_old[ind],
+                    ad_fan[ind],
                     ad[ind],
                 )
                 - RHS[ind]
             ) / cls.dF_adFan(
-                ad_fan_old[ind],
+                ad_fan[ind],
+            )
+            dad_fan[ind] = np.where(
+                dad_fan[ind] < 0,
+                np.maximum(dad_fan[ind], -0.9 * ad_fan[ind]),
+                np.minimum(dad_fan[ind], 0.9 * (1 - ad_fan[ind])),
             )
 
-        return ad_fan_new
+            ad_fan[ind] += dad_fan[ind]
+
+            ind = np.where(
+                (np.abs(np.divide(dad_fan, ad_fan, where=ad_fan > 0)) > tol) & (ad > 0)
+            )
+
+        return ad_fan
 
     @classmethod
     def F_adFan(cls, ad_fan: np.ndarray, ad: np.ndarray):
@@ -197,19 +234,18 @@ class ExactHyp(TsCapScheme):
     def dF_adFan(cls, ad_fan: np.ndarray):
         return 1 / (1 - ad_fan) ** 2 / ad_fan
 
-    def solve_RP(self, Q_L: Q, Q_R: Q, Qc: TsCapConsState, normals: np.ndarray):
+    def solve_RP(self, Q_L: Q, Q_R: Q, intercells: Q, normals: np.ndarray):
         fields = Q.fields
-        cfields = TsCapConsFields
-        Qc_R = Q_R.view(Q).get_conservative()
-
         # Left state
         arho1_L = Q_L[..., fields.arho1]
         arho2_L = Q_L[..., fields.arho2]
         arho1d_L = Q_L[..., fields.arho1d]
         P_L = Q_L[..., fields.pbar]
-        U_L = np.einsum(
-            "...l,...->...l", Q_L[..., fields.U], normals[..., 0]
-        ) + np.einsum("...l,...->...l", Q_L[..., fields.V], normals[..., 1])
+        U_L = Q_L[..., fields.U]
+        V_L = Q_L[..., fields.V]
+        Un_L = np.einsum("...l,...->...l", U_L, normals[..., 0]) + np.einsum(
+            "...l,...->...l", V_L, normals[..., 1]
+        )
         c_L = Q_L[..., fields.cFd]
         abar_L = Q_L[..., fields.abar]
         ad_L = Q_L[..., fields.ad]
@@ -221,9 +257,11 @@ class ExactHyp(TsCapScheme):
         arho2_R = Q_R[..., fields.arho2]
         arho1d_R = Q_R[..., fields.arho1d]
         P_R = Q_R[..., fields.pbar]
-        U_R = np.einsum(
-            "...l,...->...l", Q_R[..., fields.U], normals[..., 0]
-        ) + np.einsum("...l,...->...l", Q_R[..., fields.V], normals[..., 1])
+        U_R = Q_R[..., fields.U]
+        V_R = Q_R[..., fields.V]
+        Un_R = np.einsum("...l,...->...l", U_R, normals[..., 0]) + np.einsum(
+            "...l,...->...l", V_R, normals[..., 1]
+        )
         c_R = Q_R[..., fields.cFd]
         abar_R = Q_R[..., fields.abar]
         ad_R = Q_R[..., fields.ad]
@@ -237,7 +275,7 @@ class ExactHyp(TsCapScheme):
             np.maximum(0.5 * (P_L + P_R), P0tilde + 0.1 * np.abs(P0tilde)),
             Q_L,
             Q_R,
-            U_L - U_R,
+            Un_L - Un_R,
             P0L,
             P0R,
         )
@@ -245,15 +283,12 @@ class ExactHyp(TsCapScheme):
         # Compute Ustar
         U_star = np.where(
             P_star <= P_L,
-            U_L + c_L * (1 - ad_L) * np.log((P_L - P0L) / (P_star - P0L)),
-            U_L - np.sqrt(1 - ad_L) * (P_star - P_L) / np.sqrt(rho_L * (P_star - P0L)),
+            Un_L + c_L * (1 - ad_L) * np.log((P_L - P0L) / (P_star - P0L)),
+            Un_L - np.sqrt(1 - ad_L) * (P_star - P_L) / np.sqrt(rho_L * (P_star - P0L)),
         )
 
         # If 0 < Ustar
         #   If left shock
-        #       If right of left shock -> Qc_L_star
-
-        # If left shock
         ind = np.where(P_star > P_L)
         r = np.ones_like(ad_L) * np.nan
         r[ind] = 1 + (1 - ad_L[ind]) / (
@@ -266,11 +301,11 @@ class ExactHyp(TsCapScheme):
         arho1d_L_star = arho1d_L * r
         rho_L_star = arho1_L_star + arho2_L_star + arho1d_L_star
 
-        S_L = np.empty_like(U_L) * np.nan
+        S_L = np.empty_like(Un_L) * np.nan
         ind = np.where((P_star > P_L) & (r > 1))
-        S_L[ind] = U_star[ind] + (U_L[ind] - U_star[ind]) / (1 - r[ind])
+        S_L[ind] = U_star[ind] + (Un_L[ind] - U_star[ind]) / (1 - r[ind])
         ind = np.where((P_star > P_L) & (r == 1))
-        S_L[ind] = U_star[ind] + (U_L[ind] - U_star[ind]) * (-np.inf)
+        S_L[ind] = U_star[ind] + (Un_L[ind] - U_star[ind]) * (-np.inf)
 
         # If left of left shock -> already done
         # If right of left shock -> Qc_L_star
@@ -279,103 +314,113 @@ class ExactHyp(TsCapScheme):
         ind_tmp = ind[:3]
 
         # TODO: to be changed for 2D
-        Qc[ind_tmp + (cfields.abarrho,)] = abar_L[ind] * rho_L_star[ind]
-        Qc[ind_tmp + (cfields.rhoU,)] = np.einsum(
-            "...k,...l->...kl", rho_L_star * U_star, normals
-        )[ind_tmp + (0,)]
-        Qc[ind + (cfields.rhoV,)] = np.einsum(
-            "...k,...l->...kl", rho_L_star * U_star, normals
-        )[ind_tmp + (1,)]
-        Qc[ind_tmp + (cfields.ad,)] = ad_L_star[ind]
-        Qc[ind_tmp + (cfields.arho1,)] = arho1_L_star[ind]
-        Qc[ind_tmp + (cfields.arho2,)] = arho2_L_star[ind]
-        Qc[ind_tmp + (cfields.arho1d,)] = arho1d_L_star[ind]
+        intercells[ind_tmp + (fields.abarrho,)] = abar_L[ind] * rho_L_star[ind]
+        intercells[ind_tmp + (fields.rhoU,)] = rho_L_star[ind] * (
+            U_L[ind]
+            + np.einsum("...k,...l->...kl", U_star - Un_L, normals)[ind_tmp + (0,)]
+        )
+        intercells[ind + (fields.rhoV,)] = rho_L_star[ind] * (
+            V_L[ind]
+            + np.einsum("...k,...l->...kl", U_star - Un_L, normals)[ind_tmp + (1,)]
+        )
+        intercells[ind_tmp + (fields.ad,)] = ad_L_star[ind]
+        intercells[ind_tmp + (fields.arho1,)] = arho1_L_star[ind]
+        intercells[ind_tmp + (fields.arho2,)] = arho2_L_star[ind]
+        intercells[ind_tmp + (fields.arho1d,)] = arho1d_L_star[ind]
 
         #   If left fan -> check if in or out of the fan
         #       If left of the fan -> already done
 
         #       If in the fan -> Qc_L_fan
         ad_L_star = 1 - 1 / (
-            1 + ad_L / (1 - ad_L) * np.exp((U_L - U_star) / c_L / (1 - ad_L))
+            1 + ad_L / (1 - ad_L) * np.exp((Un_L - U_star) / c_L / (1 - ad_L))
         )
-        SH_L = U_L - c_L
+        SH_L = Un_L - c_L
         ST_L = U_star - c_L * (1 - ad_L) / (1 - ad_L_star)
+
+        ind = np.where((0 < U_star) * (P_star <= P_L) * (SH_L < 0) * (ST_L > 0))
+        ind_tmp = ind[:3]
 
         ad_L_fan = np.ones_like(abar_L) * np.nan
         ad_L_fan[ind] = self.solveAlpha1dFan(
-            U_L[ind] / c_L[ind] / (1 - ad_L[ind]), ad_L[ind]
+            Un_L[ind] / c_L[ind] / (1 - ad_L[ind]), ad_L[ind]
         )
         arho1_L_fan = (
             (1 - ad_L_fan)
             * arho1_L
             / (1 - ad_L)
-            * np.exp((U_L - (c_L * (1 - ad_L) / (1 - ad_L_fan))) / c_L / (1 - ad_L))
+            * np.exp((Un_L - (c_L * (1 - ad_L) / (1 - ad_L_fan))) / c_L / (1 - ad_L))
         )
         arho2_L_fan = (
             (1 - ad_L_fan)
             * arho2_L
             / (1 - ad_L)
-            * np.exp((U_L - (c_L * (1 - ad_L) / (1 - ad_L_fan))) / c_L / (1 - ad_L))
+            * np.exp((Un_L - (c_L * (1 - ad_L) / (1 - ad_L_fan))) / c_L / (1 - ad_L))
         )
         arho1d_L_fan = (
             (1 - ad_L_fan)
             * arho1d_L
             / (1 - ad_L)
-            * np.exp((U_L - (c_L * (1 - ad_L) / (1 - ad_L_fan))) / c_L / (1 - ad_L))
+            * np.exp((Un_L - (c_L * (1 - ad_L) / (1 - ad_L_fan))) / c_L / (1 - ad_L))
         )
         rho_L_fan = arho1_L_fan + arho2_L_fan + arho1d_L_fan
 
-        ind = np.where((0 < U_star) * (P_star <= P_L) * (SH_L < 0) * (ST_L > 0))
-        ind_tmp = ind[:3]
-
         # TODO: to be changed for 2D
-        Qc[ind_tmp + (cfields.abarrho,)] = abar_L[ind] * rho_L_fan[ind]
-        Qc[ind_tmp + (cfields.rhoU,)] = np.einsum(
-            "...k,...l->...kl", rho_L_fan * c_L, normals
-        )[ind_tmp + (0,)]
-        Qc[ind_tmp + (cfields.rhoV,)] = np.einsum(
-            "...k,...l->...kl", rho_L_fan * c_L, normals
-        )[ind_tmp + (1,)]
-        Qc[ind_tmp + (cfields.ad,)] = ad_L_fan[ind]
-        Qc[ind_tmp + (cfields.arho1,)] = arho1_L_fan[ind]
-        Qc[ind_tmp + (cfields.arho2,)] = arho2_L_fan[ind]
-        Qc[ind_tmp + (cfields.arho1d,)] = arho1d_L_fan[ind]
+        intercells[ind_tmp + (fields.abarrho,)] = abar_L[ind] * rho_L_fan[ind]
+        intercells[ind_tmp + (fields.rhoU,)] = rho_L_fan[ind] * (
+            U_L[ind]
+            + np.einsum(
+                "...k,...l->...kl", c_L * (1 - ad_L) / (1 - ad_L_fan) - Un_L, normals
+            )[ind_tmp + (0,)]
+        )
+        intercells[ind_tmp + (fields.rhoV,)] = rho_L_fan[ind] * (
+            V_L[ind]
+            + np.einsum(
+                "...k,...l->...kl", c_L * (1 - ad_L) / (1 - ad_L_fan) - Un_L, normals
+            )[ind_tmp + (1,)]
+        )
+        intercells[ind_tmp + (fields.ad,)] = ad_L_fan[ind]
+        intercells[ind_tmp + (fields.arho1,)] = arho1_L_fan[ind]
+        intercells[ind_tmp + (fields.arho2,)] = arho2_L_fan[ind]
+        intercells[ind_tmp + (fields.arho1d,)] = arho1d_L_fan[ind]
 
         #       If right of the fan -> compute state
         arho1_L_star = (
             (1 - ad_L_star)
             * arho1_L
             / (1 - ad_L)
-            * np.exp((U_L - U_star) / c_L / (1 - ad_L))
+            * np.exp((Un_L - U_star) / c_L / (1 - ad_L))
         )
         arho2_L_star = (
             (1 - ad_L_star)
             * arho2_L
             / (1 - ad_L)
-            * np.exp((U_L - U_star) / c_L / (1 - ad_L))
+            * np.exp((Un_L - U_star) / c_L / (1 - ad_L))
         )
         arho1d_L_star = (
             (1 - ad_L_star)
             * arho1d_L
             / (1 - ad_L)
-            * np.exp((U_L - U_star) / c_L / (1 - ad_L))
+            * np.exp((Un_L - U_star) / c_L / (1 - ad_L))
         )
         rho_L_star = arho1_L_star + arho2_L_star + arho1d_L_star
 
         ind = np.where((0 < U_star) * (P_star <= P_L) * (ST_L <= 0))
         ind_tmp = ind[:3]
 
-        Qc[ind_tmp + (cfields.abarrho,)] = abar_L[ind] * rho_L_star[ind]
-        Qc[ind_tmp + (cfields.rhoU,)] = np.einsum(
-            "...k,...l->...kl", rho_L_star * U_star, normals
-        )[ind_tmp + (0,)]
-        Qc[ind_tmp + (cfields.rhoV,)] = np.einsum(
-            "...k,...l->...kl", rho_L_star * U_star, normals
-        )[ind_tmp + (1,)]
-        Qc[ind_tmp + (cfields.ad,)] = ad_L_star[ind]
-        Qc[ind_tmp + (cfields.arho1,)] = arho1_L_star[ind]
-        Qc[ind_tmp + (cfields.arho2,)] = arho2_L_star[ind]
-        Qc[ind_tmp + (cfields.arho1d,)] = arho1d_L_star[ind]
+        intercells[ind_tmp + (fields.abarrho,)] = abar_L[ind] * rho_L_star[ind]
+        intercells[ind_tmp + (fields.rhoU,)] = rho_L_star[ind] * (
+            U_L[ind]
+            + np.einsum("...k,...l->...kl", U_star - Un_L, normals)[ind_tmp + (0,)]
+        )
+        intercells[ind + (fields.rhoV,)] = rho_L_star[ind] * (
+            V_L[ind]
+            + np.einsum("...k,...l->...kl", U_star - Un_L, normals)[ind_tmp + (1,)]
+        )
+        intercells[ind_tmp + (fields.ad,)] = ad_L_star[ind]
+        intercells[ind_tmp + (fields.arho1,)] = arho1_L_star[ind]
+        intercells[ind_tmp + (fields.arho2,)] = arho2_L_star[ind]
+        intercells[ind_tmp + (fields.arho1d,)] = arho1d_L_star[ind]
 
         # If 0 > Ustar
         #   If right shock
@@ -391,123 +436,133 @@ class ExactHyp(TsCapScheme):
         ad_R_star = ad_R * r
         rho_R_star = arho1_R_star + arho2_R_star + arho1d_R_star
 
-        S_star_R = np.empty_like(U_R) * np.nan
+        S_star_R = np.empty_like(Un_R) * np.nan
         ind = np.where((P_star > P_R) & (r > 1))
-        S_star_R[ind] = U_star[ind] + (U_R[ind] - U_star[ind]) / (1 - r[ind])
+        S_star_R[ind] = U_star[ind] + (Un_R[ind] - U_star[ind]) / (1 - r[ind])
         ind = np.where((P_star > P_R) & (r == 1))
-        S_star_R[ind] = U_star[ind] + (U_R[ind] - U_star[ind]) / (-np.inf)
+        S_star_R[ind] = U_star[ind] + (Un_R[ind] - U_star[ind]) / (-np.inf)
 
         #   If right of right shock -> Qc_R
         ind = np.where((0 >= U_star) * (P_star > P_R) * (S_star_R < 0))
-        Qc[ind] = Qc_R[ind]
+        intercells[ind] = Q_R[ind]
 
         #   If left of right shock -> Qc_R_star
         ind = np.where((0 >= U_star) * (P_star > P_R) * (S_star_R >= 0))
         ind_tmp = ind[:3]
 
         # TODO: to be changed for 2D
-        Qc[ind_tmp + (cfields.abarrho,)] = abar_R[ind] * rho_R_star[ind]
-        Qc[ind_tmp + (cfields.rhoU,)] = np.einsum(
-            "...k,...l->...kl", rho_R_star * U_star, normals
-        )[ind_tmp + (0,)]
-        Qc[ind_tmp + (cfields.rhoV,)] = np.einsum(
-            "...k,...l->...kl", rho_R_star * U_star, normals
-        )[ind_tmp + (1,)]
-        Qc[ind_tmp + (cfields.ad,)] = ad_R_star[ind]
-        Qc[ind_tmp + (cfields.arho1,)] = arho1_R_star[ind]
-        Qc[ind_tmp + (cfields.arho2,)] = arho2_R_star[ind]
-        Qc[ind_tmp + (cfields.arho1d,)] = arho1d_R_star[ind]
+        intercells[ind_tmp + (fields.abarrho,)] = abar_R[ind] * rho_R_star[ind]
+        intercells[ind_tmp + (fields.rhoU,)] = rho_R_star[ind] * (
+            U_R[ind]
+            + np.einsum("...k,...l->...kl", U_star - Un_R, normals)[ind_tmp + (0,)]
+        )
+        intercells[ind + (fields.rhoV,)] = rho_R_star[ind] * (
+            V_R[ind]
+            + np.einsum("...k,...l->...kl", U_star - Un_R, normals)[ind_tmp + (1,)]
+        )
+        intercells[ind_tmp + (fields.ad,)] = ad_R_star[ind]
+        intercells[ind_tmp + (fields.arho1,)] = arho1_R_star[ind]
+        intercells[ind_tmp + (fields.arho2,)] = arho2_R_star[ind]
+        intercells[ind_tmp + (fields.arho1d,)] = arho1d_R_star[ind]
 
         #   If right fan -> check if in or out of the fan
         ad_R_star = 1 - 1 / (
-            1 + ad_R / (1 - ad_R) * np.exp(-(U_R - U_star) / c_R / (1 - ad_R))
+            1 + ad_R / (1 - ad_R) * np.exp(-(Un_R - U_star) / c_R / (1 - ad_R))
         )
-        SH_R = U_R + c_R
+        SH_R = Un_R + c_R
         ST_R = U_star + c_R * (1 - ad_R) / (1 - ad_R_star)
         #       If right of the fan -> Qc_R
         ind = np.where((0 >= U_star) * (P_star <= P_R) * (SH_R < 0))
         ind_tmp = ind[:3]
 
-        Qc[ind] = Qc_R[ind]
+        intercells[ind] = Q_R[ind]
 
         #       If in the fan -> Qc_R_fan
+        ind = np.where((0 >= U_star) * (P_star <= P_R) * (SH_R >= 0) * (ST_R < 0))
+        ind_tmp = ind[:3]
+
         ad_R_fan = np.ones_like(abar_R) * np.nan
         ad_R_fan[ind] = self.solveAlpha1dFan(
-            -U_R[ind] / c_R[ind] / (1 - ad_R[ind]), ad_R[ind]
+            -Un_R[ind] / c_R[ind] / (1 - ad_R[ind]), ad_R[ind]
         )
         arho1_R_fan = (
             (1 - ad_R_fan)
             * arho1_R
             / (1 - ad_R)
-            * np.exp(-(U_R + (c_R * (1 - ad_R) / (1 - ad_R_fan))) / c_R / (1 - ad_R))
+            * np.exp(-(Un_R + (c_R * (1 - ad_R) / (1 - ad_R_fan))) / c_R / (1 - ad_R))
         )
         arho2_R_fan = (
             (1 - ad_R_fan)
             * arho2_R
             / (1 - ad_R)
-            * np.exp(-(U_R + (c_R * (1 - ad_R) / (1 - ad_R_fan))) / c_R / (1 - ad_R))
+            * np.exp(-(Un_R + (c_R * (1 - ad_R) / (1 - ad_R_fan))) / c_R / (1 - ad_R))
         )
         arho1d_R_fan = (
             (1 - ad_R_fan)
             * arho1d_R
             / (1 - ad_R)
-            * np.exp(-(U_R + (c_R * (1 - ad_R) / (1 - ad_R_fan))) / c_R / (1 - ad_R))
+            * np.exp(-(Un_R + (c_R * (1 - ad_R) / (1 - ad_R_fan))) / c_R / (1 - ad_R))
         )
         rho_R_fan = arho1_R_fan + arho2_R_fan + arho1d_R_fan
 
-        ind = np.where((0 >= U_star) * (P_star <= P_R) * (SH_R >= 0) * (ST_R < 0))
-        ind_tmp = ind[:3]
-
         # TODO: to be changed for 2D
-        Qc[ind_tmp + (cfields.abarrho,)] = abar_R[ind] * rho_R_fan[ind]
-        Qc[ind_tmp + (cfields.rhoU,)] = np.einsum(
-            "...k,...l->...kl", -rho_R_fan * c_R, normals
-        )[ind_tmp + (0,)]
-        Qc[ind_tmp + (cfields.rhoV,)] = np.einsum(
-            "...k,...l->...kl", -rho_R_fan * c_R, normals
-        )[ind_tmp + (1,)]
-        Qc[ind_tmp + (cfields.ad,)] = ad_R_fan[ind]
-        Qc[ind_tmp + (cfields.arho1,)] = arho1_R_fan[ind]
-        Qc[ind_tmp + (cfields.arho2,)] = arho2_R_fan[ind]
-        Qc[ind_tmp + (cfields.arho1d,)] = arho1d_R_fan[ind]
+        intercells[ind_tmp + (fields.abarrho,)] = abar_R[ind] * rho_R_fan[ind]
+        intercells[ind_tmp + (fields.rhoU,)] = rho_R_fan[ind] * (
+            U_R[ind]
+            + np.einsum(
+                "...k,...l->...kl", -c_R * (1 - ad_R) / (1 - ad_R_fan) - Un_R, normals
+            )[ind_tmp + (0,)]
+        )
+        intercells[ind_tmp + (fields.rhoV,)] = rho_R_fan[ind] * (
+            V_R[ind]
+            + np.einsum(
+                "...k,...l->...kl", -c_R * (1 - ad_R) / (1 - ad_R_fan) - Un_R, normals
+            )[ind_tmp + (1,)]
+        )
+        intercells[ind_tmp + (fields.ad,)] = ad_R_fan[ind]
+        intercells[ind_tmp + (fields.arho1,)] = arho1_R_fan[ind]
+        intercells[ind_tmp + (fields.arho2,)] = arho2_R_fan[ind]
+        intercells[ind_tmp + (fields.arho1d,)] = arho1d_R_fan[ind]
 
         #       If left of the fan -> Qc_R_star
+        ind = np.where((0 >= U_star) * (P_star <= P_R) * (ST_R >= 0))
+        ind_tmp = ind[:3]
+
         arho1_R_star = (
             (1 - ad_R_star)
             * arho1_R
             / (1 - ad_R)
-            * np.exp(-(U_R - U_star) / c_R / (1 - ad_R))
+            * np.exp(-(Un_R - U_star) / c_R / (1 - ad_R))
         )
         arho2_R_star = (
             (1 - ad_R_star)
             * arho2_R
             / (1 - ad_R)
-            * np.exp(-(U_R - U_star) / c_R / (1 - ad_R))
+            * np.exp(-(Un_R - U_star) / c_R / (1 - ad_R))
         )
         arho1d_R_star = (
             (1 - ad_R_star)
             * arho1d_R
             / (1 - ad_R)
-            * np.exp(-(U_R - U_star) / c_R / (1 - ad_R))
+            * np.exp(-(Un_R - U_star) / c_R / (1 - ad_R))
         )
         rho_R_star = arho1_R_star + arho2_R_star + arho1d_R_star
 
-        ind = np.where((0 >= U_star) * (P_star <= P_R) * (ST_R >= 0))
-        ind_tmp = ind[:3]
+        intercells[ind_tmp + (fields.abarrho,)] = abar_R[ind] * rho_R_star[ind]
+        intercells[ind_tmp + (fields.rhoU,)] = rho_R_star[ind] * (
+            U_R[ind]
+            + np.einsum("...k,...l->...kl", U_star - Un_R, normals)[ind_tmp + (0,)]
+        )
+        intercells[ind + (fields.rhoV,)] = rho_R_star[ind] * (
+            V_R[ind]
+            + np.einsum("...k,...l->...kl", U_star - Un_R, normals)[ind_tmp + (1,)]
+        )
+        intercells[ind_tmp + (fields.ad,)] = ad_R_star[ind]
+        intercells[ind_tmp + (fields.arho1,)] = arho1_R_star[ind]
+        intercells[ind_tmp + (fields.arho2,)] = arho2_R_star[ind]
+        intercells[ind_tmp + (fields.arho1d,)] = arho1d_R_star[ind]
 
-        Qc[ind_tmp + (cfields.abarrho,)] = abar_R[ind] * rho_R_star[ind]
-        Qc[ind_tmp + (cfields.rhoU,)] = np.einsum(
-            "...k,...l->...kl", rho_R_star * U_star, normals
-        )[ind_tmp + (0,)]
-        Qc[ind_tmp + (cfields.rhoV,)] = np.einsum(
-            "...k,...l->...kl", rho_R_star * U_star, normals
-        )[ind_tmp + (1,)]
-        Qc[ind_tmp + (cfields.ad,)] = ad_R_star[ind]
-        Qc[ind_tmp + (cfields.arho1,)] = arho1_R_star[ind]
-        Qc[ind_tmp + (cfields.arho2,)] = arho2_R_star[ind]
-        Qc[ind_tmp + (cfields.arho1d,)] = arho1d_R_star[ind]
-
-        return Qc
+        return intercells
 
     def intercellFlux(
         self,
@@ -536,16 +591,18 @@ class ExactHyp(TsCapScheme):
         FS = np.zeros_like(Q_L).view(Q)
 
         # Prepare state
-        Qc_L = Q_L.view(Q).get_conservative()
-        Qc = Qc_L.copy()
+        intercells = Q_L.copy()
 
         # Test if discontinuity
-        ind = np.where(np.any(Q_L != Q_R, axis=-1))
-        Qc[ind] = self.solve_RP(Q_L, Q_R, Qc.copy(), normals)[ind]
-
+        ind = np.where(
+            np.any(
+                Q_L.view(Q).get_conservative() != Q_R.view(Q).get_conservative(),
+                axis=-1,
+            )
+        )
+        if ind[0].size > 0:
+            intercells[ind] = self.solve_RP(Q_L, Q_R, intercells, normals)[ind]
         # Compute flux
-        intercells = Q_L.copy()
-        intercells.view(Q).set_conservative(Qc)
         self.auxilliaryVariableUpdateNoGeo(intercells)
         F = np.einsum("...mkl,...l->...mk", self.problem.F_hyper(intercells), normals)
 

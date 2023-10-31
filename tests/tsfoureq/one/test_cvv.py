@@ -11,12 +11,13 @@ from josie.bc import Dirichlet
 from josie.boundary import Line
 from josie.math import Direction
 from josie.mesh import Mesh
-from josie.mesh.cell import SimpleCell
+from josie.mesh.cell import SimpleCell, MUSCLCell
 from josie.mesh.cellset import MeshCellSet
 from josie.tsfoureq.solver import TSFourEqSolver
 from josie.tsfoureq.exact import Exact
 from josie.tsfoureq.state import Q
 from josie.tsfoureq.eos import TwoPhaseEOS, LinearizedGas
+from josie.general.schemes.space.muscl import MUSCL
 
 
 from josie.twofluid.fields import Phases
@@ -190,7 +191,10 @@ def test_cvv(Scheme, plot, animate, request):
     top.bc = None
     bottom.bc = None
 
-    mesh = Mesh(left, bottom, right, top, SimpleCell)
+    if issubclass(Scheme, MUSCL):
+        mesh = Mesh(left, bottom, right, top, MUSCLCell)
+    else:
+        mesh = Mesh(left, bottom, right, top, SimpleCell)
     mesh.interpolate(50, 1)
     mesh.generate()
 
@@ -351,19 +355,19 @@ def test_cvv(Scheme, plot, animate, request):
     if plot:
         # Plot final step solution
 
-        alphabar = cells.values[..., Q.fields.abar]
+        alphabar = cells.values[..., 0, Q.fields.abar]
         alphabar = alphabar.reshape(alphabar.size)
 
-        rhoU = cells.values[..., Q.fields.rhoU]
+        rhoU = cells.values[..., 0, Q.fields.rhoU]
         rhoU = rhoU.reshape(rhoU.size)
 
-        arho1 = cells.values[..., Q.fields.arho1]
+        arho1 = cells.values[..., 0, Q.fields.arho1]
         arho1 = arho1.reshape(arho1.size)
 
         # arho2 = cells.values[..., Q.fields.arho2]
         # arho2 = arho2.reshape(arho2.size)
 
-        ad = cells.values[..., Q.fields.ad]
+        ad = cells.values[..., 0, Q.fields.ad]
         ad = ad.reshape(ad.size)
 
         # alpha = cells.values[..., Q.fields.abar]

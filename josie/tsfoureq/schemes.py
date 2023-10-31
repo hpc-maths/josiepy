@@ -185,7 +185,8 @@ class TSFourEqScheme(ConvectiveScheme):
             alphabar = alphabars[phase]
             arho = arhos[phase]
 
-            rho = arho / alphabar / (1 - ad)
+            rho = np.full_like(arho, np.nan)
+            rho = np.divide(arho, alphabar * (1 - ad), where=(alphabar * (1 - ad) > 0))
             p = self.problem.eos[phase].p(rho)
             c = self.problem.eos[phase].sound_velocity(rho)
 
@@ -219,12 +220,67 @@ class TSFourEqScheme(ConvectiveScheme):
         """
 
         # auxilliary variables update
-        self.auxilliaryVariableUpdate(values)
+        # self.auxilliaryVariableUpdate(values)
 
-        self.relaxation(values)
+        # self.relaxation(values)
+
+        self.prim2Qc(values)
 
         # auxilliary variables update
         self.auxilliaryVariableUpdate(values)
+        # self.relaxation(values)
+        # self.auxilliaryVariableUpdate(values)
+
+    def prim2Qc(self, values: Q):
+        rho = values[..., Q.fields.rho]
+        U = values[..., Q.fields.U]
+        V = values[..., Q.fields.V]
+        abar = values[..., Q.fields.abar]
+        arho1d = values[..., Q.fields.arho1d]
+        ad = values[..., Q.fields.ad]
+
+        # For linearized EOS only
+        c1 = self.problem.eos[Phases.PHASE1].c0
+        rho01 = self.problem.eos[Phases.PHASE1].rho0
+        c2 = self.problem.eos[Phases.PHASE2].c0
+        rho02 = self.problem.eos[Phases.PHASE2].rho0
+        # rho1, rho2 solution of
+        #       rho = abar (1-ad) rho1 + (1-abar) (1-ad) rho2 + arho1d
+        # and   p1(rho1)-p2(rho2) = 0
+        rho1 = np.full_like(rho, np.nan)
+        rho1 = np.where(
+            abar > 0,
+            (
+                c2**2 * (rho - arho1d - (1 - abar) * (1 - ad) * rho02)
+                + c1**2 * (1 - abar) * (1 - ad) * rho01
+            )
+            / ((1 - ad) * ((1 - abar) * c1**2 + abar * c2**2)),
+            np.nan,
+        )
+        rho2 = np.full_like(rho, np.nan)
+        rho2 = np.where(
+            (1 - abar) > 0,
+            (
+                c1**2 * (rho - arho1d - abar * (1 - ad) * rho01)
+                + c2**2 * abar * (1 - ad) * rho02
+            )
+            / ((1 - ad) * (abar * c2**2 + (1 - abar) * c1**2)),
+            np.nan,
+        )
+
+        values[..., Q.fields.abarrho] = abar * rho
+        values[..., Q.fields.rhoU] = rho * U
+        values[..., Q.fields.rhoV] = rho * V
+        values[..., Q.fields.arho1] = np.where(
+            abar > 0,
+            abar * (1 - ad) * rho1,
+            0,
+        )
+        values[..., Q.fields.arho2] = np.where(
+            (1 - abar) > 0,
+            (1 - abar) * (1 - ad) * rho2,
+            0,
+        )
 
     def post_step(self, values: Q):
         """During the step we update the conservative values. After the

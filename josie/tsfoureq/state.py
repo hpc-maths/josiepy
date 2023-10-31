@@ -49,6 +49,18 @@ class TSFourEqConsFields(Fields):
     ad = 6
 
 
+class TSFourEqPrimFields(Fields):
+    """Indexing fields for the consevative part of the full state"""
+
+    rho = 0
+    U = 1
+    V = 2
+
+    abar = 3
+    arho1d = 4
+    ad = 5
+
+
 class TSFourEqPhaseFields(Fields):
     """Indexing fields for a substate associated to a phase"""
 
@@ -71,6 +83,13 @@ class TSFourEqConsState(SubsetState):
     full_state_fields = TSFourEqFields
 
 
+class TSFourEqPrimState(SubsetState):
+    """State array for primitive part of the state"""
+
+    fields = TSFourEqPrimFields
+    full_state_fields = TSFourEqFields
+
+
 class Q(TwoFluidState):
     r"""We create one big state that contains the actual conservative
     variables that are used in the flux together with the "auxiliary" variables
@@ -78,7 +97,7 @@ class Q(TwoFluidState):
 
     fields = TSFourEqFields
     cons_state = TSFourEqConsState
-    prim_state = TSFourEqConsState
+    prim_state = TSFourEqPrimState
     phase_state = TSFourEqPhaseState
 
     def get_conservative(self) -> TSFourEqConsState:

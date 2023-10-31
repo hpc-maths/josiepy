@@ -42,21 +42,37 @@ class ArithmeticCap(TsCapScheme):
         """
         FS = np.zeros_like(Q_L).view(Q)
         # Compute arithmetic mean of gemetric variables norm_grad_a, n_x, n_y
-        intercells = Q_L
-        intercells[..., Q.fields.norm_grada] = np.where(
-            (Q_L[..., Q.fields.norm_grada] > 0) & (Q_R[..., Q.fields.norm_grada] > 0),
-            0.5 * (Q_L[..., Q.fields.norm_grada] + Q_R[..., Q.fields.norm_grada]),
-            0,
+        intercells = Q_L.copy()
+        n_x = normals[..., np.newaxis, 0]
+        n_y = normals[..., np.newaxis, 1]
+        intercells[..., Q.fields.grada_x] = (
+            0.5 * (Q_R[..., Q.fields.abar] - Q_L[..., Q.fields.abar]) / self.dx
+        ) * n_x + 0.5 * (
+            (Q_L[..., Q.fields.grada_x] + Q_R[..., Q.fields.grada_x]) * (1 - n_x**2)
+            - (Q_L[..., Q.fields.grada_y] + Q_R[..., Q.fields.grada_x]) * n_y * n_x
         )
-        intercells[..., Q.fields.n_x] = np.where(
-            intercells[..., Q.fields.norm_grada] > 0,
-            0.5 * (Q_L[..., Q.fields.n_x] + Q_R[..., Q.fields.n_x]),
-            0,
+        intercells[..., Q.fields.grada_y] = (
+            0.5 * (Q_R[..., Q.fields.abar] - Q_L[..., Q.fields.abar]) / self.dy
+        ) * n_y + 0.5 * (
+            (Q_L[..., Q.fields.grada_y] + Q_R[..., Q.fields.grada_y]) * (1 - n_y**2)
+            - (Q_L[..., Q.fields.grada_x] + Q_R[..., Q.fields.grada_x]) * n_x * n_y
         )
-        intercells[..., Q.fields.n_y] = np.where(
-            intercells[..., Q.fields.norm_grada] > 0,
-            0.5 * (Q_L[..., Q.fields.n_y] + Q_R[..., Q.fields.n_y]),
-            0,
+        intercells[..., Q.fields.norm_grada] = np.sqrt(
+            intercells[..., Q.fields.grada_x] ** 2
+            + intercells[..., Q.fields.grada_y] ** 2
+        )
+        intercells[..., Q.fields.n_x] = np.nan
+        intercells[..., Q.fields.n_x] = np.divide(
+            intercells[..., Q.fields.grada_x],
+            intercells[..., Q.fields.norm_grada],
+            where=intercells[..., Q.fields.norm_grada] > 0,
+        )
+
+        intercells[..., Q.fields.n_y] = np.nan
+        intercells[..., Q.fields.n_y] = np.divide(
+            intercells[..., Q.fields.grada_y],
+            intercells[..., Q.fields.norm_grada],
+            where=intercells[..., Q.fields.norm_grada] > 0,
         )
         F = np.einsum("...mkl,...l->...mk", self.problem.F_cap(intercells), normals)
 

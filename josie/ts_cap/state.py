@@ -67,6 +67,19 @@ class TsCapConsFields(Fields):
     capSigma = 7
 
 
+class TsCapPrimFields(Fields):
+    """Indexing fields for the consevative part of the full state"""
+
+    rho = 0
+    U = 1
+    V = 2
+
+    abar = 3
+    arho1d = 4
+    ad = 5
+    capSigma = 6
+
+
 class TsCapPhaseFields(Fields):
     """Indexing fields for a substate associated to a phase"""
 
@@ -89,6 +102,13 @@ class TsCapConsState(SubsetState):
     full_state_fields = TsCapFields
 
 
+class TsCapPrimState(SubsetState):
+    """State array for conservative part of the state"""
+
+    fields = TsCapPrimFields
+    full_state_fields = TsCapFields
+
+
 class Q(TwoFluidState):
     r"""We create one big state that contains the actual conservative
     variables that are used in the flux together with the "auxiliary" variables
@@ -96,7 +116,7 @@ class Q(TwoFluidState):
 
     fields = TsCapFields
     cons_state = TsCapConsState
-    prim_state = TsCapConsState
+    prim_state = TsCapPrimState
     phase_state = TsCapPhaseState
 
     def get_conservative(self) -> TsCapConsState:

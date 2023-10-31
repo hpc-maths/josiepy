@@ -6,7 +6,6 @@ import pytest
 import numpy as np
 
 from josie.general.schemes.time.rk import RK2_relax, RK2
-from josie.general.schemes.time.euler import ExplicitEuler
 from josie.general.schemes.space.muscl import MUSCL
 from josie.general.schemes.space.limiters import MinMod
 
@@ -16,82 +15,11 @@ from josie.ts_cap.arithmetic import ArithmeticCap
 from josie.ts_cap.solver import TsCapSolver, TsCapLieSolver
 
 
-def f(x):
-    return np.maximum(np.exp(2 * x**2 * (x**2 - 3) / (x**2 - 1) ** 2), 0)
-
-
-def circle(R: float, x_c: np.ndarray, y_c: np.ndarray, x_0: float, y_0: float):
-    eps = R / 2
-    r = np.sqrt((x_c - x_0) ** 2 + (y_c - y_0) ** 2)
-
-    arr = np.where(
-        (r >= R) * (r < R + eps),
-        f((r - R) / eps),
-        np.where(r < R, 1, 0),
-    )
-
-    # Enforce symmetry along
-    # X-axis
-    arr = 0.5 * (arr + arr[::-1, :])
-    # Y-axis
-    arr = 0.5 * (arr + arr[:, ::-1])
-    # XY-axis
-    arr = 0.5 * (arr + np.transpose(arr, axes=(1, 0, 2)))
-
-    return arr
-
-
-def square(R: float, x_c: np.ndarray, y_c: np.ndarray, x_0: float, y_0: float):
-    eps = R / 1.5
-
-    # Square
-    # Left/right sides
-    arr = np.where(
-        (np.abs(x_c - x_0) >= R) * (np.abs(x_c - x_0) < R + eps),
-        # Interface layer
-        f((np.abs(x_c - x_0) - R) / eps),
-        np.where(
-            (np.abs(x_c - x_0) >= R + eps),
-            # Outside
-            0,
-            # Inside
-            1,
-        ),
-    )
-    arr *= np.where(
-        (np.abs(y_c - y_0) >= R) * (np.abs(y_c - y_0) < R + eps),
-        # Interface layer
-        f((np.abs(y_c - y_0) - R) / eps),
-        np.where(
-            (np.abs(y_c - y_0) >= R + eps),
-            # Outside
-            0,
-            # Inside
-            1,
-        ),
-    )
-
-    # Enforce symmetry along
-    # X-axis
-    arr = 0.5 * (arr + arr[::-1, :])
-    # Y-axis
-    arr = 0.5 * (arr + arr[:, ::-1])
-    # XY-axis
-    arr = 0.5 * (arr + np.transpose(arr, axes=(1, 0, 2)))
-
-    return arr
-
-
-@pytest.fixture(params=[10])
-def nSmoothPass(request):
-    yield request.param
-
-
-@pytest.fixture(params=["HypCap-Splitting"])
+@pytest.fixture(params=["HypCap-SameFlux", "HypCap-Splitting"])
 def init_schemes(request):
     if request.param == "HypCap-SameFlux":
 
-        class TsCapScheme(Rusanov, ExplicitEuler, MUSCL, MinMod):
+        class TsCapScheme(Rusanov, RK2_relax, MUSCL, MinMod):
             pass
 
         def initschemes(eos, sigma, Hmax, dx, dy, norm_grada_min, nSmoothPass):
@@ -114,11 +42,6 @@ def init_schemes(request):
             ]
 
         yield initschemes
-
-
-@pytest.fixture(params=[circle, square])
-def shape_fun(request):
-    yield request.param
 
 
 @pytest.fixture

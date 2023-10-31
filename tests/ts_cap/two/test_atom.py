@@ -4,7 +4,6 @@
 
 import numpy as np
 import pytest
-import cProfile
 
 import logging
 from datetime import datetime
@@ -16,8 +15,8 @@ from josie.boundary import Line
 from josie.mesh import Mesh
 from josie.mesh.cell import MUSCLCell
 from josie.mesh.cellset import MeshCellSet
-from josie.ts_cap.solver import TsCapSolver, TsCapLieSolver
-from josie.ts_cap.state import Q, TsCapFields
+from josie.ts_cap.solver import TsCapLieSolver
+from josie.ts_cap.state import Q
 from josie.bn.eos import TwoPhaseEOS
 from josie.FourEq.eos import LinearizedGas
 
@@ -29,7 +28,7 @@ from josie.general.schemes.space.muscl import MUSCL
 from josie.general.schemes.space.limiters import MinMod
 
 from josie.general.schemes.time.rk import RK2_relax, RK2
-from josie.bc import make_periodic, Direction, Neumann
+from josie.bc import Neumann
 
 from dataclasses import dataclass
 
@@ -60,13 +59,21 @@ class AtomParam:
 
 
 atom_params = [
+    # AtomParam(
+    #     name="No cap",
+    #     We=100,
+    #     sigma=1e-2,
+    #     rho0=1e1,
+    #     final_time=3,
+    #     final_time_test=1e-2,
+    # ),
     AtomParam(
         name="Sheet stripping",
         We=100,
         sigma=1e-2,
         rho0=1e1,
         final_time=3,
-        final_time_test=1e-1,
+        final_time_test=1e-2,
     ),
     # AtomParam(
     #     name="We 5",
@@ -98,7 +105,7 @@ atom_params = [
 @pytest.mark.parametrize(
     "atom_param", atom_params, ids=[atom_param.name for atom_param in atom_params]
 )
-def test_atom(plot, request, atom_param):
+def test_atom(plot, write, request, atom_param):
     box_ratio = 2
     height = 2
     width = box_ratio * height
@@ -184,14 +191,14 @@ def test_atom(plot, request, atom_param):
 
         # Enforce symmetry along
         # X-axis
-        # ny = arr.shape[1]
-        # arr = 0.5 * (arr + arr[::-1, :])
+        ny = arr.shape[1]
+        arr = 0.5 * (arr + arr[::-1, :])
         # Y-axis
-        # arr = 0.5 * (arr + arr[:, ::-1])
+        arr = 0.5 * (arr + arr[:, ::-1])
         # XY-axis
-        # arr[:ny, :ny] = 0.5 * (
-        #     arr[:ny, :ny] + np.transpose(arr[:ny, :ny], axes=(1, 0, 2))
-        # )
+        arr[:ny, :ny] = 0.5 * (
+            arr[:ny, :ny] + np.transpose(arr[:ny, :ny], axes=(1, 0, 2))
+        )
 
         return arr
 
@@ -256,6 +263,7 @@ def test_atom(plot, request, atom_param):
 
         r = np.sqrt((x_c - x_0) ** 2 + (y_c - y_0) ** 2)
         mollify_state(cells, r, ad, U_0, U_1, V)
+        schemeHyp.auxilliaryVariableUpdate(cells._values)
 
     solver = TsCapLieSolver(mesh, [schemeHyp, schemeCap])
     solver.init(init_fun)
@@ -264,36 +272,39 @@ def test_atom(plot, request, atom_param):
     solver.schemes[0].auxilliaryVariableUpdate(solver.mesh.cells._values)
     solver.mesh.update_ghosts(0)
 
-    # final_time = atom_param.final_time
-    final_time = atom_param.final_time_test
     CFL = 0.4
+    if write:
+        final_time = atom_param.final_time
+        now = datetime.now().strftime("%Y%m%d%H%M%S")
 
-    now = datetime.now().strftime("%Y%m%d%H%M%S")
+        logger = logging.getLogger("josie")
+        logger.setLevel(logging.DEBUG)
 
-    logger = logging.getLogger("josie")
-    logger.setLevel(logging.DEBUG)
+        fh = logging.FileHandler(f"droplet-atom-{now}.log")
+        fh.setLevel(logging.DEBUG)
+        formatter = logging.Formatter(
+            "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+        )
+        fh.setFormatter(formatter)
 
-    fh = logging.FileHandler(f"droplet-atom-{now}.log")
-    fh.setLevel(logging.DEBUG)
-    formatter = logging.Formatter(
-        "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-    )
-    fh.setFormatter(formatter)
+        logger.addHandler(fh)
 
-    logger.addHandler(fh)
+        # Write strategy
+        dt_save = final_time / 10
+        strategy = TimeStrategy(dt_save=dt_save, animate=False)
+        writer = XDMFWriter(
+            f"droplet-atom-{now}.xdmf", strategy, solver, final_time=final_time, CFL=CFL
+        )
 
-    # Write strategy
-    if final_time == atom_param.final_time:
-        dt_save = final_time / 150
+        writer.solve()
     else:
-        dt_save = final_time / 30
-    strategy = TimeStrategy(dt_save=dt_save, animate=False)
-    writer = XDMFWriter(
-        f"droplet-atom-{now}.xdmf", strategy, solver, final_time=final_time, CFL=CFL
-    )
+        final_time = atom_param.final_time_test
+        t = 0.0
+        while t <= final_time:
+            dt = solver.CFL(CFL)
 
-    profiler = cProfile.Profile()
-    profiler.enable()
-    writer.solve()
-    profiler.disable()
-    profiler.dump_stats("static_split.prof")
+            assert ~np.isnan(dt)
+            solver.step(dt)
+
+            t += dt
+            print(f"Time: {t}, dt: {dt}")

@@ -139,13 +139,13 @@ class TsCapScheme(ConvectiveScheme):
                 self.mask = ~np.isnan(field[dir.value.data_index])
                 self.cnt += ~np.isnan(field[dir.value.data_index])
                 self.mean += np.where(self.mask, field[dir.value.data_index], 0)
-            self.mean /= self.cnt
+            self.mean = np.divide(self.mean, self.cnt, where=self.cnt > 0)
             for dir in self.directions:
                 self.mask = ~np.isnan(field[dir.value.data_index])
                 self.std += np.where(
                     self.mask, (field[dir.value.data_index] - self.mean) ** 2, 0
                 )
-            self.std = np.sqrt(self.std / self.cnt)
+            self.std = np.sqrt(self.std, where=self.std > 0)
 
             field[1:-1, 1:-1] = np.where(
                 (~np.isnan(field[1:-1, 1:-1])),
@@ -170,7 +170,7 @@ class TsCapScheme(ConvectiveScheme):
         ad = values[..., fields.ad]
         capSigma = values[..., fields.capSigma]
         abarrho = values[..., fields.abarrho]
-        rho = arho1 + arho2 + ad * rho1d
+        rho = arho1 + arho2 + arho1d
 
         # Compute estimator of the relaxation within [0,1]
         abar = np.minimum(np.maximum(abarrho / rho, 0), 1)
@@ -200,12 +200,12 @@ class TsCapScheme(ConvectiveScheme):
             )
             self.phi_out = np.where(
                 (abar > 0) & (arho1 > 0),
-                self.problem.eos[Phases.PHASE1].p(arho1 / abar / (1 - ad)),
+                self.problem.eos[Phases.PHASE1].p(rho1),
                 np.nan,
             )
             self.phi_out -= np.where(
                 ((1.0 - abar) > 0) & (arho2 > 0),
-                self.problem.eos[Phases.PHASE2].p(arho2 / (1 - abar) / (1 - ad)),
+                self.problem.eos[Phases.PHASE2].p(rho2),
                 np.nan,
             )
             return (1 - ad) * self.phi_out - self.problem.sigma * Hlim
@@ -442,7 +442,8 @@ class TsCapScheme(ConvectiveScheme):
 
             c_sq += np.where(arho > 0, arho * c**2, 0)
 
-        cFd = np.sqrt(c_sq / values[..., fields.rho]) / (1 - ad)
+        rho = values[..., fields.rho]
+        cFd = np.sqrt(c_sq / rho) / (1 - ad)
 
         MaX = U / cFd
         MaY = V / cFd
@@ -536,7 +537,8 @@ class TsCapScheme(ConvectiveScheme):
 
             c_sq += np.where(arho > 0, arho * c**2, 0)
 
-        cFd = np.sqrt(c_sq / values[..., fields.rho]) / (1 - ad)
+        rho = values[..., fields.rho]
+        cFd = np.sqrt(c_sq / rho) / (1 - ad)
 
         MaX = U / cFd
         MaY = V / cFd
@@ -647,6 +649,81 @@ class TsCapScheme(ConvectiveScheme):
             np.abs(U + cFd * (1 + r / 8)),
         )
 
+    def prim2Qc(self, values: Q):
+        rho = values[..., Q.fields.rho]
+        U = values[..., Q.fields.U]
+        V = values[..., Q.fields.V]
+        abar = values[..., Q.fields.abar]
+        arho1d = values[..., Q.fields.arho1d]
+        ad = values[..., Q.fields.ad]
+        H = values[..., Q.fields.H]
+        sigma = self.problem.sigma
+
+        if np.any(rho <= 0):
+            exit()
+
+        # For linearized EOS only
+        c1 = self.problem.eos[Phases.PHASE1].c0
+        rho01 = self.problem.eos[Phases.PHASE1].rho0
+        c2 = self.problem.eos[Phases.PHASE2].c0
+        rho02 = self.problem.eos[Phases.PHASE2].rho0
+        # rho1, rho2 solution of
+        #       rho = abar (1-ad) rho1 + (1-abar) (1-ad) rho2 + arho1d
+        # and   p1(rho1)-p2(rho2) = 0
+
+        rho1 = np.full_like(rho, np.nan)
+        rho1 = np.where(
+            (abar > 0),
+            np.where(
+                ~np.isnan(H),
+                (
+                    c2**2 * (rho - arho1d - (1 - abar) * (1 - ad) * rho02)
+                    + (1 - abar) * (1 - ad) * c1**2 * rho01
+                    + (1 - abar) * (1 - ad) * sigma * H
+                )
+                / ((1 - ad) * ((1 - abar) * c1**2 + abar * c2**2)),
+                (
+                    c2**2 * (rho - arho1d - (1 - abar) * (1 - ad) * rho02)
+                    + (1 - abar) * (1 - ad) * c1**2 * rho01
+                )
+                / ((1 - ad) * ((1 - abar) * c1**2 + abar * c2**2)),
+            ),
+            np.nan,
+        )
+        rho2 = np.full_like(rho, np.nan)
+        rho2 = np.where(
+            (1 - abar) > 0,
+            np.where(
+                ~np.isnan(H),
+                (
+                    c1**2 * (rho - arho1d - abar * (1 - ad) * rho01)
+                    + abar * (1 - ad) * c2**2 * rho02
+                    + abar * (1 - ad) * sigma * H
+                )
+                / ((1 - ad) * (abar * c2**2 + (1 - abar) * c1**2)),
+                (
+                    c1**2 * (rho - arho1d - abar * (1 - ad) * rho01)
+                    + abar * (1 - ad) * c2**2 * rho02
+                )
+                / ((1 - ad) * (abar * c2**2 + (1 - abar) * c1**2)),
+            ),
+            np.nan,
+        )
+
+        values[..., Q.fields.abarrho] = abar * rho
+        values[..., Q.fields.rhoU] = rho * U
+        values[..., Q.fields.rhoV] = rho * V
+        values[..., Q.fields.arho1] = np.where(
+            abar > 0,
+            abar * (1 - ad) * rho1,
+            0,
+        )
+        values[..., Q.fields.arho2] = np.where(
+            (1 - abar) > 0,
+            (1 - abar) * (1 - ad) * rho2,
+            0,
+        )
+
 
 class Rusanov(TsCapScheme):
     def intercellFlux(
@@ -710,8 +787,8 @@ class Rusanov(TsCapScheme):
         return FS
 
     def post_extrapolation(self, values: Q):
-        # self.prim2Q(values)
-        self.relaxation(values)
+        self.prim2Qc(values)
+        # self.relaxation(values)
 
         # auxilliary variables update
         self.auxilliaryVariableUpdateNoGeo(values)

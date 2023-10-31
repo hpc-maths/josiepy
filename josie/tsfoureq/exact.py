@@ -162,37 +162,39 @@ class Exact(TSFourEqScheme):
 
     @classmethod
     def solveAlpha1dFan(cls, RHS: np.ndarray, ad: np.ndarray):
-        ad_fan_old = np.copy(ad)
-        ad_fan_new = np.copy(ad)
+        ad_fan = ad.copy()
+        dad_fan = np.zeros_like(ad_fan)
         tol = 1e-8
         firstLoop = True
 
-        ind = np.where(ad > 0)
+        ind = np.where((ad > 0))
 
         # Newton-Raphson loop
-        while (
-            firstLoop
-            or (
-                np.abs(ad_fan_new[ind] - ad_fan_old[ind])
-                / (0.5 * (ad_fan_new[ind] + ad_fan_old[ind]))
-                > tol
-            ).any()
-        ):
+        while len(ind[0]) or firstLoop:
             if firstLoop:
                 firstLoop = False
 
-            ad_fan_old[ind] = ad_fan_new[ind]
-            ad_fan_new[ind] = ad_fan_old[ind] - (
+            dad_fan.fill(0)
+            dad_fan[ind] = -(
                 cls.F_adFan(
-                    ad_fan_old[ind],
+                    ad_fan[ind],
                     ad[ind],
                 )
                 - RHS[ind]
             ) / cls.dF_adFan(
-                ad_fan_old[ind],
+                ad_fan[ind],
+            )
+            dad_fan[ind] = np.where(
+                dad_fan[ind] < 0,
+                np.maximum(dad_fan[ind], -0.9 * ad_fan[ind]),
+                np.minimum(dad_fan[ind], 0.9 * (1 - ad_fan[ind])),
             )
 
-        return ad_fan_new
+            ad_fan[ind] += dad_fan[ind]
+
+            ind = np.where(np.abs(np.divide(dad_fan, ad_fan, where=ad_fan > 0)) > tol)
+
+        return ad_fan
 
     @classmethod
     def F_adFan(cls, ad_fan: np.ndarray, ad: np.ndarray):
@@ -241,7 +243,10 @@ class Exact(TSFourEqScheme):
         # Could change the init pressure
         P0tilde = np.maximum(P0_L, P0_R)
         P_star = self.solvePressure(
-            np.maximum(0.5 * (P_L + P_R), 1.1 * P0tilde), Q_L, Q_R, normals
+            np.maximum(0.5 * (P_L + P_R), P0tilde + 0.1 * np.abs(P0tilde)),
+            Q_L,
+            Q_R,
+            normals,
         )
 
         # Compute Ustar
@@ -265,6 +270,7 @@ class Exact(TSFourEqScheme):
         #       If right of left shock -> Qc_L_star
 
         # If left shock
+        ind = np.where(P_star > P_L)
         r = np.ones_like(ad_L) * np.nan
         r[ind] = 1 + (1 - ad_L[ind]) / (
             ad_L[ind]
@@ -277,8 +283,10 @@ class Exact(TSFourEqScheme):
         rho_L_star = arho1_L_star + arho2_L_star + arho1d_L_star
 
         S_L = np.empty_like(U_L) * np.nan
-        ind = np.where(P_star > P_L)
+        ind = np.where((P_star > P_L) & (r > 1))
         S_L[ind] = U_star[ind] + (U_L[ind] - U_star[ind]) / (1 - r[ind])
+        ind = np.where((P_star > P_L) & (r == 1))
+        S_L[ind] = U_star[ind] + (U_L[ind] - U_star[ind]) * (-np.inf)
         # If left of left shock -> already done
         # If right of left shock -> Qc_L_star
 
@@ -302,11 +310,15 @@ class Exact(TSFourEqScheme):
         #       If left of the fan -> already done
 
         #       If in the fan -> Qc_L_fan
+
         ad_L_star = 1 - 1 / (
             1 + ad_L / (1 - ad_L) * np.exp((U_L - U_star) / c_L / (1 - ad_L))
         )
         SH_L = U_L - c_L
         ST_L = U_star - c_L * (1 - ad_L) / (1 - ad_L_star)
+
+        ind = np.where((0 < U_star) * (P_star <= P_L) * (SH_L < 0) * (ST_L > 0))
+        ind_tmp = ind[:3]
 
         ad_L_fan = np.ones_like(abar_L) * np.nan
         ad_L_fan[ind] = self.solveAlpha1dFan(
@@ -331,9 +343,6 @@ class Exact(TSFourEqScheme):
             * np.exp((U_L - (c_L * (1 - ad_L) / (1 - ad_L_fan))) / c_L / (1 - ad_L))
         )
         rho_L_fan = arho1_L_fan + arho2_L_fan + arho1d_L_fan
-
-        ind = np.where((0 < U_star) * (P_star <= P_L) * (SH_L < 0) * (ST_L > 0))
-        ind_tmp = ind[:3]
 
         # TODO: to be changed for 2D
         Qc[ind_tmp + (cfields.abarrho,)] = abar_L[ind] * rho_L_fan[ind]
@@ -386,7 +395,12 @@ class Exact(TSFourEqScheme):
 
         # If 0 > Ustar
         #   If right shock
-        r = 1 + (1 - ad_R) / (ad_R + (rho_R * c_R**2 * (1 - ad_R)) / (P_star - P_R))
+        ind = np.where(P_star > P_R)
+        r = np.full_like(ad_R, np.nan)
+        r[ind] = 1 + (1 - ad_R[ind]) / (
+            ad_R[ind]
+            + (rho_R[ind] * c_R[ind] ** 2 * (1 - ad_R[ind])) / (P_star[ind] - P_R[ind])
+        )
         arho1_R_star = arho1_R * r
         arho2_R_star = arho2_R * r
         arho1d_R_star = arho1d_R * r
@@ -394,8 +408,10 @@ class Exact(TSFourEqScheme):
         rho_R_star = arho1_R_star + arho2_R_star + arho1d_R_star
 
         S_star_R = np.empty_like(U_R) * np.nan
-        ind = np.where(P_star > P_R)
+        ind = np.where((P_star > P_R) & (r > 1))
         S_star_R[ind] = U_star[ind] + (U_R[ind] - U_star[ind]) / (1 - r[ind])
+        ind = np.where((P_star > P_R) & (r == 1))
+        S_star_R[ind] = U_star[ind] + (U_R[ind] - U_star[ind]) / (-np.inf)
 
         #   If right of right shock -> Qc_R
         ind = np.where((0 >= U_star) * (P_star > P_R) * (S_star_R < 0))
@@ -431,6 +447,8 @@ class Exact(TSFourEqScheme):
         Qc[ind] = Qc_R[ind]
 
         #       If in the fan -> Qc_R_fan
+        ind = np.where((0 >= U_star) * (P_star <= P_R) * (SH_R >= 0) * (ST_R < 0))
+        ind_tmp = ind[:3]
         ad_R_fan = np.ones_like(abar_R) * np.nan
         ad_R_fan[ind] = self.solveAlpha1dFan(
             -U_R[ind] / c_R[ind] / (1 - ad_R[ind]), ad_R[ind]
@@ -454,9 +472,6 @@ class Exact(TSFourEqScheme):
             * np.exp(-(U_R + (c_R * (1 - ad_R) / (1 - ad_R_fan))) / c_R / (1 - ad_R))
         )
         rho_R_fan = arho1_R_fan + arho2_R_fan + arho1d_R_fan
-
-        ind = np.where((0 >= U_star) * (P_star <= P_R) * (SH_R >= 0) * (ST_R < 0))
-        ind_tmp = ind[:3]
 
         # TODO: to be changed for 2D
         Qc[ind_tmp + (cfields.abarrho,)] = abar_R[ind] * rho_R_fan[ind]
