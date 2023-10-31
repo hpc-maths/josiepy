@@ -2,7 +2,7 @@
 #
 # SPDX-License-Identifier: BSD-3-Clause
 
-""" :class:`BoundaryCondition` classes that are specific two-phase systeme 
+""" :class:`BoundaryCondition` classes that are specific two-phase systeme
 with capillarity"""
 from __future__ import annotations
 
