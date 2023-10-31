@@ -191,14 +191,14 @@ def test_atom(plot, write, request, atom_param):
 
         # Enforce symmetry along
         # X-axis
-        ny = arr.shape[1]
-        arr = 0.5 * (arr + arr[::-1, :])
+        # ny = arr.shape[1]
+        # arr = 0.5 * (arr + arr[::-1, :])
         # Y-axis
-        arr = 0.5 * (arr + arr[:, ::-1])
+        # arr = 0.5 * (arr + arr[:, ::-1])
         # XY-axis
-        arr[:ny, :ny] = 0.5 * (
-            arr[:ny, :ny] + np.transpose(arr[:ny, :ny], axes=(1, 0, 2))
-        )
+        # arr[:ny, :ny] = 0.5 * (
+        #     arr[:ny, :ny] + np.transpose(arr[:ny, :ny], axes=(1, 0, 2))
+        # )
 
         return arr
 
@@ -290,7 +290,7 @@ def test_atom(plot, write, request, atom_param):
         logger.addHandler(fh)
 
         # Write strategy
-        dt_save = final_time / 10
+        dt_save = final_time / 100
         strategy = TimeStrategy(dt_save=dt_save, animate=False)
         writer = XDMFWriter(
             f"droplet-atom-{now}.xdmf", strategy, solver, final_time=final_time, CFL=CFL
