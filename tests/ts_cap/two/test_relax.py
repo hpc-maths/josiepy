@@ -24,7 +24,7 @@ from josie.twofluid.fields import Phases
 
 
 def test_relax(plot, write, request, init_schemes, shape_fun, init_solver, nSmoothPass):
-    L = 1
+    L = 0.75
     left = Line([0, 0], [0, L])
     bottom = Line([0, 0], [L, 0])
     right = Line([L, 0], [L, L])
@@ -36,7 +36,7 @@ def test_relax(plot, write, request, init_schemes, shape_fun, init_solver, nSmoo
     top.bc = Neumann(np.zeros(len(Q.fields)).view(Q))
 
     mesh = Mesh(left, bottom, right, top, MUSCLCell)
-    N = 50
+    N = 80
     mesh.interpolate(N, N)
     mesh.generate()
 
@@ -49,14 +49,14 @@ def test_relax(plot, write, request, init_schemes, shape_fun, init_solver, nSmoo
     dx = mesh.cells._centroids[1, 1, 0, 0] - mesh.cells._centroids[0, 1, 0, 0]
     dy = mesh.cells._centroids[1, 1, 0, 1] - mesh.cells._centroids[1, 0, 0, 1]
     norm_grada_min = 0.01 * 1 / dx
-    norm_grada_min = 0
+    # norm_grada_min = 0
 
     # eos_ref = TwoPhaseEOS(
     #     phase1=StiffenedGas(gamma=2.1, p0=1e6),
     #     phase2=PerfectGas(gamma=1.4),
     # )
-    p_init = 1e2
-    rho_liq = 1e1
+    p_init = 1e5
+    rho_liq = 1e3
     rho_gas = 1e0
     eos = TwoPhaseEOS(
         phase1=LinearizedGas(
@@ -168,3 +168,15 @@ def test_relax(plot, write, request, init_schemes, shape_fun, init_solver, nSmoo
 
             t += dt
             print(f"Time: {t}, dt: {dt}")
+
+    # Assert symmetry
+    data = solver.mesh.cells.values[..., 0, Q.fields.abarrho]
+    xSymNorm = np.linalg.norm(data - data[::-1, ...]) / np.linalg.norm(data)
+    ySymNorm = np.linalg.norm(data - data[:, ::-1, ...]) / np.linalg.norm(data)
+    xySymNorm = np.linalg.norm(data - np.transpose(data, (0, 1))) / np.linalg.norm(data)
+    print("X symmetry : " + str(xSymNorm))
+    print("Y symmetry : " + str(ySymNorm))
+    print("XY symmetry : " + str(xySymNorm))
+    assert xSymNorm < 1e-6
+    assert ySymNorm < 1e-6
+    assert xySymNorm < 1e-6

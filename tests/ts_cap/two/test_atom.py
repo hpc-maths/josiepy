@@ -20,32 +20,14 @@ from josie.ts_cap.state import Q
 from josie.bn.eos import TwoPhaseEOS
 from josie.FourEq.eos import LinearizedGas
 
-from josie.ts_cap.schemes import Rusanov
-from josie.ts_cap.exact import ExactHyp
-from josie.ts_cap.arithmetic import ArithmeticCap
 from josie.ts_cap.bc import Inlet
-from josie.general.schemes.space.muscl import MUSCL
-from josie.general.schemes.space.limiters import MinMod
-
-from josie.general.schemes.time.rk import RK2_relax, RK2
 from josie.bc import Neumann
 
 from dataclasses import dataclass
+from .conftest import circle
 
 
 from josie.twofluid.fields import Phases
-
-
-class TsCapScheme(Rusanov, RK2_relax, MUSCL, MinMod):
-    pass
-
-
-class TsCapHypScheme(ExactHyp, RK2_relax, MUSCL, MinMod):
-    pass
-
-
-class TsCapCapScheme(ArithmeticCap, RK2, MUSCL, MinMod):
-    pass
 
 
 @dataclass
@@ -71,7 +53,7 @@ atom_params = [
         name="Sheet stripping",
         We=100,
         sigma=1e-2,
-        rho0=1e1,
+        rho0=1e3,
         final_time=3,
         final_time_test=1e-2,
     ),
@@ -105,7 +87,7 @@ atom_params = [
 @pytest.mark.parametrize(
     "atom_param", atom_params, ids=[atom_param.name for atom_param in atom_params]
 )
-def test_atom(plot, write, request, atom_param):
+def test_atom(write, init_schemes, init_solver, atom_param):
     box_ratio = 2
     height = 2
     width = box_ratio * height
@@ -124,7 +106,7 @@ def test_atom(plot, write, request, atom_param):
     We = atom_param.We  # We = rho * (U_l-U_g) * L / sigma
     sigma = atom_param.sigma
     R = 0.2
-    nSmoothPass = 5
+    nSmoothPass = 10
 
     U_inlet = We / eos[Phases.PHASE1].rho0 / R * sigma
 
@@ -144,7 +126,7 @@ def test_atom(plot, write, request, atom_param):
     top.bc = Neumann(np.zeros(len(Q.fields)).view(Q))
 
     mesh = Mesh(left, bottom, right, top, MUSCLCell)
-    N = 71
+    N = 80
     mesh.interpolate(int(box_ratio * N), N)
     mesh.generate()
 
@@ -154,59 +136,13 @@ def test_atom(plot, write, request, atom_param):
     norm_grada_min = 0.01 * 1 / dx
     norm_grada_min = 0
 
-    schemeHyp = TsCapHypScheme(
-        eos,
-        sigma,
-        Hmax,
-        dx,
-        dy,
-        norm_grada_min,
-        nSmoothPass,
-    )
+    schemes = init_schemes(eos, sigma, Hmax, dx, dy, norm_grada_min, nSmoothPass)
 
-    schemeCap = TsCapCapScheme(
-        eos,
-        sigma,
-        Hmax,
-        dx,
-        dy,
-        norm_grada_min,
-        nSmoothPass,
-    )
-
-    schemeHyp.tmp_arr = np.zeros((int(box_ratio * N), N, 4))
-    schemeCap.tmp_arr = np.zeros((int(box_ratio * N), N, 4))
-
-    def rbf(R: float, r: np.ndarray):
-        eps = R / 2
-
-        def f(x):
-            return np.maximum(np.exp(2 * x**2 * (x**2 - 3) / (x**2 - 1) ** 2), 0)
-
-        arr = np.where(
-            (r > R) * (r < R + eps),
-            f((r - R) / eps),
-            np.where(r < R, 1, 0),
-        )
-
-        # Enforce symmetry along
-        # X-axis
-        # ny = arr.shape[1]
-        # arr = 0.5 * (arr + arr[::-1, :])
-        # Y-axis
-        # arr = 0.5 * (arr + arr[:, ::-1])
-        # XY-axis
-        # arr[:ny, :ny] = 0.5 * (
-        #     arr[:ny, :ny] + np.transpose(arr[:ny, :ny], axes=(1, 0, 2))
-        # )
-
-        return arr
-
-    def mollify_state(cells, r, ad, U_0, U_1, V):
+    def mollify_state(cells, r, ad, U_0, U_1, V, x_c, y_c, x_0, y_0):
         fields = Q.fields
 
         # Mollifier
-        w = rbf(R, r)
+        w = circle(R, x_c, y_c, x_0, y_0, False)
 
         # No small-scale
         ad = 0
@@ -215,7 +151,7 @@ def test_atom(plot, write, request, atom_param):
         # Update geometry
         abar = w
         cells._values[..., fields.abar] = abar
-        solver.schemes[0].updateGeometry(cells._values)
+        schemes[0].updateGeometry(cells._values)
 
         # Adjust pressure in the droplet
         H = cells._values[..., fields.H]
@@ -262,15 +198,10 @@ def test_atom(plot, write, request, atom_param):
         V = 0
 
         r = np.sqrt((x_c - x_0) ** 2 + (y_c - y_0) ** 2)
-        mollify_state(cells, r, ad, U_0, U_1, V)
-        schemeHyp.auxilliaryVariableUpdate(cells._values)
+        mollify_state(cells, r, ad, U_0, U_1, V, x_c, y_c, x_0, y_0)
+        schemes[0].auxilliaryVariableUpdate(cells._values)
 
-    solver = TsCapLieSolver(mesh, [schemeHyp, schemeCap])
-    solver.init(init_fun)
-
-    solver.mesh.update_ghosts(0)
-    solver.schemes[0].auxilliaryVariableUpdate(solver.mesh.cells._values)
-    solver.mesh.update_ghosts(0)
+    solver = init_solver(mesh, schemes, init_fun)
 
     CFL = 0.4
     if write:
@@ -280,7 +211,9 @@ def test_atom(plot, write, request, atom_param):
         logger = logging.getLogger("josie")
         logger.setLevel(logging.DEBUG)
 
-        fh = logging.FileHandler(f"droplet-atom-{now}.log")
+        fh = logging.FileHandler(
+            atom_param.name + "-" + str(atom_param.We) + "-" + f"-{now}.log"
+        )
         fh.setLevel(logging.DEBUG)
         formatter = logging.Formatter(
             "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
@@ -293,7 +226,11 @@ def test_atom(plot, write, request, atom_param):
         dt_save = final_time / 100
         strategy = TimeStrategy(dt_save=dt_save, animate=False)
         writer = XDMFWriter(
-            f"droplet-atom-{now}.xdmf", strategy, solver, final_time=final_time, CFL=CFL
+            atom_param.name + "-" + str(atom_param.We) + "-" + f"-{now}.xdmf",
+            strategy,
+            solver,
+            final_time=final_time,
+            CFL=CFL,
         )
 
         writer.solve()

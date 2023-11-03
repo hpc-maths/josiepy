@@ -37,6 +37,8 @@ class TsCapScheme(ConvectiveScheme):
     ):
         super().__init__(TsCapProblem(eos, sigma, Hmax, norm_grada_min))
 
+        self.geoUpdate = True
+
         self.dx = dx
         self.dy = dy
         self.nSmoothPass = nSmoothPass
@@ -176,7 +178,8 @@ class TsCapScheme(ConvectiveScheme):
         abar = np.minimum(np.maximum(abarrho / rho, 0), 1)
 
         values[..., fields.abar] = abar
-        self.updateGeometry(values)
+        if self.geoUpdate:
+            self.updateGeometry(values)
         H = values[..., fields.H]
         Hlim = np.minimum(H, self.problem.Hmax)
         DH = H - Hlim
@@ -338,30 +341,56 @@ class TsCapScheme(ConvectiveScheme):
         dy = self.dy
 
         # Geometric periodic update
+        periodic = False
         abar = values[..., fields.abar]
-        # Left
-        abar[0, ...] = abar[-2, ...]
-        # Right
-        abar[-1, ...] = abar[1, ...]
-        # Top
-        abar[:, 0, ...] = abar[:, -2, ...]
-        # Bottom
-        abar[:, -1, ...] = abar[:, 1, ...]
+        if periodic:
+            # Left
+            abar[0, ...] = abar[-2, ...]
+            # Right
+            abar[-1, ...] = abar[1, ...]
+            # Top
+            abar[:, 0, ...] = abar[:, -2, ...]
+            # Bottom
+            abar[:, -1, ...] = abar[:, 1, ...]
+        else:
+            # Left
+            abar[0, ...] = abar[1, ...]
+            # Right
+            abar[-1, ...] = abar[-2, ...]
+            # Top
+            abar[:, 0, ...] = abar[:, 1, ...]
+            # Bottom
+            abar[:, -1, ...] = abar[:, -2, ...]
         grada_x, grada_y = np.gradient(abar, dx, dy, axis=(0, 1))
 
-        # Geometric periodic update
-        # Left
-        grada_x[0, ...] = grada_x[-2, ...]
-        grada_y[0, ...] = grada_y[-2, ...]
-        # Right
-        grada_x[-1, ...] = grada_x[1, ...]
-        grada_y[-1, ...] = grada_y[1, ...]
-        # Top
-        grada_x[:, 0, ...] = grada_x[:, -2, ...]
-        grada_y[:, 0, ...] = grada_y[:, -2, ...]
-        # Bottom
-        grada_x[:, -1, ...] = grada_x[:, 1, ...]
-        grada_y[:, -1, ...] = grada_y[:, 1, ...]
+        if periodic:
+            # Geometric periodic update
+            # Left
+            grada_x[0, ...] = grada_x[-2, ...]
+            grada_y[0, ...] = grada_y[-2, ...]
+            # Right
+            grada_x[-1, ...] = grada_x[1, ...]
+            grada_y[-1, ...] = grada_y[1, ...]
+            # Top
+            grada_x[:, 0, ...] = grada_x[:, -2, ...]
+            grada_y[:, 0, ...] = grada_y[:, -2, ...]
+            # Bottom
+            grada_x[:, -1, ...] = grada_x[:, 1, ...]
+            grada_y[:, -1, ...] = grada_y[:, 1, ...]
+        else:
+            # Left
+            grada_x[0, ...] = grada_x[1, ...]
+            grada_y[0, ...] = grada_y[1, ...]
+            # Right
+            grada_x[-1, ...] = grada_x[-2, ...]
+            grada_y[-1, ...] = grada_y[-2, ...]
+            # Top
+            grada_x[:, 0, ...] = grada_x[:, 1, ...]
+            grada_y[:, 0, ...] = grada_y[:, 1, ...]
+            # Bottom
+            grada_x[:, -1, ...] = grada_x[:, -2, ...]
+            grada_y[:, -1, ...] = grada_y[:, -2, ...]
+
         norm_grada = np.sqrt(grada_x**2 + grada_y**2)
         n_x = np.full_like(grada_x, np.nan)
         n_y = np.full_like(grada_y, np.nan)
@@ -371,9 +400,6 @@ class TsCapScheme(ConvectiveScheme):
         np.divide(
             grada_y, norm_grada, where=norm_grada > self.problem.norm_grada_min, out=n_y
         )
-        ind = np.where((norm_grada > 0) & (np.isnan(n_x)))
-        if ind[0].size > 0:
-            exit()
 
         H = -(self.nan_gradient(n_x, dx, dy)[0] + self.nan_gradient(n_y, dx, dy)[1])
 
@@ -787,8 +813,11 @@ class Rusanov(TsCapScheme):
         return FS
 
     def post_extrapolation(self, values: Q):
-        self.prim2Qc(values)
-        # self.relaxation(values)
+        # self.prim2Qc(values)
+
+        self.geoUpdate = False
+        self.relaxation(values)
+        self.geoUpdate = True
 
         # auxilliary variables update
         self.auxilliaryVariableUpdateNoGeo(values)

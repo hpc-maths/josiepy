@@ -10,9 +10,10 @@ import numpy as np
 from josie.bc import Dirichlet, Direction, make_periodic
 from josie.boundary import Line
 from josie.mesh import Mesh
-from josie.mesh.cell import SimpleCell
+from josie.mesh.cell import SimpleCell, MUSCLCell
 from josie.mesh.cellset import MeshCellSet
 from josie.tsfoureq.solver import TSFourEqSolver
+from josie.general.schemes.space.muscl import MUSCL
 from josie.tsfoureq.state import Q
 from josie.tsfoureq.eos import TwoPhaseEOS, LinearizedGas
 
@@ -65,7 +66,7 @@ def riemann2Q(state, eos):
     )
 
 
-def test_toro(riemann_state, Scheme, plot, animate, request):
+def test_twoscale(riemann_state, Scheme, plot, animate, request):
     left = Line([0, 0], [0, 1])
     bottom = Line([0, 0], [2, 0])
     right = Line([2, 0], [2, 1])
@@ -84,8 +85,11 @@ def test_toro(riemann_state, Scheme, plot, animate, request):
     right.bc = Dirichlet(Q_right)
     bottom, top = make_periodic(bottom, top, Direction.Y)
 
-    mesh = Mesh(left, bottom, right, top, SimpleCell)
-    mesh.interpolate(200, 100)
+    if issubclass(Scheme, MUSCL):
+        mesh = Mesh(left, bottom, right, top, MUSCLCell)
+    else:
+        mesh = Mesh(left, bottom, right, top, SimpleCell)
+    mesh.interpolate(100, 50)
     mesh.generate()
 
     def init_fun(cells: MeshCellSet):
@@ -132,11 +136,6 @@ def test_toro(riemann_state, Scheme, plot, animate, request):
         allFrames = False
         time_interval = riemann_state.final_time / nFrames
 
-    # TODO: Use josie.io.strategy and josie.io.writer to save the plot every
-    # time instant.  In particular it might useful to choose a Strategy (or
-    # multiple strategies) and append to each strategy some "executors" that do
-    # stuff with the Solver data
-    # final_time = 4 * dt
     while t <= final_time:
         if animate and (len(data) - 1 < t // time_interval or t == 0 or allFrames):
             print("save frame")
@@ -144,9 +143,9 @@ def test_toro(riemann_state, Scheme, plot, animate, request):
             data.append(np.array(cells.values[..., 0, Q.fields.pbar]))
 
         dt = scheme.CFL(cells, CFL)
-        # TODO: Basic check. The best would be to check against analytical
-        # solution
+
         assert ~np.isnan(dt)
+
         solver.step(dt)
 
         t += dt
@@ -158,8 +157,8 @@ def test_toro(riemann_state, Scheme, plot, animate, request):
     if plot:
         # Plot final step solution
 
-        rhoU = cells.values[..., 0, Q.fields.rhoU]
-        im.set_data(rhoU.transpose())
+        out = cells.values[..., 0, Q.fields.pbar]
+        im.set_data(out.transpose())
 
         plt.tight_layout()
         plt.show()

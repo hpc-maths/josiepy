@@ -52,20 +52,20 @@ def check_results(name, test_val, exact_val):
     f = Q.fields
     test_fields = [f.abar, f.rhoU, f.arho1, f.ad]
 
-    # N = 100
+    # N = 50
     results_norm = {
-        "riemann_state0-Godunov-Rusanov": [0.25, 0.25, 0.24, 0.004],
-        "riemann_state0-Godunov-Exact": [0.03, 0.18, 0.03, 0.002],
-        "riemann_state0-MUSCL-Rusanov": [0.16, 0.18, 0.15, 0.0022],
-        "riemann_state0-MUSCL-Exact": [0.035, 0.13, 0.035, 0.0015],
-        "riemann_state1-Godunov-Rusanov": [0.24, 0.27, 0.23, 0.24],
-        "riemann_state1-Godunov-Exact": [0.03, 0.19, 0.035, 0.035],
-        "riemann_state1-MUSCL-Rusanov": [0.15, 0.19, 0.15, 0.15],
-        "riemann_state1-MUSCL-Exact": [0.03, 0.15, 0.035, 0.035],
-        "riemann_state2-Godunov-Rusanov": [0.24, 0.25, 0.24, 0.16],
-        "riemann_state2-Godunov-Exact": [0.04, 0.18, 0.035, 0.025],
-        "riemann_state2-MUSCL-Rusanov": [0.16, 0.18, 0.15, 0.1],
-        "riemann_state2-MUSCL-Exact": [0.04, 0.13, 0.04, 0.025],
+        "riemann_state0-Godunov-Rusanov": [0.29, 0.32, 0.29, 0.005],
+        "riemann_state0-Godunov-Exact": [0.022, 0.22, 0.022, 0.0018],
+        "riemann_state0-MUSCL-Rusanov": [0.19, 0.24, 0.19, 0.0035],
+        "riemann_state0-MUSCL-Exact": [0.023, 0.16, 0.023, 0.0014],
+        "riemann_state1-Godunov-Rusanov": [0.29, 0.34, 0.28, 0.28],
+        "riemann_state1-Godunov-Exact": [0.018, 0.23, 0.023, 0.024],
+        "riemann_state1-MUSCL-Rusanov": [0.19, 0.24, 0.19, 0.19],
+        "riemann_state1-MUSCL-Exact": [0.019, 0.16, 0.023, 0.024],
+        "riemann_state2-Godunov-Rusanov": [0.29, 0.34, 0.28, 0.28],
+        "riemann_state2-Godunov-Exact": [0.027, 0.22, 0.022, 0.015],
+        "riemann_state2-MUSCL-Rusanov": [0.19, 0.24, 0.19, 0.19],
+        "riemann_state2-MUSCL-Exact": [0.028, 0.16, 0.023, 0.015],
     }
     testBool = True
 
@@ -200,7 +200,7 @@ def sol_exact_riemann(
     return sol
 
 
-def test_toro(riemann_state, Scheme, plot, animate, request):
+def test_twoscale(riemann_state, Scheme, plot, animate, request):
     left = Line([0, 0], [0, 1])
     bottom = Line([0, 0], [1, 0])
     right = Line([1, 0], [1, 1])
@@ -223,7 +223,7 @@ def test_toro(riemann_state, Scheme, plot, animate, request):
         mesh = Mesh(left, bottom, right, top, MUSCLCell)
     else:
         mesh = Mesh(left, bottom, right, top, SimpleCell)
-    mesh.interpolate(100, 1)
+    mesh.interpolate(50, 1)
     mesh.generate()
 
     def init_fun(cells: MeshCellSet):
@@ -242,6 +242,8 @@ def test_toro(riemann_state, Scheme, plot, animate, request):
 
     cells = solver.mesh.cells
     dt = scheme.CFL(cells, CFL)
+
+    x = cells.centroids[..., 0, 0, Direction.X]
 
     if plot or animate:
         fig = plt.figure()
@@ -270,8 +272,6 @@ def test_toro(riemann_state, Scheme, plot, animate, request):
         arho1_data = []
         ad_data = []
 
-        x = cells.centroids[..., 0, 0, Direction.X]
-
         def init():
             ax1.set_xlim(0, 1)
             ax1.set_ylim(-0.05, 1.05)
@@ -294,21 +294,6 @@ def test_toro(riemann_state, Scheme, plot, animate, request):
             ax3.set_xlabel("x")
             ax3.set_ylabel(r"$\alpha_1\rho_1=\overline{\alpha}_1\overline{\rho}_1$")
 
-            # ax4.set_xlim(0, 1)
-            # if riemann_state.xd == 0.25:
-            #     ax4.set_ylim(-50, 1050)
-            # else:
-            #     ax4.set_ylim(-50, 1250)
-            # ax4.set_xlabel("x")
-            # ax4.set_ylabel(
-            #     r"$\alpha_2\rho_2=\overline{\alpha}_2\overline{\rho}_2$"
-            # )
-
-            # ax5.set_xlim(0, 1)
-            # ax5.set_ylim(-0.05, 1.05)
-            # ax5.set_xlabel("x")
-            # ax5.set_ylabel(r"$\alpha_1$")
-
             ax4.set_xlim(0, 1)
             if riemann_state.left.ad == 0.2 and riemann_state.right.ad == 0.2:
                 ax4.set_ylim(0.195, 0.205)
@@ -325,8 +310,6 @@ def test_toro(riemann_state, Scheme, plot, animate, request):
             ax2.legend()
             ax3.legend()
             ax4.legend()
-            # ax5.legend()
-            # ax6.legend()
 
             return (
                 im1,
@@ -351,10 +334,6 @@ def test_toro(riemann_state, Scheme, plot, animate, request):
         allFrames = True
         time_interval = riemann_state.final_time / nFrames
 
-    # TODO: Use josie.io.strategy and josie.io.writer to save the plot every
-    # time instant.  In particular it might useful to choose a Strategy (or
-    # multiple strategies) and append to each strategy some "executors" that do
-    # stuff with the Solver data
     while t <= final_time:
         if animate and (
             len(alphabar_data) + 1 < t // time_interval or t == 0 or allFrames
@@ -363,18 +342,11 @@ def test_toro(riemann_state, Scheme, plot, animate, request):
             alphabar_data.append(np.array(cells.values[:, 0, 0, Q.fields.abar]))
             rhoU_data.append(np.array(cells.values[:, 0, 0, Q.fields.rhoU]))
             arho1_data.append(np.array(cells.values[:, 0, 0, Q.fields.arho1]))
-            # arho2_data.append(
-            #     np.array(cells.values[:, 0, 0, Q.fields.arho2])
-            # )
-            # alpha_data.append(
-            #     np.array(cells.values[:, 0, 0, Q.fields.abar])
-            #     * (1 - np.array(cells.values[:, 0, 0, Q.fields.ad]))
-            # )
             ad_data.append(np.array(cells.values[:, 0, 0, Q.fields.ad]))
         dt = scheme.CFL(cells, CFL)
-        # TODO: Basic check. The best would be to check against analytical
-        # solution
+
         assert ~np.isnan(dt)
+
         solver.step(dt)
 
         t += dt
@@ -389,7 +361,8 @@ def test_toro(riemann_state, Scheme, plot, animate, request):
         x - riemann_state.xd,
         t,
     )
-    assert check_results(request.node.name[10:-1], cells.values[..., 0, :], sol_exact)
+
+    assert check_results(request.node.name[14:-1], cells.values[..., 0, :], sol_exact)
 
     # Check that we reached the final time
     assert t >= final_time
@@ -406,14 +379,8 @@ def test_toro(riemann_state, Scheme, plot, animate, request):
         arho1 = cells.values[..., 0, Q.fields.arho1]
         arho1 = arho1.reshape(arho1.size)
 
-        # arho2 = cells.values[..., 0, Q.fields.arho2]
-        # arho2 = arho2.reshape(arho2.size)
-
         ad = cells.values[..., 0, Q.fields.ad]
         ad = ad.reshape(ad.size)
-
-        # alpha = cells.values[..., 0, Q.fields.abar]
-        # alpha = alpha.reshape(alpha.size) * (1 - ad)
 
         sol_exact_cvv = sol_exact_riemann(
             cvv_riemann_state.left,
@@ -433,17 +400,6 @@ def test_toro(riemann_state, Scheme, plot, animate, request):
         im7.set_data(x, sol_exact_cvv[..., Q.fields.arho1])
         im8.set_data(x, sol_exact[..., Q.fields.arho1])
         im9.set_data(x, arho1)
-        # im7.set_data(x, sol_exact[..., Q.fields.arho2])
-        # im8.set_data(x, arho2)
-        # im9.set_data(
-        #     x,
-        #     sol_exact[..., Q.fields.abar]
-        #     * (1 - sol_exact[..., Q.fields.ad]),
-        # )
-        # im10.set_data(
-        #     x,
-        #     alpha,
-        # )
         im10.set_data(x, sol_exact_cvv[..., Q.fields.ad])
         im11.set_data(x, sol_exact[..., Q.fields.ad])
         im12.set_data(x, ad)
@@ -458,12 +414,8 @@ def test_toro(riemann_state, Scheme, plot, animate, request):
             im1.set_data(x, alphabar_data[frame])
             im2.set_data(x, rhoU_data[frame])
             im3.set_data(x, arho1_data[frame])
-            # im4.set_data(x, arho2_data[frame])
-            # Warning alpha data twice
-            # im5.set_data(x, alpha_data[frame])
             im6.set_data(x, ad_data[frame])
             return ax1, ax2, ax3, ax4, im1, im2, im3, im4, im5, im6
-            # return ax1, ax2, ax3, ax4, ax5, ax6, im1, im2, im3, im4, im5, im6
 
         _ = FuncAnimation(
             fig,

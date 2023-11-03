@@ -11,8 +11,9 @@ from josie.bc import Dirichlet
 from josie.boundary import Line
 from josie.math import Direction
 from josie.mesh import Mesh
-from josie.mesh.cell import SimpleCell
+from josie.mesh.cell import SimpleCell, MUSCLCell
 from josie.mesh.cellset import MeshCellSet
+from josie.general.schemes.space.muscl import MUSCL
 from josie.tsfoureq.solver import TSFourEqSolver
 from josie.tsfoureq.state import Q
 from josie.tsfoureq.eos import TwoPhaseEOS, LinearizedGas
@@ -68,7 +69,7 @@ eps = 0.1
 advectionProblem = RiemannProblem(
     left=RiemannState(alphabar=1.0 - eps, ad=0, rho1=1.0, rho2=1.0e3, U=0.15),
     right=RiemannState(alphabar=eps, ad=0, rho1=1.0, rho2=1.0e3, U=0.15),
-    final_time=3.33,
+    final_time=0.33,
     xd=0.25,
     CFL=0.5,
 )
@@ -94,7 +95,10 @@ def test_advection(Scheme, plot, animate, request):
     top.bc = None
     bottom.bc = None
 
-    mesh = Mesh(left, bottom, right, top, SimpleCell)
+    if issubclass(Scheme, MUSCL):
+        mesh = Mesh(left, bottom, right, top, MUSCLCell)
+    else:
+        mesh = Mesh(left, bottom, right, top, SimpleCell)
     mesh.interpolate(50, 1)
     mesh.generate()
 

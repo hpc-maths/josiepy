@@ -53,10 +53,9 @@ class TSFourEqPrimFields(Fields):
     """Indexing fields for the consevative part of the full state"""
 
     rho = 0
-    U = 1
-    V = 2
-
-    abar = 3
+    pbar = 1
+    U = 2
+    V = 3
     arho1d = 4
     ad = 5
 
@@ -97,7 +96,7 @@ class Q(TwoFluidState):
 
     fields = TSFourEqFields
     cons_state = TSFourEqConsState
-    prim_state = TSFourEqPrimState
+    prim_state = TSFourEqConsState
     phase_state = TSFourEqPhaseState
 
     def get_conservative(self) -> TSFourEqConsState:

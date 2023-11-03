@@ -20,7 +20,14 @@ def f(x):
     return np.maximum(np.exp(2 * x**2 * (x**2 - 3) / (x**2 - 1) ** 2), 0)
 
 
-def circle(R: float, x_c: np.ndarray, y_c: np.ndarray, x_0: float, y_0: float):
+def circle(
+    R: float,
+    x_c: np.ndarray,
+    y_c: np.ndarray,
+    x_0: float,
+    y_0: float,
+    symBool: bool = True,
+):
     eps = R / 2
     r = np.sqrt((x_c - x_0) ** 2 + (y_c - y_0) ** 2)
 
@@ -30,13 +37,14 @@ def circle(R: float, x_c: np.ndarray, y_c: np.ndarray, x_0: float, y_0: float):
         np.where(r < R, 1, 0),
     )
 
-    # Enforce symmetry along
-    # X-axis
-    arr = 0.5 * (arr + arr[::-1, :])
-    # Y-axis
-    arr = 0.5 * (arr + arr[:, ::-1])
-    # XY-axis
-    arr = 0.5 * (arr + np.transpose(arr, axes=(1, 0, 2)))
+    if symBool:
+        # Enforce symmetry along
+        # X-axis
+        arr = 0.5 * (arr + arr[::-1, :])
+        # Y-axis
+        arr = 0.5 * (arr + arr[:, ::-1])
+        # XY-axis
+        arr = 0.5 * (arr + np.transpose(arr, axes=(1, 0, 2)))
 
     return arr
 

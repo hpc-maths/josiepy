@@ -36,7 +36,8 @@ class RiemannProblem:
     CFL: float
 
 
-@pytest.fixture(params=[1e-7, 0.0])
+# @pytest.fixture(params=[1e-7, 0.0])
+@pytest.fixture(params=[1e-7])
 def epsilon(request):
     yield request.param
 

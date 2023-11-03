@@ -116,7 +116,7 @@ class Q(TwoFluidState):
 
     fields = TsCapFields
     cons_state = TsCapConsState
-    prim_state = TsCapPrimState
+    prim_state = TsCapConsState
     phase_state = TsCapPhaseState
 
     def get_conservative(self) -> TsCapConsState:

@@ -53,18 +53,18 @@ class Exact(FourEqScheme):
         P0R = self.P0(alpha_R)
 
         # To be modified for 2D where U is U dot n
-        U_L = np.einsum(
+        Un_L = np.einsum(
             "...kl,...l->...k",
             np.stack((Q_L[..., fields.U], Q_L[..., fields.V]), axis=-1),
             normals,
         )
-        U_R = np.einsum(
+        Un_R = np.einsum(
             "...kl,...l->...k",
             np.stack((Q_R[..., fields.U], Q_R[..., fields.V]), axis=-1),
             normals,
         )
 
-        dU = U_L - U_R
+        dU = Un_L - Un_R
 
         ind = np.where(P <= P_L)
         dU[ind] += c_L[ind] * np.log((P_L[ind] - P0L[ind]) / (P[ind] - P0L[ind]))
@@ -149,10 +149,10 @@ class Exact(FourEqScheme):
         arho1_L = Q_L[..., fields.arho1]
         arho2_L = Q_L[..., fields.arho2]
         P_L = Q_L[..., fields.P]
-        U_L = np.einsum(
-            "...kl,...l->...k",
-            np.stack((Q_L[..., fields.U], Q_L[..., fields.V]), axis=-1),
-            normals,
+        U_L = Q_L[..., fields.U]
+        V_L = Q_L[..., fields.V]
+        Un_L = np.einsum("...l,...->...l", U_L, normals[..., 0]) + np.einsum(
+            "...l,...->...l", V_L, normals[..., 1]
         )
         c_L = Q_L[..., fields.c]
         alpha_L = Q_L[..., fields.alpha]
@@ -162,10 +162,10 @@ class Exact(FourEqScheme):
         arho1_R = Q_R[..., fields.arho1]
         arho2_R = Q_R[..., fields.arho2]
         P_R = Q_R[..., fields.P]
-        U_R = np.einsum(
-            "...kl,...l->...k",
-            np.stack((Q_R[..., fields.U], Q_R[..., fields.V]), axis=-1),
-            normals,
+        U_R = Q_R[..., fields.U]
+        V_R = Q_R[..., fields.V]
+        Un_R = np.einsum("...l,...->...l", U_R, normals[..., 0]) + np.einsum(
+            "...l,...->...l", V_R, normals[..., 1]
         )
         c_R = Q_R[..., fields.c]
         alpha_R = Q_R[..., fields.alpha]
@@ -176,11 +176,14 @@ class Exact(FourEqScheme):
         # Could change the init pressure
         P0tilde = np.maximum(P0_L, P0_R)
         P_star = self.solvePressure(
-            np.maximum(0.5 * (P_L + P_R), 1.1 * P0tilde), Q_L, Q_R, normals
+            np.maximum(0.5 * (P_L + P_R), P0tilde + 0.1 * np.abs(P0tilde)),
+            Q_L,
+            Q_R,
+            normals,
         )
 
         # Compute Ustar
-        U_star = U_L.copy()
+        U_star = Un_L.copy()
         ind = np.where(P_star <= P_L)
         U_star[ind] += c_L[ind] * np.log(
             (P_L[ind] - P0_L[ind]) / (P_star[ind] - P0_L[ind])
@@ -193,9 +196,7 @@ class Exact(FourEqScheme):
 
         # If 0 < Ustar
         #   If left shock
-        #       If right of left shock -> Qc_L_star
-
-        # If left shock
+        ind = np.where(P_star > P_L)
         arho1_L_star = arho1_L * (1 + (P_star - P_L) / (rho_L * c_L**2))
         arho2_L_star = arho2_L * (1 + (P_star - P_L) / (rho_L * c_L**2))
         rho_L_star = arho1_L_star + arho2_L_star
@@ -203,8 +204,7 @@ class Exact(FourEqScheme):
             arho1_L_star * self.problem.eos[Phases.PHASE1].c0 ** 2
             + arho2_L_star * self.problem.eos[Phases.PHASE2].c0 ** 2
         )
-        S_L = np.empty_like(U_L) * np.nan
-        ind = np.where(P_star > P_L)
+        S_L = np.empty_like(Un_L) * np.nan
         S_L[ind] = (
             U_star[ind] - np.sqrt(rho_L[ind] / rhoc_sq_L_star[ind]) * c_L[ind] ** 2
         )
@@ -216,12 +216,14 @@ class Exact(FourEqScheme):
 
         # TODO: to be changed for 2D
         Qc[ind_tmp + (cfields.arho,)] = alpha_L[ind] * rho_L_star[ind]
-        Qc[ind_tmp + (cfields.rhoU,)] = np.einsum(
-            "...k,...l->...kl", rho_L_star * U_star, normals
-        )[ind_tmp + (0,)]
-        Qc[ind + (cfields.rhoV,)] = np.einsum(
-            "...k,...l->...kl", rho_L_star * U_star, normals
-        )[ind_tmp + (1,)]
+        Qc[ind_tmp + (cfields.rhoU,)] = rho_L_star[ind] * (
+            U_L[ind]
+            + np.einsum("...k,...l->...kl", U_star - Un_L, normals)[ind_tmp + (0,)]
+        )
+        Qc[ind + (cfields.rhoV,)] = rho_L_star[ind] * (
+            V_L[ind]
+            + np.einsum("...k,...l->...kl", U_star - Un_L, normals)[ind_tmp + (1,)]
+        )
         Qc[ind_tmp + (cfields.arho1,)] = arho1_L_star[ind]
         Qc[ind_tmp + (cfields.arho2,)] = arho2_L_star[ind]
 
@@ -229,10 +231,10 @@ class Exact(FourEqScheme):
         #       If left of the fan -> already done
 
         #       If in the fan -> Qc_L_fan
-        SH_L = U_L - c_L
+        SH_L = Un_L - c_L
         ST_L = U_star - c_L
-        arho1_L_fan = arho1_L * np.exp((U_L - c_L) / c_L)
-        arho2_L_fan = arho2_L * np.exp((U_L - c_L) / c_L)
+        arho1_L_fan = arho1_L * np.exp((Un_L - c_L) / c_L)
+        arho2_L_fan = arho2_L * np.exp((Un_L - c_L) / c_L)
         rho_L_fan = arho1_L_fan + arho2_L_fan
 
         ind = np.where((0 < U_star) * (P_star <= P_L) * (SH_L < 0) * (ST_L > 0))
@@ -240,30 +242,34 @@ class Exact(FourEqScheme):
 
         # TODO: to be changed for 2D
         Qc[ind_tmp + (cfields.arho,)] = alpha_L[ind] * rho_L_fan[ind]
-        Qc[ind_tmp + (cfields.rhoU,)] = np.einsum(
-            "...k,...l->...kl", rho_L_fan * c_L, normals
-        )[ind_tmp + (0,)]
-        Qc[ind_tmp + (cfields.rhoV,)] = np.einsum(
-            "...k,...l->...kl", rho_L_fan * c_L, normals
-        )[ind_tmp + (1,)]
+        Qc[ind_tmp + (cfields.rhoU,)] = rho_L_fan[ind] * (
+            V_L[ind]
+            + np.einsum("...k,...l->...kl", c_L - Un_L, normals)[ind_tmp + (1,)]
+        )
+        Qc[ind_tmp + (cfields.rhoV,)] = rho_L_fan[ind] * (
+            V_L[ind]
+            + np.einsum("...k,...l->...kl", c_L - Un_L, normals)[ind_tmp + (1,)]
+        )
         Qc[ind_tmp + (cfields.arho1,)] = arho1_L_fan[ind]
         Qc[ind_tmp + (cfields.arho2,)] = arho2_L_fan[ind]
 
         #       If right of the fan -> compute state
-        arho1_L_star = arho1_L * np.exp((U_L - U_star) / c_L)
-        arho2_L_star = arho2_L * np.exp((U_L - U_star) / c_L)
+        arho1_L_star = arho1_L * np.exp((Un_L - U_star) / c_L)
+        arho2_L_star = arho2_L * np.exp((Un_L - U_star) / c_L)
         rho_L_star = arho1_L_star + arho2_L_star
 
         ind = np.where((0 < U_star) * (P_star <= P_L) * (ST_L <= 0))
         ind_tmp = ind[:3]
 
         Qc[ind_tmp + (cfields.arho,)] = alpha_L[ind] * rho_L_star[ind]
-        Qc[ind_tmp + (cfields.rhoU,)] = np.einsum(
-            "...k,...l->...kl", rho_L_star * U_star, normals
-        )[ind_tmp + (0,)]
-        Qc[ind_tmp + (cfields.rhoV,)] = np.einsum(
-            "...k,...l->...kl", rho_L_star * U_star, normals
-        )[ind_tmp + (1,)]
+        Qc[ind_tmp + (cfields.rhoU,)] = rho_L_star[ind] * (
+            U_L[ind]
+            + np.einsum("...k,...l->...kl", U_star - Un_L, normals)[ind_tmp + (0,)]
+        )
+        Qc[ind_tmp + (cfields.rhoV,)] = rho_L_star[ind] * (
+            V_L[ind]
+            + np.einsum("...k,...l->...kl", U_star - Un_L, normals)[ind_tmp + (1,)]
+        )
         Qc[ind_tmp + (cfields.arho1,)] = arho1_L_star[ind]
         Qc[ind_tmp + (cfields.arho2,)] = arho2_L_star[ind]
 
@@ -276,7 +282,7 @@ class Exact(FourEqScheme):
             arho1_R_star * self.problem.eos[Phases.PHASE1].c0 ** 2
             + arho2_R_star * self.problem.eos[Phases.PHASE2].c0 ** 2
         )
-        S_star_R = np.empty_like(U_R) * np.nan
+        S_star_R = np.empty_like(Un_R) * np.nan
         ind = np.where(P_star > P_R)
         S_star_R[ind] = (
             U_star[ind] + np.sqrt(rho_R[ind] / rhoc_sq_R_star[ind]) * c_R[ind] ** 2
@@ -292,17 +298,19 @@ class Exact(FourEqScheme):
 
         # TODO: to be changed for 2D
         Qc[ind_tmp + (cfields.arho,)] = alpha_R[ind] * rho_R_star[ind]
-        Qc[ind_tmp + (cfields.rhoU,)] = np.einsum(
-            "...k,...l->...kl", rho_R_star * U_star, normals
-        )[ind_tmp + (0,)]
-        Qc[ind_tmp + (cfields.rhoV,)] = np.einsum(
-            "...k,...l->...kl", rho_R_star * U_star, normals
-        )[ind_tmp + (1,)]
+        Qc[ind_tmp + (cfields.rhoU,)] = rho_R_star[ind] * (
+            U_R[ind]
+            + np.einsum("...k,...l->...kl", U_star - Un_R, normals)[ind_tmp + (0,)]
+        )
+        Qc[ind_tmp + (cfields.rhoV,)] = rho_R_star[ind] * (
+            V_R[ind]
+            + np.einsum("...k,...l->...kl", U_star - Un_R, normals)[ind_tmp + (1,)]
+        )
         Qc[ind_tmp + (cfields.arho1,)] = arho1_R_star[ind]
         Qc[ind_tmp + (cfields.arho2,)] = arho2_R_star[ind]
 
         #   If right fan -> check if in or out of the fan
-        SH_R = U_R + c_R
+        SH_R = Un_R + c_R
         ST_R = U_star + c_R
         #       If right of the fan -> Qc_R
         ind = np.where((0 >= U_star) * (P_star <= P_R) * (SH_R < 0))
@@ -311,8 +319,8 @@ class Exact(FourEqScheme):
         Qc[ind] = Qc_R[ind]
 
         #       If in the fan -> Qc_R_fan
-        arho1_R_fan = arho1_R * np.exp(-(U_R + c_R) / c_R)
-        arho2_R_fan = arho2_R * np.exp(-(U_R + c_R) / c_R)
+        arho1_R_fan = arho1_R * np.exp(-(Un_R + c_R) / c_R)
+        arho2_R_fan = arho2_R * np.exp(-(Un_R + c_R) / c_R)
         rho_R_fan = arho1_R_fan + arho2_R_fan
 
         ind = np.where((0 >= U_star) * (P_star <= P_R) * (SH_R >= 0) * (ST_R < 0))
@@ -320,30 +328,34 @@ class Exact(FourEqScheme):
 
         # TODO: to be changed for 2D
         Qc[ind_tmp + (cfields.arho,)] = alpha_R[ind] * rho_R_fan[ind]
-        Qc[ind_tmp + (cfields.rhoU,)] = np.einsum(
-            "...k,...l->...kl", -rho_R_fan * c_R, normals
-        )[ind_tmp + (0,)]
-        Qc[ind_tmp + (cfields.rhoV,)] = np.einsum(
-            "...k,...l->...kl", -rho_R_fan * c_R, normals
-        )[ind_tmp + (1,)]
+        Qc[ind_tmp + (cfields.rhoU,)] = rho_R_fan[ind] * (
+            U_R[ind]
+            + np.einsum("...k,...l->...kl", -c_R - Un_R, normals)[ind_tmp + (0,)]
+        )
+        Qc[ind_tmp + (cfields.rhoV,)] = rho_R_fan[ind] * (
+            V_R[ind]
+            + np.einsum("...k,...l->...kl", -c_R - Un_R, normals)[ind_tmp + (1,)]
+        )
         Qc[ind_tmp + (cfields.arho1,)] = arho1_R_fan[ind]
         Qc[ind_tmp + (cfields.arho2,)] = arho2_R_fan[ind]
 
         #       If left of the fan -> Qc_R_star
-        arho1_R_star = arho1_R * np.exp(-(U_R - U_star) / c_R)
-        arho2_R_star = arho2_R * np.exp(-(U_R - U_star) / c_R)
+        arho1_R_star = arho1_R * np.exp(-(Un_R - U_star) / c_R)
+        arho2_R_star = arho2_R * np.exp(-(Un_R - U_star) / c_R)
         rho_R_star = arho1_R_star + arho2_R_star
 
         ind = np.where((0 >= U_star) * (P_star <= P_R) * (ST_R >= 0))
         ind_tmp = ind[:3]
 
         Qc[ind_tmp + (cfields.arho,)] = alpha_R[ind] * rho_R_star[ind]
-        Qc[ind_tmp + (cfields.rhoU,)] = np.einsum(
-            "...k,...l->...kl", rho_R_star * U_star, normals
-        )[ind_tmp + (0,)]
-        Qc[ind_tmp + (cfields.rhoV,)] = np.einsum(
-            "...k,...l->...kl", rho_R_star * U_star, normals
-        )[ind_tmp + (1,)]
+        Qc[ind_tmp + (cfields.rhoU,)] = rho_R_star[ind] * (
+            U_R[ind]
+            + np.einsum("...k,...l->...kl", U_star - Un_R, normals)[ind_tmp + (0,)]
+        )
+        Qc[ind_tmp + (cfields.rhoV,)] = rho_R_star[ind] * (
+            V_R[ind]
+            + np.einsum("...k,...l->...kl", U_star - Un_R, normals)[ind_tmp + (1,)]
+        )
         Qc[ind_tmp + (cfields.arho1,)] = arho1_R_star[ind]
         Qc[ind_tmp + (cfields.arho2,)] = arho2_R_star[ind]
 
