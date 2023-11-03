@@ -16,11 +16,11 @@ def solver(mesh, mocker):
     solver.t = 0
     solver.mesh = mesh
     solver.mesh.cells._values = mocker.MagicMock()
-    solver.scheme.CFL = mocker.Mock(return_value=0.1)
+    solver.CFL = mocker.Mock(return_value=0.1)
     solver.Q = StateTemplate("u")
 
     def step_func(self, dt):
-        self.t += dt  # type: ignore
+        self.t += dt
 
     solver.step = step_func.__get__(solver)
 
