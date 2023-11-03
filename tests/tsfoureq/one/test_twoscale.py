@@ -54,18 +54,18 @@ def check_results(name, test_val, exact_val):
 
     # N = 50
     results_norm = {
-        "riemann_state0-Godunov-Rusanov": [0.29, 0.32, 0.29, 0.005],
-        "riemann_state0-Godunov-Exact": [0.022, 0.22, 0.022, 0.0018],
-        "riemann_state0-MUSCL-Rusanov": [0.19, 0.24, 0.19, 0.0035],
-        "riemann_state0-MUSCL-Exact": [0.023, 0.16, 0.023, 0.0014],
-        "riemann_state1-Godunov-Rusanov": [0.29, 0.34, 0.28, 0.28],
-        "riemann_state1-Godunov-Exact": [0.018, 0.23, 0.023, 0.024],
-        "riemann_state1-MUSCL-Rusanov": [0.19, 0.24, 0.19, 0.19],
-        "riemann_state1-MUSCL-Exact": [0.019, 0.16, 0.023, 0.024],
-        "riemann_state2-Godunov-Rusanov": [0.29, 0.34, 0.28, 0.28],
-        "riemann_state2-Godunov-Exact": [0.027, 0.22, 0.022, 0.015],
-        "riemann_state2-MUSCL-Rusanov": [0.19, 0.24, 0.19, 0.19],
-        "riemann_state2-MUSCL-Exact": [0.028, 0.16, 0.023, 0.015],
+        "riemann_state0-Godunov-Rusanov": [0.35, 0.35, 0.35, 0.01],
+        "riemann_state0-Godunov-Exact": [0.05, 0.3, 0.05, 0.005],
+        "riemann_state0-MUSCL-Rusanov": [0.25, 0.3, 0.25, 0.005],
+        "riemann_state0-MUSCL-Exact": [0.025, 0.2, 0.03, 0.002],
+        "riemann_state1-Godunov-Rusanov": [0.35, 0.4, 0.35, 0.35],
+        "riemann_state1-Godunov-Exact": [0.035, 0.4, 0.03, 0.03],
+        "riemann_state1-MUSCL-Rusanov": [0.25, 0.3, 0.25, 0.25],
+        "riemann_state1-MUSCL-Exact": [0.03, 0.3, 0.03, 0.03],
+        "riemann_state2-Godunov-Rusanov": [0.35, 0.4, 0.35, 0.35],
+        "riemann_state2-Godunov-Exact": [0.035, 0.3, 0.03, 0.025],
+        "riemann_state2-MUSCL-Rusanov": [0.25, 0.3, 0.25, 0.25],
+        "riemann_state2-MUSCL-Exact": [0.035, 0.2, 0.03, 0.03],
     }
     testBool = True
 

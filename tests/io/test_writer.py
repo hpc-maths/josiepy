@@ -20,7 +20,7 @@ def solver(mesh, mocker):
     solver.Q = StateTemplate("u")
 
     def step_func(self, dt):
-        self.t += dt
+        self.t += dt  # type: ignore
 
     solver.step = step_func.__get__(solver)
 
