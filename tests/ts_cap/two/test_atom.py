@@ -49,7 +49,7 @@ atom_params = [
     #     final_time_test=1e-2,
     # ),
     AtomParam(
-        name="Sheet stripping",
+        name="Sheet_stripping",
         We=100,
         sigma=1e-2,
         rho0=1e3,
@@ -97,8 +97,8 @@ def test_atom(write, init_schemes, init_solver, atom_param):
     top = Line([0, height], [width, height])
 
     eos = TwoPhaseEOS(
-        phase1=LinearizedGas(p0=1e2, rho0=atom_param.rho0, c0=1e1),
-        phase2=LinearizedGas(p0=1e2, rho0=1e0, c0=1e1),
+        phase1=LinearizedGas(p0=1e5, rho0=atom_param.rho0, c0=1e1),
+        phase2=LinearizedGas(p0=1e5, rho0=1e0, c0=1e1),
     )
 
     # Initial conditions
@@ -107,7 +107,7 @@ def test_atom(write, init_schemes, init_solver, atom_param):
     R = 0.2
     nSmoothPass = 10
 
-    U_inlet = We / eos[Phases.PHASE1].rho0 / R * sigma
+    U_inlet = We / eos[Phases.PHASE2].rho0 / R * sigma
 
     # Inlet BC
     abar_in = 0
@@ -132,8 +132,7 @@ def test_atom(write, init_schemes, init_solver, atom_param):
     Hmax = 1e3
     dx = mesh.cells._centroids[1, 1, 0, 0] - mesh.cells._centroids[0, 1, 0, 0]
     dy = mesh.cells._centroids[1, 1, 0, 1] - mesh.cells._centroids[1, 0, 0, 1]
-    norm_grada_min = 0.01 * 1 / dx
-    norm_grada_min = 0
+    norm_grada_min = 0.05 * 1 / dx
 
     schemes = init_schemes(eos, sigma, Hmax, dx, dy, norm_grada_min, nSmoothPass)
 
@@ -211,7 +210,7 @@ def test_atom(write, init_schemes, init_solver, atom_param):
         logger.setLevel(logging.DEBUG)
 
         fh = logging.FileHandler(
-            atom_param.name + "-" + str(atom_param.We) + "-" + f"-{now}.log"
+            atom_param.name + "-" + str(atom_param.We) + f"-{now}.log"
         )
         fh.setLevel(logging.DEBUG)
         formatter = logging.Formatter(
@@ -225,7 +224,7 @@ def test_atom(write, init_schemes, init_solver, atom_param):
         dt_save = final_time / 100
         strategy = TimeStrategy(dt_save=dt_save, animate=False)
         writer = XDMFWriter(
-            atom_param.name + "-" + str(atom_param.We) + "-" + f"-{now}.xdmf",
+            atom_param.name + "-" + str(atom_param.We) + f"-{now}.xdmf",
             strategy,
             solver,
             final_time=final_time,
