@@ -15,7 +15,6 @@ from josie.boundary import Line
 from josie.mesh import Mesh
 from josie.mesh.cell import MUSCLCell
 from josie.mesh.cellset import MeshCellSet
-from josie.ts_cap.solver import TsCapLieSolver
 from josie.ts_cap.state import Q
 from josie.bn.eos import TwoPhaseEOS
 from josie.FourEq.eos import LinearizedGas
