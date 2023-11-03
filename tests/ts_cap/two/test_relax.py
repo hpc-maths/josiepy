@@ -36,19 +36,19 @@ def test_relax(plot, write, request, init_schemes, shape_fun, init_solver, nSmoo
     top.bc = Neumann(np.zeros(len(Q.fields)).view(Q))
 
     mesh = Mesh(left, bottom, right, top, MUSCLCell)
-    N = 80
+    N = 50
     mesh.interpolate(N, N)
     mesh.generate()
 
-    final_time = 1
-    final_time_test = 1e-2
+    final_time = 105e-3
+    final_time_test = 1e-3
     CFL = 0.4
 
-    sigma = 1e-2
+    sigma = 8e2
     Hmax = 1e3
     dx = mesh.cells._centroids[1, 1, 0, 0] - mesh.cells._centroids[0, 1, 0, 0]
     dy = mesh.cells._centroids[1, 1, 0, 1] - mesh.cells._centroids[1, 0, 0, 1]
-    norm_grada_min = 0.01 * 1 / dx
+    norm_grada_min = 0.05 * 1 / dx
     # norm_grada_min = 0
 
     # eos_ref = TwoPhaseEOS(
@@ -152,7 +152,7 @@ def test_relax(plot, write, request, init_schemes, shape_fun, init_solver, nSmoo
         logger.addHandler(fh)
 
         # Write strategy
-        strategy = TimeStrategy(dt_save=final_time / 20, animate=False)
+        strategy = TimeStrategy(dt_save=1e-3, animate=False)
         writer = XDMFWriter(
             test_name + f"{now}.xdmf", strategy, solver, final_time=final_time, CFL=CFL
         )
