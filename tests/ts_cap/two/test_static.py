@@ -19,7 +19,7 @@ from josie.ts_cap.state import Q
 from josie.bn.eos import TwoPhaseEOS
 from josie.FourEq.eos import LinearizedGas
 
-# from josie.euler.eos import PerfectGas, StiffenedGas
+from josie.euler.eos import PerfectGas, StiffenedGas
 from josie.twofluid.fields import Phases
 
 from tests.ts_cap.two.conftest import circle
@@ -47,12 +47,12 @@ def test_static(plot, write, request, init_schemes, init_solver, nSmoothPass):
     dx = mesh.cells._centroids[1, 1, 0, 0] - mesh.cells._centroids[0, 1, 0, 0]
     dy = mesh.cells._centroids[1, 1, 0, 1] - mesh.cells._centroids[1, 0, 0, 1]
     norm_grada_min = 0.01 * 1 / dx
-    # norm_grada_min = 0
+    norm_grada_min = 0
 
-    # eos_ref = TwoPhaseEOS(
-    #     phase1=StiffenedGas(gamma=2.1, p0=1e6),
-    #     phase2=PerfectGas(gamma=1.4),
-    # )
+    eos_ref = TwoPhaseEOS(
+        phase1=StiffenedGas(gamma=2.1, p0=1e6),
+        phase2=PerfectGas(gamma=1.4),
+    )
     p_init = 1e5
     rho_liq = 1e3
     rho_gas = 1e0
@@ -60,14 +60,14 @@ def test_static(plot, write, request, init_schemes, init_solver, nSmoothPass):
         phase1=LinearizedGas(
             p0=p_init,
             rho0=rho_liq,
-            # c0=eos_ref[Phases.PHASE1].sound_velocity(rho_liq, p_init),
-            c0=1e1,
+            c0=eos_ref[Phases.PHASE1].sound_velocity(rho_liq, p_init),
+            # c0=1e1,
         ),
         phase2=LinearizedGas(
             p0=p_init,
             rho0=rho_gas,
-            # c0=eos_ref[Phases.PHASE2].sound_velocity(rho_gas, p_init),
-            c0=1e1,
+            c0=eos_ref[Phases.PHASE2].sound_velocity(rho_gas, p_init),
+            # c0=1e1,
         ),
     )
 

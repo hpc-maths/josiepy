@@ -19,7 +19,7 @@ from josie.ts_cap.state import Q
 from josie.bn.eos import TwoPhaseEOS
 from josie.FourEq.eos import LinearizedGas
 
-# from josie.euler.eos import PerfectGas, StiffenedGas
+from josie.euler.eos import PerfectGas, StiffenedGas
 from josie.twofluid.fields import Phases
 
 
@@ -36,12 +36,12 @@ def test_relax(plot, write, request, init_schemes, shape_fun, init_solver, nSmoo
     top.bc = Neumann(np.zeros(len(Q.fields)).view(Q))
 
     mesh = Mesh(left, bottom, right, top, MUSCLCell)
-    N = 50
+    N = 30
     mesh.interpolate(N, N)
     mesh.generate()
 
-    final_time = 105e-3
-    final_time_test = 1e-3
+    final_time = 20e-3
+    final_time_test = 1.4e-3
     CFL = 0.4
 
     sigma = 8e2
@@ -49,12 +49,12 @@ def test_relax(plot, write, request, init_schemes, shape_fun, init_solver, nSmoo
     dx = mesh.cells._centroids[1, 1, 0, 0] - mesh.cells._centroids[0, 1, 0, 0]
     dy = mesh.cells._centroids[1, 1, 0, 1] - mesh.cells._centroids[1, 0, 0, 1]
     norm_grada_min = 0.05 * 1 / dx
-    # norm_grada_min = 0
+    norm_grada_min = 0
 
-    # eos_ref = TwoPhaseEOS(
-    #     phase1=StiffenedGas(gamma=2.1, p0=1e6),
-    #     phase2=PerfectGas(gamma=1.4),
-    # )
+    eos_ref = TwoPhaseEOS(
+        phase1=StiffenedGas(gamma=2.1, p0=1e6),
+        phase2=PerfectGas(gamma=1.4),
+    )
     p_init = 1e5
     rho_liq = 1e3
     rho_gas = 1e0
@@ -62,15 +62,19 @@ def test_relax(plot, write, request, init_schemes, shape_fun, init_solver, nSmoo
         phase1=LinearizedGas(
             p0=p_init,
             rho0=rho_liq,
-            # c0=eos_ref[Phases.PHASE1].sound_velocity(rho_liq, p_init),
-            c0=1e1,
+            c0=eos_ref[Phases.PHASE1].sound_velocity(rho_liq, p_init),
+            # c0=1.5e3,
         ),
         phase2=LinearizedGas(
             p0=p_init,
             rho0=rho_gas,
-            # c0=eos_ref[Phases.PHASE2].sound_velocity(rho_gas, p_init),
-            c0=1e1,
+            c0=eos_ref[Phases.PHASE2].sound_velocity(rho_gas, p_init),
+            # c0=3.4e2,
         ),
+    )
+    print(
+        eos_ref[Phases.PHASE1].sound_velocity(rho_liq, p_init),
+        eos_ref[Phases.PHASE2].sound_velocity(rho_gas, p_init),
     )
 
     schemes = init_schemes(eos, sigma, Hmax, dx, dy, norm_grada_min, nSmoothPass)
@@ -111,14 +115,28 @@ def test_relax(plot, write, request, init_schemes, shape_fun, init_solver, nSmoo
                 (abar < 1) & (abar > 0), eos[Phases.PHASE2].p0 + sigma * H, np.nan
             ),
         )
+        p2 = np.full_like(abar, np.nan)
+        p2 = np.where(
+            abar == 0,
+            eos[Phases.PHASE2].p0,
+            np.where((abar < 1) & (abar > 0), eos[Phases.PHASE2].p0, np.nan),
+        )
         rho1 = eos[Phases.PHASE1].rho(p1)
+        rho2 = eos[Phases.PHASE2].rho(p2)
 
         # Compute conservative variables
         arho1 = np.zeros_like(abar)
         arho1 = np.where((abar > 0) & ((~np.isnan(rho1))), rho1 * abar * (1 - ad), 0)
-        arho2 = eos[Phases.PHASE2].rho0 * (1 - abar) * (1 - ad)
+        arho2 = np.zeros_like(abar)
+        arho2 = np.where(
+            (1 - abar > 0) & ((~np.isnan(rho2))), rho2 * (1 - abar) * (1 - ad), 0
+        )
         arho1d = eos[Phases.PHASE1].rho0 * ad
         rho = arho1 + arho2 + arho1d
+        # import sys
+
+        # np.set_printoptions(precision=1, linewidth=200, threshold=sys.maxsize)
+        # print(rho2[..., 0])
         U = w * U_1 + (1 - w) * U_0
         rhoU = rho * U
         rhoV = rho * V

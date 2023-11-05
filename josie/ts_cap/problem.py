@@ -108,22 +108,22 @@ class TsCapProblem(ConvectiveProblem):
 
         # Large-scale capillarity
         F[..., TsCapConsFields.rhoU, Direction.X] += np.where(
-            norm_grada > self.norm_grada_min,
+            ~np.isnan(n_x),
             self.sigma * norm_grada * (n_x**2 - 1),
             0,
         )
         F[..., TsCapConsFields.rhoU, Direction.Y] += np.where(
-            norm_grada > self.norm_grada_min,
+            (~np.isnan(n_x)) & (~np.isnan(n_y)),
             self.sigma * norm_grada * n_x * n_y,
             0,
         )
         F[..., TsCapConsFields.rhoV, Direction.X] += np.where(
-            norm_grada > self.norm_grada_min,
+            (~np.isnan(n_x)) & (~np.isnan(n_y)),
             self.sigma * norm_grada * n_y * n_x,
             0,
         )
         F[..., TsCapConsFields.rhoV, Direction.Y] += np.where(
-            norm_grada > self.norm_grada_min,
+            ~np.isnan(n_y),
             self.sigma * norm_grada * (n_y**2 - 1),
             0,
         )

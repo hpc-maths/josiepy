@@ -394,12 +394,8 @@ class TsCapScheme(ConvectiveScheme):
         norm_grada = np.sqrt(grada_x**2 + grada_y**2)
         n_x = np.full_like(grada_x, np.nan)
         n_y = np.full_like(grada_y, np.nan)
-        np.divide(
-            grada_x, norm_grada, where=norm_grada > self.problem.norm_grada_min, out=n_x
-        )
-        np.divide(
-            grada_y, norm_grada, where=norm_grada > self.problem.norm_grada_min, out=n_y
-        )
+        np.divide(grada_x, norm_grada, where=norm_grada > 0, out=n_x)
+        np.divide(grada_y, norm_grada, where=norm_grada > 0, out=n_y)
 
         H = -(self.nan_gradient(n_x, dx, dy)[0] + self.nan_gradient(n_y, dx, dy)[1])
 
