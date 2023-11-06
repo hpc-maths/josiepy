@@ -175,7 +175,9 @@ class TsCapScheme(ConvectiveScheme):
         rho = arho1 + arho2 + arho1d
 
         # Compute estimator of the relaxation within [0,1]
+        ind = np.where(abarrho / rho < 0)
         abar = np.minimum(np.maximum(abarrho / rho, 0), 1)
+        arho1[ind] = 0
 
         values[..., fields.abar] = abar
         if self.geoUpdate:
@@ -267,9 +269,10 @@ class TsCapScheme(ConvectiveScheme):
         iter = 0
 
         # Index that locates the cell where there the pressures need to be relaxed
-        eps = 1e-9
-        tol = 1e-5
+        eps = 0
+        tol = 1e-10
         p0 = self.problem.eos[Phases.PHASE1].p0
+        p0 = self.problem.sigma * Hlim
         index = np.where(
             (np.abs(phi(arho1, arho2, abar, ad, Hlim)) > tol * p0)
             & (abar > eps)
@@ -329,6 +332,7 @@ class TsCapScheme(ConvectiveScheme):
                 (np.abs(phi(arho1, arho2, abar, ad, Hlim)) > tol * p0)
                 & (abar > eps)
                 & (1 - abar > eps)
+                & (np.abs(dabar) > 1e-14)
             )
 
             # Safety check
