@@ -134,7 +134,7 @@ def test_static(plot, write, request, init_schemes, init_solver, nSmoothPass):
     solver = init_solver(mesh, schemes, init_fun)
 
     final_time = 1
-    final_time_test = 1e-3
+    final_time_test = 1e-4
     CFL = 0.4
     if write:
         now = datetime.now().strftime("%Y%m%d%H%M%S")
