@@ -143,7 +143,8 @@ class Inlet(BoundaryCondition):
         )
         cFd_ghost = np.sqrt(cFd_ghost / rho_ghost) / (1 - ad_ghost)
 
-        # geometry variables are set to NaN
+        # geometry variables should be extrapolated depending
+        # on the outlet orientation (for gradients of abar esp.)
 
         # Impose the ghost values
         for field, ghost_value in (
@@ -165,11 +166,11 @@ class Inlet(BoundaryCondition):
             (fields.arho1d, arho1d_ghost),
             (fields.ad, ad_ghost),
             (fields.capSigma, capSigma_ghost),
-            (fields.grada_x, np.nan),
-            (fields.grada_y, np.nan),
+            (fields.grada_x, 0),
+            (fields.grada_y, 0),
             (fields.n_x, np.nan),
             (fields.n_y, np.nan),
-            (fields.norm_grada, np.nan),
+            (fields.norm_grada, 0),
             (fields.H, np.nan),
             (fields.MaX, np.nan),
             (fields.MaY, np.nan),
