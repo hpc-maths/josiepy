@@ -43,14 +43,14 @@ class TsCapFields(FluidFields):
     norm_grada = 22
     H = 23
 
-    MaX = 24
-    MaY = 25
-    WeX = 26
-    WeY = 27
-    c_cap1X = 28
-    c_cap1Y = 29
-    c_cap2X = 30
-    c_cap2Y = 31
+    # MaX = 24
+    # MaY = 25
+    # WeX = 26
+    # WeY = 27
+    # c_cap1X = 28
+    # c_cap1Y = 29
+    # c_cap2X = 30
+    # c_cap2Y = 31
 
 
 class TsCapConsFields(Fields):
@@ -70,14 +70,15 @@ class TsCapConsFields(Fields):
 class TsCapPrimFields(Fields):
     """Indexing fields for the consevative part of the full state"""
 
-    rho = 0
-    U = 1
-    V = 2
+    rhoU = 0
+    rhoV = 1
 
-    abar = 3
-    arho1d = 4
-    ad = 5
-    capSigma = 6
+    abar = 2
+    arho1 = 3
+    arho2 = 4
+    arho1d = 5
+    ad = 6
+    capSigma = 7
 
 
 class TsCapPhaseFields(Fields):
@@ -116,7 +117,8 @@ class Q(TwoFluidState):
 
     fields = TsCapFields
     cons_state = TsCapConsState
-    prim_state = TsCapConsState
+    # prim_state = TsCapConsState
+    prim_state = TsCapPrimState
     phase_state = TsCapPhaseState
 
     def get_conservative(self) -> TsCapConsState:

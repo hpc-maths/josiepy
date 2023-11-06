@@ -20,6 +20,11 @@ def f(x):
     return np.maximum(np.exp(2 * x**2 * (x**2 - 3) / (x**2 - 1) ** 2), 0)
 
 
+def g(x):
+    k = 20
+    return np.maximum(0.5 + 0.5 * np.tanh(-k * (x - 0.5)), 0)
+
+
 def circle(
     R: float,
     x_c: np.ndarray,
@@ -28,14 +33,15 @@ def circle(
     y_0: float,
     symBool: bool = True,
 ):
-    eps = R / 2
+    eps = R / 0.75
     r = np.sqrt((x_c - x_0) ** 2 + (y_c - y_0) ** 2)
-
     arr = np.where(
-        (r >= R) * (r < R + eps),
-        f((r - R) / eps),
-        np.where(r < R, 1, 0),
+        (r >= R - eps / 2) * (r < R + eps / 2),
+        g((r - R + eps / 2) / eps),
+        np.where(r < R - eps / 2, 1, 0),
     )
+
+    arr[arr < 1e-15] = 0
 
     if symBool:
         # Enforce symmetry along
@@ -90,7 +96,7 @@ def square(R: float, x_c: np.ndarray, y_c: np.ndarray, x_0: float, y_0: float):
     return arr
 
 
-@pytest.fixture(params=[10])
+@pytest.fixture(params=[0])
 def nSmoothPass(request):
     yield request.param
 
@@ -102,8 +108,12 @@ def init_schemes(request):
         class TsCapScheme(Rusanov, ExplicitEuler, MUSCL, MinMod):
             pass
 
-        def initschemes(eos, sigma, Hmax, dx, dy, norm_grada_min, nSmoothPass):
-            return [TsCapScheme(eos, sigma, Hmax, dx, dy, norm_grada_min, nSmoothPass)]
+        def initschemes(eos, sigma, Hmax, kappa, dx, dy, norm_grada_min, nSmoothPass):
+            return [
+                TsCapScheme(
+                    eos, sigma, Hmax, kappa, dx, dy, norm_grada_min, nSmoothPass
+                )
+            ]
 
         yield initschemes
 
@@ -115,10 +125,14 @@ def init_schemes(request):
         class TsCapCapScheme(ArithmeticCap, RK2, MUSCL, MinMod):
             pass
 
-        def initschemes(eos, sigma, Hmax, dx, dy, norm_grada_min, nSmoothPass):
+        def initschemes(eos, sigma, Hmax, kappa, dx, dy, norm_grada_min, nSmoothPass):
             return [
-                TsCapHypScheme(eos, sigma, Hmax, dx, dy, norm_grada_min, nSmoothPass),
-                TsCapCapScheme(eos, sigma, Hmax, dx, dy, norm_grada_min, nSmoothPass),
+                TsCapHypScheme(
+                    eos, sigma, Hmax, kappa, dx, dy, norm_grada_min, nSmoothPass
+                ),
+                TsCapCapScheme(
+                    eos, sigma, Hmax, kappa, dx, dy, norm_grada_min, nSmoothPass
+                ),
             ]
 
         yield initschemes
@@ -126,6 +140,11 @@ def init_schemes(request):
 
 @pytest.fixture(params=[circle, square])
 def shape_fun(request):
+    yield request.param
+
+
+@pytest.fixture(params=[1e3])
+def Hmax(request):
     yield request.param
 
 

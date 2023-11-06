@@ -17,6 +17,9 @@ class ExactHyp(TsCapScheme):
 
     def post_extrapolation(self, values: Q):
         self.prim2Qc(values)
+        self.noMassTransfer = True
+        self.relaxation(values)
+        self.noMassTransfer = False
 
         # auxilliary variables update
         self.auxilliaryVariableUpdateNoGeo(values)
@@ -158,16 +161,18 @@ class ExactHyp(TsCapScheme):
         tol = 1e-8
         firstLoop = True
 
-        # No Newton algorithm where exact pressure equilibrium
-        ind = np.where(self.deltaU(Q_L, Q_R, P, dUn, P0L, P0R) != 0.0)[0]
         P0tilde = np.maximum(
             self.P0(Q_L[..., Q.fields.abar]), self.P0(Q_R[..., Q.fields.abar])
         )
+        self.dP = np.zeros_like(P)
 
         # Newton-Raphson loop
-        while len(ind) > 0 or firstLoop:
+        # k = 0
+        while np.any(np.abs(self.dP / P) > tol) or firstLoop:
+            # k += 1
             if firstLoop:
                 firstLoop = False
+
             F = self.deltaU(
                 Q_L,
                 Q_R,
@@ -180,8 +185,10 @@ class ExactHyp(TsCapScheme):
             ddF = self.d2deltaU_dP2(Q_L, Q_R, P, P0L, P0R)
             self.dP = -2 * F * dF / (2 * dF**2 - F * ddF)
             P += np.maximum(self.dP, 0.9 * (P0tilde - P))
-
-            ind = np.where(np.abs(self.dP / P) > tol)[0]
+            # if k == 20:
+            #     tol = 1e-6
+            # if k == 40:
+            #     raise Exception("Maximal iteration reached in NR solve of Pstar")
 
         return P
 
@@ -237,6 +244,7 @@ class ExactHyp(TsCapScheme):
         arho1_L = Q_L[..., fields.arho1]
         arho2_L = Q_L[..., fields.arho2]
         arho1d_L = Q_L[..., fields.arho1d]
+        capSigma_L = Q_L[..., fields.capSigma]
         P_L = Q_L[..., fields.pbar]
         U_L = Q_L[..., fields.U]
         V_L = Q_L[..., fields.V]
@@ -253,6 +261,7 @@ class ExactHyp(TsCapScheme):
         arho1_R = Q_R[..., fields.arho1]
         arho2_R = Q_R[..., fields.arho2]
         arho1d_R = Q_R[..., fields.arho1d]
+        capSigma_R = Q_R[..., fields.capSigma]
         P_R = Q_R[..., fields.pbar]
         U_R = Q_R[..., fields.U]
         V_R = Q_R[..., fields.V]
@@ -295,10 +304,15 @@ class ExactHyp(TsCapScheme):
         arho1_L_star = arho1_L * r
         arho2_L_star = arho2_L * r
         ad_L_star = ad_L * r
-        arho1d_L_star = arho1d_L * r
+        arho1d_L_star = np.where(
+            arho1d_L > 0, np.divide(ad_L_star * arho1d_L, ad_L, where=ad_L > 0), 0
+        )
+        capSigma_L_star = np.where(
+            capSigma_L > 0, np.divide(ad_L_star * capSigma_L, ad_L, where=ad_L > 0), 0
+        )
         rho_L_star = arho1_L_star + arho2_L_star + arho1d_L_star
 
-        S_L = np.empty_like(Un_L) * np.nan
+        S_L = np.ones_like(Un_L) * np.nan
         ind = np.where((P_star > P_L) & (r > 1))
         S_L[ind] = U_star[ind] + (Un_L[ind] - U_star[ind]) / (1 - r[ind])
         ind = np.where((P_star > P_L) & (r == 1))
@@ -324,6 +338,7 @@ class ExactHyp(TsCapScheme):
         intercells[ind_tmp + (fields.arho1,)] = arho1_L_star[ind]
         intercells[ind_tmp + (fields.arho2,)] = arho2_L_star[ind]
         intercells[ind_tmp + (fields.arho1d,)] = arho1d_L_star[ind]
+        intercells[ind_tmp + (fields.capSigma,)] = capSigma_L_star[ind]
 
         #   If left fan -> check if in or out of the fan
         #       If left of the fan -> already done
@@ -354,11 +369,11 @@ class ExactHyp(TsCapScheme):
             / (1 - ad_L)
             * np.exp((Un_L - (c_L * (1 - ad_L) / (1 - ad_L_fan))) / c_L / (1 - ad_L))
         )
-        arho1d_L_fan = (
-            (1 - ad_L_fan)
-            * arho1d_L
-            / (1 - ad_L)
-            * np.exp((Un_L - (c_L * (1 - ad_L) / (1 - ad_L_fan))) / c_L / (1 - ad_L))
+        arho1d_L_fan = np.where(
+            arho1d_L > 0, np.divide(ad_L_fan * arho1d_L, ad_L, where=ad_L > 0), 0
+        )
+        capSigma_L_fan = np.where(
+            capSigma_L > 0, np.divide(ad_L_fan * capSigma_L, ad_L, where=ad_L > 0), 0
         )
         rho_L_fan = arho1_L_fan + arho2_L_fan + arho1d_L_fan
 
@@ -380,6 +395,7 @@ class ExactHyp(TsCapScheme):
         intercells[ind_tmp + (fields.arho1,)] = arho1_L_fan[ind]
         intercells[ind_tmp + (fields.arho2,)] = arho2_L_fan[ind]
         intercells[ind_tmp + (fields.arho1d,)] = arho1d_L_fan[ind]
+        intercells[ind_tmp + (fields.capSigma,)] = capSigma_L_fan[ind]
 
         #       If right of the fan -> compute state
         arho1_L_star = (
@@ -394,11 +410,11 @@ class ExactHyp(TsCapScheme):
             / (1 - ad_L)
             * np.exp((Un_L - U_star) / c_L / (1 - ad_L))
         )
-        arho1d_L_star = (
-            (1 - ad_L_star)
-            * arho1d_L
-            / (1 - ad_L)
-            * np.exp((Un_L - U_star) / c_L / (1 - ad_L))
+        arho1d_L_star = np.where(
+            arho1d_L > 0, np.divide(ad_L_star * arho1d_L, ad_L, where=ad_L > 0), 0
+        )
+        capSigma_L_star = np.where(
+            capSigma_L > 0, np.divide(ad_L_star * capSigma_L, ad_L, where=ad_L > 0), 0
         )
         rho_L_star = arho1_L_star + arho2_L_star + arho1d_L_star
 
@@ -418,6 +434,7 @@ class ExactHyp(TsCapScheme):
         intercells[ind_tmp + (fields.arho1,)] = arho1_L_star[ind]
         intercells[ind_tmp + (fields.arho2,)] = arho2_L_star[ind]
         intercells[ind_tmp + (fields.arho1d,)] = arho1d_L_star[ind]
+        intercells[ind_tmp + (fields.capSigma,)] = capSigma_L_star[ind]
 
         # If 0 > Ustar
         #   If right shock
@@ -429,11 +446,16 @@ class ExactHyp(TsCapScheme):
         )
         arho1_R_star = arho1_R * r
         arho2_R_star = arho2_R * r
-        arho1d_R_star = arho1d_R * r
         ad_R_star = ad_R * r
+        arho1d_R_star = np.where(
+            arho1d_R > 0, np.divide(ad_R_star * arho1d_R, ad_R, where=ad_R > 0), 0
+        )
+        capSigma_R_star = np.where(
+            capSigma_R > 0, np.divide(ad_R_star * capSigma_R, ad_R, where=ad_R > 0), 0
+        )
         rho_R_star = arho1_R_star + arho2_R_star + arho1d_R_star
 
-        S_star_R = np.empty_like(Un_R) * np.nan
+        S_star_R = np.ones_like(Un_R) * np.nan
         ind = np.where((P_star > P_R) & (r > 1))
         S_star_R[ind] = U_star[ind] + (Un_R[ind] - U_star[ind]) / (1 - r[ind])
         ind = np.where((P_star > P_R) & (r == 1))
@@ -461,6 +483,7 @@ class ExactHyp(TsCapScheme):
         intercells[ind_tmp + (fields.arho1,)] = arho1_R_star[ind]
         intercells[ind_tmp + (fields.arho2,)] = arho2_R_star[ind]
         intercells[ind_tmp + (fields.arho1d,)] = arho1d_R_star[ind]
+        intercells[ind_tmp + (fields.capSigma,)] = capSigma_R_star[ind]
 
         #   If right fan -> check if in or out of the fan
         ad_R_star = 1 - 1 / (
@@ -494,11 +517,11 @@ class ExactHyp(TsCapScheme):
             / (1 - ad_R)
             * np.exp(-(Un_R + (c_R * (1 - ad_R) / (1 - ad_R_fan))) / c_R / (1 - ad_R))
         )
-        arho1d_R_fan = (
-            (1 - ad_R_fan)
-            * arho1d_R
-            / (1 - ad_R)
-            * np.exp(-(Un_R + (c_R * (1 - ad_R) / (1 - ad_R_fan))) / c_R / (1 - ad_R))
+        arho1d_R_fan = np.where(
+            arho1d_R > 0, np.divide(ad_R_fan * arho1d_R, ad_R, where=ad_R > 0), 0
+        )
+        capSigma_R_fan = np.where(
+            capSigma_R > 0, np.divide(ad_R_fan * capSigma_R, ad_R, where=ad_R > 0), 0
         )
         rho_R_fan = arho1_R_fan + arho2_R_fan + arho1d_R_fan
 
@@ -520,6 +543,7 @@ class ExactHyp(TsCapScheme):
         intercells[ind_tmp + (fields.arho1,)] = arho1_R_fan[ind]
         intercells[ind_tmp + (fields.arho2,)] = arho2_R_fan[ind]
         intercells[ind_tmp + (fields.arho1d,)] = arho1d_R_fan[ind]
+        intercells[ind_tmp + (fields.capSigma,)] = capSigma_R_fan[ind]
 
         #       If left of the fan -> Qc_R_star
         ind = np.where((0 >= U_star) * (P_star <= P_R) * (ST_R >= 0))
@@ -537,11 +561,11 @@ class ExactHyp(TsCapScheme):
             / (1 - ad_R)
             * np.exp(-(Un_R - U_star) / c_R / (1 - ad_R))
         )
-        arho1d_R_star = (
-            (1 - ad_R_star)
-            * arho1d_R
-            / (1 - ad_R)
-            * np.exp(-(Un_R - U_star) / c_R / (1 - ad_R))
+        arho1d_R_star = np.where(
+            arho1d_R > 0, np.divide(ad_R_star * arho1d_R, ad_R, where=ad_R > 0), 0
+        )
+        capSigma_R_star = np.where(
+            capSigma_R > 0, np.divide(ad_R_star * capSigma_R, ad_R, where=ad_R > 0), 0
         )
         rho_R_star = arho1_R_star + arho2_R_star + arho1d_R_star
 
@@ -558,6 +582,7 @@ class ExactHyp(TsCapScheme):
         intercells[ind_tmp + (fields.arho1,)] = arho1_R_star[ind]
         intercells[ind_tmp + (fields.arho2,)] = arho2_R_star[ind]
         intercells[ind_tmp + (fields.arho1d,)] = arho1d_R_star[ind]
+        intercells[ind_tmp + (fields.capSigma,)] = capSigma_R_star[ind]
 
         return intercells
 

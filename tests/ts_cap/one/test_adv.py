@@ -51,6 +51,7 @@ def test_adv(plot, init_schemes, init_solver, dir):
 
     Hmax = 1e3
     sigma = 1e-2
+    kappa = 1
     dx = mesh.cells._centroids[1, 1, 0, 0] - mesh.cells._centroids[0, 1, 0, 0]
     dy = mesh.cells._centroids[1, 1, 0, 1] - mesh.cells._centroids[1, 0, 0, 1]
     norm_grada_min = 0
@@ -60,6 +61,7 @@ def test_adv(plot, init_schemes, init_solver, dir):
         eos,
         sigma,
         Hmax,
+        kappa,
         dx,
         dy,
         norm_grada_min,

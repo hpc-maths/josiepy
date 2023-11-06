@@ -11,7 +11,7 @@ from josie.io.write.strategy import TimeStrategy
 
 
 from josie.boundary import Line
-from josie.bc import Neumann
+from josie.bc import Direction, make_periodic
 from josie.mesh import Mesh
 from josie.mesh.cell import MUSCLCell
 from josie.mesh.cellset import MeshCellSet
@@ -30,22 +30,21 @@ def test_relax(plot, write, request, init_schemes, shape_fun, init_solver, nSmoo
     right = Line([L, 0], [L, L])
     top = Line([0, L], [L, L])
 
-    left.bc = Neumann(np.zeros(len(Q.fields)).view(Q))
-    right.bc = Neumann(np.zeros(len(Q.fields)).view(Q))
-    bottom.bc = Neumann(np.zeros(len(Q.fields)).view(Q))
-    top.bc = Neumann(np.zeros(len(Q.fields)).view(Q))
+    left, right = make_periodic(left, right, Direction.X)
+    bottom, top = make_periodic(bottom, top, Direction.Y)
 
     mesh = Mesh(left, bottom, right, top, MUSCLCell)
     N = 30
     mesh.interpolate(N, N)
     mesh.generate()
 
-    final_time = 20e-3
+    final_time = 105e-3
     final_time_test = 1.4e-3
     CFL = 0.4
 
     sigma = 8e2
     Hmax = 1e3
+    kappa = 1
     dx = mesh.cells._centroids[1, 1, 0, 0] - mesh.cells._centroids[0, 1, 0, 0]
     dy = mesh.cells._centroids[1, 1, 0, 1] - mesh.cells._centroids[1, 0, 0, 1]
     norm_grada_min = 0.05 * 1 / dx
@@ -72,12 +71,8 @@ def test_relax(plot, write, request, init_schemes, shape_fun, init_solver, nSmoo
             # c0=3.4e2,
         ),
     )
-    print(
-        eos_ref[Phases.PHASE1].sound_velocity(rho_liq, p_init),
-        eos_ref[Phases.PHASE2].sound_velocity(rho_gas, p_init),
-    )
 
-    schemes = init_schemes(eos, sigma, Hmax, dx, dy, norm_grada_min, nSmoothPass)
+    schemes = init_schemes(eos, sigma, Hmax, kappa, dx, dy, norm_grada_min, nSmoothPass)
 
     def init_fun(cells: MeshCellSet):
         # include ghost cells
@@ -170,7 +165,7 @@ def test_relax(plot, write, request, init_schemes, shape_fun, init_solver, nSmoo
         logger.addHandler(fh)
 
         # Write strategy
-        strategy = TimeStrategy(dt_save=1e-3, animate=False)
+        strategy = TimeStrategy(dt_save=1e-2, animate=False)
         writer = XDMFWriter(
             test_name + f"{now}.xdmf", strategy, solver, final_time=final_time, CFL=CFL
         )

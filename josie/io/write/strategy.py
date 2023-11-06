@@ -63,6 +63,7 @@ class TimeStrategy(Strategy):
     def __init__(
         self,
         dt_save: float,
+        t_init: float = 0.0,
         animate: bool = False,
         serialize: bool = True,
     ):
@@ -70,8 +71,8 @@ class TimeStrategy(Strategy):
 
         self.dt_save = dt_save
 
-        # First slot for saving is 0 + dt_save
-        self.t_save = dt_save
+        # First slot for saving is t_init + dt_save
+        self.t_save = t_init + dt_save
 
     def check_write(self, t: float, dt: float, solver: Solver) -> float:
         self.should_write = False

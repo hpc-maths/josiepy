@@ -22,8 +22,12 @@ def init_schemes(request):
         class TsCapScheme(Rusanov, RK2_relax, MUSCL, MinMod):
             pass
 
-        def initschemes(eos, sigma, Hmax, dx, dy, norm_grada_min, nSmoothPass):
-            return [TsCapScheme(eos, sigma, Hmax, dx, dy, norm_grada_min, nSmoothPass)]
+        def initschemes(eos, sigma, Hmax, kappa, dx, dy, norm_grada_min, nSmoothPass):
+            return [
+                TsCapScheme(
+                    eos, sigma, Hmax, kappa, dx, dy, norm_grada_min, nSmoothPass
+                )
+            ]
 
         yield initschemes
 
@@ -35,10 +39,14 @@ def init_schemes(request):
         class TsCapCapScheme(ArithmeticCap, RK2, MUSCL, MinMod):
             pass
 
-        def initschemes(eos, sigma, Hmax, dx, dy, norm_grada_min, nSmoothPass):
+        def initschemes(eos, sigma, Hmax, kappa, dx, dy, norm_grada_min, nSmoothPass):
             return [
-                TsCapHypScheme(eos, sigma, Hmax, dx, dy, norm_grada_min, nSmoothPass),
-                TsCapCapScheme(eos, sigma, Hmax, dx, dy, norm_grada_min, nSmoothPass),
+                TsCapHypScheme(
+                    eos, sigma, Hmax, kappa, dx, dy, norm_grada_min, nSmoothPass
+                ),
+                TsCapCapScheme(
+                    eos, sigma, Hmax, kappa, dx, dy, norm_grada_min, nSmoothPass
+                ),
             ]
 
         yield initschemes

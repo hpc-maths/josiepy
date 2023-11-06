@@ -22,11 +22,13 @@ class TsCapProblem(ConvectiveProblem):
         eos: TwoPhaseEOS,
         sigma: float,
         Hmax: float,
+        kappa: float,
         norm_grada_min: float,
     ):
         self.eos = eos
         self.sigma = sigma
         self.Hmax = Hmax
+        self.kappa = kappa
         self.norm_grada_min = norm_grada_min
 
     def F_hyper(self, values: Q) -> np.ndarray:

@@ -24,18 +24,20 @@ class TsCapScheme(ConvectiveScheme):
     dy: float
     tmp_arr: np.ndarray
     nSmoothPass: int
+    noMassTransfer: bool
 
     def __init__(
         self,
         eos: TwoPhaseEOS,
         sigma: float,
         Hmax: float,
+        kappa: float,
         dx: float,
         dy: float,
         norm_grada_min: float,
         nSmoothPass: int,
     ):
-        super().__init__(TsCapProblem(eos, sigma, Hmax, norm_grada_min))
+        super().__init__(TsCapProblem(eos, sigma, Hmax, kappa, norm_grada_min))
 
         self.geoUpdate = True
 
@@ -51,6 +53,7 @@ class TsCapScheme(ConvectiveScheme):
 
         if dim > 1:
             self.directions.extend((NeighbourDirection.BOTTOM, NeighbourDirection.TOP))
+        self.noMassTransfer = False
 
     def post_init(self, cells):
         super().post_init(cells)
@@ -158,6 +161,17 @@ class TsCapScheme(ConvectiveScheme):
                 ),
                 np.nan,
             )
+            #     self.std[self.mask] += (
+            #         field[dir.value.data_index][self.mask] - self.mean[self.mask]
+            #     ) ** 2
+            # self.std = np.sqrt(self.std, where=self.std > 0)
+
+            # self.mask = ~np.isnan(field[1:-1, 1:-1])
+            # field[1:-1, 1:-1][self.mask] = np.where(
+            #     np.abs(field[1:-1, 1:-1] - self.mean) > self.std,
+            #     self.mean,
+            #     field[1:-1, 1:-1],
+            # )[self.mask]
 
             # Recursive call
             return self.remove_outlier(field, n - 1)
@@ -168,101 +182,207 @@ class TsCapScheme(ConvectiveScheme):
         arho1 = values[..., fields.arho1]
         arho2 = values[..., fields.arho2]
         arho1d = values[..., fields.arho1d]
-        rho1d = self.problem.eos[Phases.PHASE1].rho0
         ad = values[..., fields.ad]
+        rho1d = np.full_like(arho1d, self.problem.eos[Phases.PHASE1].rho0)
+        np.divide(arho1d, ad, where=(arho1d > 0) & (ad > 0), out=rho1d)
         capSigma = values[..., fields.capSigma]
         abarrho = values[..., fields.abarrho]
+        rhoU = values[..., fields.rhoU]
+        rhoV = values[..., fields.rhoV]
         rho = arho1 + arho2 + arho1d
 
         # Compute estimator of the relaxation within [0,1]
-        ind = np.where(abarrho / rho < 0)
         abar = np.minimum(np.maximum(abarrho / rho, 0), 1)
-        arho1[ind] = 0
+
+        rho1 = np.full_like(arho1, np.nan)
+        rho2 = np.full_like(arho1, np.nan)
+        np.divide(arho1, abar * (1 - ad), where=(abar > 0) & (arho1 > 0), out=rho1)
+        np.divide(
+            arho2,
+            (1 - abar) * (1 - ad),
+            where=((1.0 - abar) > 0) & (arho2 > 0),
+            out=rho2,
+        )
 
         values[..., fields.abar] = abar
         if self.geoUpdate:
             self.updateGeometry(values)
         H = values[..., fields.H]
-        Hlim = np.minimum(H, self.problem.Hmax)
+        grada_x = values[..., fields.grada_x]
+        grada_y = values[..., fields.grada_y]
+        Hlim = H.copy()
+        if not (self.noMassTransfer):
+            # Mass transfer location conditions
+            Hlim = np.where(
+                (3 / self.problem.kappa / rho1d * rho1 * (1 - ad) - (1 - abar) > 0)
+                & (abar > 0.01)
+                & (abar < 0.1)
+                & (-grada_x * rhoU - grada_y * rhoV > 0),
+                np.minimum(H, self.problem.Hmax),
+                Hlim,
+            )
         DH = H - Hlim
 
         # Note that rho remain constant
         def phi(
+            ad: np.ndarray,
+            Hlim: np.ndarray,
+            rho1: np.ndarray,
+            rho2: np.ndarray,
+        ):
+            return (1 - ad) * (
+                self.problem.eos[Phases.PHASE1].p(rho1)
+                - self.problem.eos[Phases.PHASE2].p(rho2)
+            ) - self.problem.sigma * Hlim
+
+        def dphi_dabar(
             arho1: np.ndarray,
             arho2: np.ndarray,
             abar: np.ndarray,
-            ad: np.ndarray,
-            Hlim: np.ndarray,
-        ):
-            rho1 = np.full_like(arho1, np.nan)
-            rho2 = np.full_like(arho1, np.nan)
-            np.divide(arho1, abar * (1 - ad), where=(abar > 0) & (arho1 > 0), out=rho1)
-            np.divide(
-                arho2,
-                (1 - abar) * (1 - ad),
-                where=((1.0 - abar) > 0) & (arho2 > 0),
-                out=rho2,
-            )
-            self.phi_out = np.where(
-                (abar > 0) & (arho1 > 0),
-                self.problem.eos[Phases.PHASE1].p(rho1),
-                np.nan,
-            )
-            self.phi_out -= np.where(
-                ((1.0 - abar) > 0) & (arho2 > 0),
-                self.problem.eos[Phases.PHASE2].p(rho2),
-                np.nan,
-            )
-            return (1 - ad) * self.phi_out - self.problem.sigma * Hlim
-            # return (1 - ad) * (
-            #     self.problem.eos[Phases.PHASE1].p(rho1)
-            #     - self.problem.eos[Phases.PHASE2].p(rho2)
-            # ) - self.problem.sigma * Hlim
-
-        def dphi_dabar(
-            arho1: np.ndarray, arho2: np.ndarray, abar: np.ndarray, ad: np.ndarray
+            rho1: np.ndarray,
+            rho2: np.ndarray,
         ):
             # Note that dp_drho = c^2 for barotropic EOS
             return (
                 -arho1
                 / (abar**2)
-                * self.problem.eos[Phases.PHASE1].sound_velocity(
-                    arho1 / abar / (1 - ad)
-                )
-                ** 2
+                * self.problem.eos[Phases.PHASE1].sound_velocity(rho1) ** 2
                 - arho2
                 / ((1.0 - abar) ** 2)
-                * self.problem.eos[Phases.PHASE2].sound_velocity(
-                    arho2 / (1.0 - abar) / (1 - ad)
-                )
-                ** 2
+                * self.problem.eos[Phases.PHASE2].sound_velocity(rho2) ** 2
             )
 
-        def dphi_dm1(arho1: np.ndarray, abar: np.ndarray, ad: np.ndarray):
-            rho1 = np.full_like(arho1, np.nan)
-            np.divide(arho1, abar * (1 - ad), where=(abar > 0) & (arho1 > 0), out=rho1)
+        def dphi_dm1(rho1: np.ndarray, abar: np.ndarray):
             return self.problem.eos[Phases.PHASE1].sound_velocity(rho1) ** 2 / abar
 
         def dphi_dad(
-            arho1: np.ndarray,
-            arho2: np.ndarray,
-            abar: np.ndarray,
-            ad: np.ndarray,
+            rho1: np.ndarray,
+            rho2: np.ndarray,
         ):
-            rho1 = np.full_like(arho1, np.nan)
-            rho2 = np.full_like(arho1, np.nan)
-            np.divide(arho1, abar * (1 - ad), where=(abar > 0) & (arho1 > 0), out=rho1)
-            np.divide(
-                arho2,
-                (1 - abar) * (1 - ad),
-                where=((1 - abar) > 0) & (arho2 > 0),
-                out=rho2,
-            )
             p1 = self.problem.eos[Phases.PHASE1].p(rho1)
             c1 = self.problem.eos[Phases.PHASE1].sound_velocity(rho1)
             p2 = self.problem.eos[Phases.PHASE2].p(rho2)
             c2 = self.problem.eos[Phases.PHASE2].sound_velocity(rho2)
             return p2 - p1 + c1**2 * rho1 - c2**2 * rho2
+
+        def compute_step(
+            dc: float,
+            arho1: np.ndarray,
+            abar: np.ndarray,
+            ad: np.ndarray,
+            DH: np.ndarray,
+            R: np.ndarray,
+            F: np.ndarray,
+            dFda: np.ndarray,
+            rho1: np.ndarray,
+            momDotVel: np.ndarray,
+            fac: np.ndarray,
+            rho1d: np.ndarray,
+        ) -> np.ndarray:
+            # arho1 stability condition
+            dtau = np.full_like(arho1, np.inf)
+            np.divide(
+                dc * arho1,
+                (rho1 * self.problem.sigma / (1 - abar) * DH),
+                where=(DH > 0) & (~np.isnan(rho1)),
+                out=dtau,
+            )
+
+            # velocity stability condition
+            dtautmp = np.full_like(dtau, np.inf)
+            np.divide(
+                momDotVel,
+                self.problem.Hmax * DH * fac * self.problem.sigma**2,
+                where=(DH > 0) & (~np.isnan(rho1)),
+                out=dtautmp,
+            )
+            dtau = np.minimum(
+                dtau,
+                dtautmp,
+            )
+
+            # ad stability condition
+            self.a1dc = 0.5
+            dtautmp = np.full_like(ad, np.inf)
+            np.divide(
+                dc * (self.a1dc - ad),
+                (rho1 * self.problem.sigma / (1 - abar) / rho1d * DH),
+                where=(DH > 0) & (~np.isnan(rho1)) & (ad < self.a1dc),
+                out=dtautmp,
+            )
+            dtau = np.minimum(
+                dtau,
+                dtautmp,
+            )
+            dtautmp = np.full_like(ad, np.inf)
+            np.divide(
+                ad,
+                (rho1 * self.problem.sigma / (1 - abar) / rho1d * DH),
+                where=(DH > 0) & (~np.isnan(rho1)) & (ad < self.a1dc) & (ad > 0),
+                out=dtautmp,
+            )
+            dtau = np.minimum(
+                dtau,
+                dtautmp,
+            )
+
+            # abar stability condition
+            a = rho1 * self.problem.sigma / (1 - abar) / (1 - ad) * DH * R
+            # Upper bound
+            b = 1 / (1 - ad) * (F + dc * (1 - abar) * dFda)
+            D = b**2 - 4 * a * (-dc * (1 - abar))
+            # This gives the first root when a<0
+            # or the second when a>0
+            dtautmp = np.full_like(a, np.inf)
+            np.divide(
+                (-b + np.sqrt(D, where=D > 0)),
+                (2 * a),
+                where=(D > 0) & ((a > 0) | ((a < 0) & (b > 0))),
+                out=dtautmp,
+            )
+            dtautmp = np.where((a == 0) & (b > 0), dc * (1 - abar) / b, dtautmp)
+            # D = np.zeros_like(a)
+            # indtmp = np.where((DH > 0))
+            # D[indtmp] = np.power(b[indtmp], 2) - 4 * a[indtmp] * (
+            #     -dc * (1 - abar[indtmp])
+            # )
+            # # This gives the first root when a<0
+            # # or the second when a>0
+            # dtautmp = np.full_like(a, np.inf)
+            # indtmp = np.where((D > 0) & ((a > 0) | ((a < 0) & (b > 0))) & (DH > 0))
+            # dtautmp[indtmp] = (-b[indtmp] + np.sqrt(D[indtmp])) / (2 * a[indtmp])
+            # indtmp = np.where((a == 0) & (b > 0) & (DH > 0))
+            # dtautmp[indtmp] = dc * (1 - abar[indtmp])
+            dtau = np.minimum(
+                dtau,
+                dtautmp,
+            )
+
+            # Lower bound
+            b = 1 / (1 - ad) * (F - dc * abar * dFda)
+            D = b**2 - 4 * a * (dc * abar)
+            dtautmp = np.full_like(a, np.inf)
+            np.divide(
+                (-b - np.sqrt(D, where=D > 0)),
+                (2 * a),
+                where=(D > 0) & ((a < 0) | ((a > 0) & (b < 0))),
+                out=dtautmp,
+            )
+            dtautmp = np.where((a == 0) & (b < 0), -(dc * abar) / b, dtautmp)
+            # D.fill(0)
+            # indtmp = np.where((DH > 0))
+            # D[indtmp] = np.power(b[indtmp], 2) - 4 * a[indtmp] * (dc * abar[indtmp])
+            # dtautmp.fill(np.inf)
+            # indtmp = np.where((D > 0) & ((a < 0) | ((a > 0) & (b < 0))) & (DH > 0))
+            # dtautmp[indtmp] = (-b[indtmp] - np.sqrt(D[indtmp])) / (2 * a[indtmp])
+            # indtmp = np.where((a == 0) & (b < 0) & (DH > 0))
+            # dtautmp[indtmp] = -(dc * abar[indtmp]) / b[indtmp]
+            dtau = np.minimum(
+                dtau,
+                dtautmp,
+            )
+
+            return dtau
 
         # Init NR method
         dabar = np.zeros_like(abar)
@@ -272,72 +392,171 @@ class TsCapScheme(ConvectiveScheme):
         eps = 0
         tol = 1e-10
         p0 = self.problem.eos[Phases.PHASE1].p0
-        p0 = self.problem.sigma * Hlim
-        index = np.where(
-            (np.abs(phi(arho1, arho2, abar, ad, Hlim)) > tol * p0)
-            & (abar > eps)
-            & (1 - abar > eps)
+        p0 = np.minimum(
+            np.abs(self.problem.sigma * Hlim), self.problem.eos[Phases.PHASE1].p0
         )
+        F = phi(ad, Hlim, rho1, rho2)
+        index = np.where((np.abs(F) > tol * p0) & (abar > eps) & (1 - abar > eps))
         while index[0].size > 0:
             # Counter
             iter += 1
 
-            # Mass transfer modification of the jacobian
-            R = (
+            # Damping coef
+            dc = 0.9
+
+            R = dphi_dad(rho1[index], rho2[index]) / rho1d[index] - dphi_dm1(
+                rho1[index], abar[index]
+            )
+            momDotVel = (rhoU**2 + rhoV**2) / rho
+            fac = np.where(
+                (DH > 0),
+                3 / self.problem.kappa / rho1d * rho1 / (1 - abar) - 1 / (1 - ad),
+                0,
+            )
+            # fac = 3 * rho1[index] / (
+            #     self.problem.kappa * rho1d[index] * (1 - abar[index])
+            # ) - 1 / (1 - ad[index])
+            # dtau ~ dtau / epsilon
+            dFda = dphi_dabar(
+                arho1[index], arho2[index], abar[index], rho1[index], rho2[index]
+            )
+            dtau = compute_step(
+                dc,
+                arho1[index],
+                abar[index],
+                ad[index],
+                DH[index],
+                R,
+                F[index],
+                dFda,
+                rho1[index],
+                momDotVel[index],
+                fac[index],
+                # fac,
+                rho1d[index],
+            )
+            if np.any(dtau < 0) or np.any(np.isnan(dtau)):
+                raise Exception("Negative timestep in relaxation: " + str(dtau))
+
+            darho1 = np.zeros_like(dtau)
+            np.multiply(
+                -dtau,
                 arho1[index]
                 / abar[index]
+                / (1 - ad[index])
                 / (1 - abar[index])
                 * self.problem.sigma
-                * DH[index]
+                * DH[index],
+                where=~np.isinf(dtau),
+                out=darho1,
             )
-            F = phi(arho1[index], arho2[index], abar[index], ad[index], Hlim[index])
-            dphi_trans = (
-                R
-                / F
-                * (
-                    dphi_dad(arho1[index], arho2[index], abar[index], ad[index]) / rho1d
-                    - dphi_dm1(arho1[index], abar[index], ad[index])
-                )
-            )
-            # NR step
-            dabar[index] = -F / (
-                dphi_dabar(arho1[index], arho2[index], abar[index], ad[index])
-                + dphi_trans
+            dabar = np.zeros_like(abar)
+            dabar[index] = np.where(
+                np.isinf(dtau),
+                -F[index] / dFda,
+                (
+                    np.divide(
+                        dtau / (1 - ad[index]) * (F[index] - darho1 * R),
+                        (1 - dtau / (1 - ad[index]) * dFda),
+                        where=~np.isinf(dtau),
+                    )
+                ),
             )
 
-            # Prevent the NR method to explore out of the interval [0,1]
-            dabar[index] = np.where(
-                dabar[index] < 0,
-                np.maximum(dabar[index], -0.9 * abar[index]),
-                np.minimum(dabar[index], 0.9 * (1 - abar[index])),
+            drho_fac = np.where(
+                DH[index] > 0,
+                dtau
+                * self.problem.sigma**2
+                * DH[index]
+                * fac[index]
+                * Hlim[index]
+                * rho[index]
+                / (rhoU**2 + rhoV**2)[index],
+                0,
             )
+            #     np.divide(
+            #         dtau / (1 - ad[index]) * (F[index] - darho1 * R),
+            #         (1 - dtau / (1 - ad[index]) * dFda),
+            #         where=~np.isinf(dtau),
+            #     ),
+            # )
+            # indtmp = np.where(~np.isinf(dtau))
+            # drho_fac = np.zeros_like(dtau)
+            # drho_fac[indtmp] = (
+            #     dtau[indtmp]
+            #     * self.problem.sigma**2
+            #     * DH[index][indtmp]
+            #     * fac[indtmp]
+            #     * Hlim[index][indtmp]
+            #     * rho[index][indtmp]
+            #     / (rhoU**2 + rhoV**2)[index][indtmp]
+            # )
+
+            drhoU = -drho_fac * rhoU[index]
+            drhoV = -drho_fac * rhoV[index]
 
             # Update values
             abar[index] += dabar[index]
-            arho1[index] += -dabar[index] / F * R
-            # capSigma += dabar / f * R * capSigma[index] / md[index]
-            # il faut fixer une taille moyenne de depart
-            arho1d[index] += dabar[index] / F * R
-            ad[index] += dabar[index] / F * R / rho1d
-
-            # Update stored values
-            values[..., fields.arho1] = arho1
-            values[..., fields.arho1d] = arho1d
+            arho1[index] += darho1
+            capSigma[index] -= (
+                3 * self.problem.Hmax / self.problem.kappa / rho1d[index]
+            ) * darho1
+            rhoU[index] += drhoU
+            rhoV[index] += drhoV
+            arho1d[index] -= darho1
+            ad[index] -= darho1 / rho1d[index]
             values[..., fields.abarrho] = abar * rho
-            values[..., fields.ad] = ad
-            values[..., fields.capSigma] = capSigma
 
             # Update the index where the NR method is applied
+            if np.any(DH > 1e-7):
+                self.updateGeometry(values)
+                H = values[..., fields.H]
+                Hlim = H.copy()
+                if not (self.noMassTransfer):
+                    Hlim = np.where(
+                        (
+                            3 / self.problem.kappa / rho1d * rho1 * (1 - ad)
+                            - (1 - abar)
+                            > 0
+                        )
+                        & (abar > 0.01)
+                        & (abar < 0.1)
+                        & (-grada_x * rhoU - grada_y * rhoV > 0),
+                        np.minimum(H, self.problem.Hmax),
+                        Hlim,
+                    )
+                DH = H - Hlim
+                p0 = np.minimum(
+                    self.problem.sigma * Hlim, self.problem.eos[Phases.PHASE1].p0
+                )
+            rho1.fill(np.nan)
+            rho2.fill(np.nan)
+            np.divide(arho1, abar * (1 - ad), where=(abar > 0) & (arho1 > 0), out=rho1)
+            np.divide(
+                arho2,
+                (1 - abar) * (1 - ad),
+                where=((1.0 - abar) > 0) & (arho2 > 0),
+                out=rho2,
+            )
+            F = phi(ad, Hlim, rho1, rho2)
             index = np.where(
-                (np.abs(phi(arho1, arho2, abar, ad, Hlim)) > tol * p0)
+                (np.abs(F) > tol * p0)
                 & (abar > eps)
                 & (1 - abar > eps)
                 & (np.abs(dabar) > 1e-14)
             )
 
             # Safety check
-            if iter > 20:
-                exit()
+            if iter > 30:
+                self.noMassTransfer = True
+
+            if iter > 60:
+                raise Exception(
+                    "Maximal iteration reached in relaxation with |dabar|: "
+                    + str(np.abs(dabar))
+                )
+
+        self.noMassTransfer = False
 
     def updateGeometry(self, values: Q):
         fields = Q.fields
@@ -398,10 +617,21 @@ class TsCapScheme(ConvectiveScheme):
         norm_grada = np.sqrt(grada_x**2 + grada_y**2)
         n_x = np.full_like(grada_x, np.nan)
         n_y = np.full_like(grada_y, np.nan)
-        np.divide(grada_x, norm_grada, where=norm_grada > 0, out=n_x)
-        np.divide(grada_y, norm_grada, where=norm_grada > 0, out=n_y)
+        np.divide(
+            grada_x,
+            norm_grada,
+            where=(norm_grada > 0) & (abar > 0) & (abar < 1),
+            out=n_x,
+        )
+        np.divide(
+            grada_y,
+            norm_grada,
+            where=(norm_grada > 0) & (abar > 0) & (abar < 1),
+            out=n_y,
+        )
 
         H = -(self.nan_gradient(n_x, dx, dy)[0] + self.nan_gradient(n_y, dx, dy)[1])
+        H[np.where(np.abs(H) < 1e-10)] = 0
 
         # Smoothening
         if len(H.shape) == 3:
@@ -418,7 +648,7 @@ class TsCapScheme(ConvectiveScheme):
 
     def auxilliaryVariableUpdate(self, values: Q):
         fields = Q.fields
-        sigma = self.problem.sigma
+        # sigma = self.problem.sigma
 
         # Get variables updated by the scheme
         abarrho = values[..., fields.abarrho]
@@ -471,26 +701,26 @@ class TsCapScheme(ConvectiveScheme):
         rho = values[..., fields.rho]
         cFd = np.sqrt(c_sq / rho) / (1 - ad)
 
-        MaX = U / cFd
-        MaY = V / cFd
-        norm_grada = values[..., fields.norm_grada]
-        n_x = values[..., fields.n_x]
-        n_y = values[..., fields.n_y]
-        WeX = np.empty_like(norm_grada)
-        WeX[:] = np.nan
-        np.divide(sigma * norm_grada, rho * U**2, where=U**2 > 0, out=WeX)
-        WeY = np.empty_like(norm_grada)
-        WeY[:] = np.nan
-        np.divide(sigma * norm_grada, rho * V**2, where=V**2 > 0, out=WeY)
-        r = np.empty_like(norm_grada)
-        r[:] = np.nan
-        np.divide(MaX**2, WeX, where=WeX > 0, out=r)
-        c_cap1X = cFd * (1 + 0.5 * r * n_x**2 * (1 - n_x**2))
-        c_cap2X = cFd * (1 - n_x**2) * np.sqrt(r)
-        r[:] = np.nan
-        np.divide(MaY**2, WeY, where=WeY > 0, out=r)
-        c_cap1Y = cFd * (1 + 0.5 * r * n_y**2 * (1 - n_y**2))
-        c_cap2Y = cFd * (1 - n_y**2) * np.sqrt(r)
+        # MaX = U / cFd
+        # MaY = V / cFd
+        # norm_grada = values[..., fields.norm_grada]
+        # n_x = values[..., fields.n_x]
+        # n_y = values[..., fields.n_y]
+        # WeX = np.empty_like(norm_grada)
+        # WeX[:] = np.nan
+        # np.divide(rho * U**2, sigma * norm_grada, where=norm_grada > 0, out=WeX)
+        # WeY = np.empty_like(norm_grada)
+        # WeY[:] = np.nan
+        # np.divide(rho * V**2, sigma * norm_grada, where=norm_grada > 0, out=WeY)
+        # r = np.empty_like(norm_grada)
+        # r[:] = np.nan
+        # np.divide(MaX**2, WeX, where=WeX > 0, out=r)
+        # c_cap1X = cFd * (1 + 0.5 * r * n_x**2 * (1 - n_x**2))
+        # c_cap2X = cFd * (1 - n_x**2) * np.sqrt(r)
+        # r[:] = np.nan
+        # np.divide(MaY**2, WeY, where=WeY > 0, out=r)
+        # c_cap1Y = cFd * (1 + 0.5 * r * n_y**2 * (1 - n_y**2))
+        # c_cap2Y = cFd * (1 - n_y**2) * np.sqrt(r)
 
         # Update the auxilliary variables
         abar = values[..., fields.abar]
@@ -504,14 +734,14 @@ class TsCapScheme(ConvectiveScheme):
         )
 
         values[..., fields.cFd] = cFd
-        values[..., fields.MaX] = MaX
-        values[..., fields.MaY] = MaY
-        values[..., fields.WeX] = WeX
-        values[..., fields.WeY] = WeY
-        values[..., fields.c_cap1X] = c_cap1X
-        values[..., fields.c_cap1Y] = c_cap1Y
-        values[..., fields.c_cap2X] = c_cap2X
-        values[..., fields.c_cap2Y] = c_cap2Y
+        # values[..., fields.MaX] = MaX
+        # values[..., fields.MaY] = MaY
+        # values[..., fields.WeX] = WeX
+        # values[..., fields.WeY] = WeY
+        # values[..., fields.c_cap1X] = c_cap1X
+        # values[..., fields.c_cap1Y] = c_cap1Y
+        # values[..., fields.c_cap2X] = c_cap2X
+        # values[..., fields.c_cap2Y] = c_cap2Y
 
     def auxilliaryVariableUpdateNoGeo(self, values: Q):
         fields = Q.fields
@@ -566,26 +796,26 @@ class TsCapScheme(ConvectiveScheme):
         rho = values[..., fields.rho]
         cFd = np.sqrt(c_sq / rho) / (1 - ad)
 
-        MaX = U / cFd
-        MaY = V / cFd
-        norm_grada = values[..., fields.norm_grada]
-        n_x = values[..., fields.n_x]
-        n_y = values[..., fields.n_y]
-        WeX = np.empty_like(norm_grada)
-        WeX[:] = np.nan
-        np.divide(sigma * norm_grada, rho * U**2, where=U**2 > 0, out=WeX)
-        WeY = np.empty_like(norm_grada)
-        WeY[:] = np.nan
-        np.divide(sigma * norm_grada, rho * V**2, where=V**2 > 0, out=WeY)
-        r = np.empty_like(norm_grada)
-        r[:] = np.nan
-        np.divide(MaX**2, WeX, where=WeX > 0, out=r)
-        c_cap1X = cFd * (1 + 0.5 * r * n_x**2 * (1 - n_x**2))
-        c_cap2X = cFd * (1 - n_x**2) * np.sqrt(r)
-        r[:] = np.nan
-        np.divide(MaY**2, WeY, where=WeY > 0, out=r)
-        c_cap1Y = cFd * (1 + 0.5 * r * n_y**2 * (1 - n_y**2))
-        c_cap2Y = cFd * (1 - n_y**2) * np.sqrt(r)
+        # MaX = U / cFd
+        # MaY = V / cFd
+        # norm_grada = values[..., fields.norm_grada]
+        # n_x = values[..., fields.n_x]
+        # n_y = values[..., fields.n_y]
+        # WeX = np.empty_like(norm_grada)
+        # WeX[:] = np.nan
+        # np.divide(sigma * norm_grada, rho * U**2, where=U**2 > 0, out=WeX)
+        # WeY = np.empty_like(norm_grada)
+        # WeY[:] = np.nan
+        # np.divide(sigma * norm_grada, rho * V**2, where=V**2 > 0, out=WeY)
+        # r = np.empty_like(norm_grada)
+        # r[:] = np.nan
+        # np.divide(MaX**2, WeX, where=WeX > 0, out=r)
+        # c_cap1X = cFd * (1 + 0.5 * r * n_x**2 * (1 - n_x**2))
+        # c_cap2X = cFd * (1 - n_x**2) * np.sqrt(r)
+        # r[:] = np.nan
+        # np.divide(MaY**2, WeY, where=WeY > 0, out=r)
+        # c_cap1Y = cFd * (1 + 0.5 * r * n_y**2 * (1 - n_y**2))
+        # c_cap2Y = cFd * (1 - n_y**2) * np.sqrt(r)
 
         # Update the auxilliary variables
         abar = values[..., fields.abar]
@@ -599,14 +829,14 @@ class TsCapScheme(ConvectiveScheme):
         )
 
         values[..., fields.cFd] = cFd
-        values[..., fields.MaX] = MaX
-        values[..., fields.MaY] = MaY
-        values[..., fields.WeX] = WeX
-        values[..., fields.WeY] = WeY
-        values[..., fields.c_cap1X] = c_cap1X
-        values[..., fields.c_cap1Y] = c_cap1Y
-        values[..., fields.c_cap2X] = c_cap2X
-        values[..., fields.c_cap2Y] = c_cap2Y
+        # values[..., fields.MaX] = MaX
+        # values[..., fields.MaY] = MaY
+        # values[..., fields.WeX] = WeX
+        # values[..., fields.WeY] = WeY
+        # values[..., fields.c_cap1X] = c_cap1X
+        # values[..., fields.c_cap1Y] = c_cap1Y
+        # values[..., fields.c_cap2X] = c_cap2X
+        # values[..., fields.c_cap2Y] = c_cap2Y
 
     def post_step(self, values: Q):
         """During the step we update the conservative values. After the
@@ -646,109 +876,85 @@ class TsCapScheme(ConvectiveScheme):
 
     def compute_max_vel(self, U: np.ndarray, values: Q, sigma: float):
         cFd = values[..., [0], Q.fields.cFd]
+        norm_grada = values[..., [0], Q.fields.norm_grada]
+        rho = values[..., [0], Q.fields.rho]
 
-        Ma = U / cFd
+        # r = Ma ** 2 / We
+        # c_cap = cFd * (1 + r / 8)
+        self.c_max = cFd * (1 + (sigma * norm_grada) / (cFd**2 * rho) / 8)
 
-        We = np.full_like(Ma, np.inf)
-        np.divide(
-            values[..., [0], Q.fields.rho] * U**2,
-            sigma * values[..., [0], Q.fields.norm_grada],
-            where=sigma * values[..., [0], Q.fields.norm_grada] > 0,
-            out=We,
+        self.c_max = np.maximum(
+            np.abs(U - self.c_max),
+            np.abs(U + self.c_max),
         )
-        r = np.zeros_like(Ma)
-        r = np.divide(Ma**2, We, where=We > 0, out=r)
-        if np.any(
-            np.isnan(
-                np.maximum(
-                    np.abs(U - cFd * (1 + r / 8)),
-                    np.abs(U + cFd * (1 + r / 8)),
-                )
-            )
-        ):
-            np.set_printoptions(linewidth=250)
+
+        if np.any(np.isnan(self.c_max)):
             print(U[..., 0])
-            exit()
+            raise Exception("Nan in maximal velocity estimator :" + str(self.c_max))
 
-        return np.maximum(
-            np.abs(U - cFd * (1 + r / 8)),
-            np.abs(U + cFd * (1 + r / 8)),
-        )
+        return self.c_max
 
     def prim2Qc(self, values: Q):
-        rho = values[..., Q.fields.rho]
-        U = values[..., Q.fields.U]
-        V = values[..., Q.fields.V]
-        abar = values[..., Q.fields.abar]
-        arho1d = values[..., Q.fields.arho1d]
-        ad = values[..., Q.fields.ad]
-        H = values[..., Q.fields.H]
-        sigma = self.problem.sigma
-
-        if np.any(rho <= 0):
-            exit()
-
-        # For linearized EOS only
-        c1 = self.problem.eos[Phases.PHASE1].c0
-        rho01 = self.problem.eos[Phases.PHASE1].rho0
-        c2 = self.problem.eos[Phases.PHASE2].c0
-        rho02 = self.problem.eos[Phases.PHASE2].rho0
-        # rho1, rho2 solution of
-        #       rho = abar (1-ad) rho1 + (1-abar) (1-ad) rho2 + arho1d
-        # and   p1(rho1)-p2(rho2) = 0
-
-        rho1 = np.full_like(rho, np.nan)
-        rho1 = np.where(
-            (abar > 0),
-            np.where(
-                ~np.isnan(H),
-                (
-                    c2**2 * (rho - arho1d - (1 - abar) * (1 - ad) * rho02)
-                    + (1 - abar) * (1 - ad) * c1**2 * rho01
-                    + (1 - abar) * (1 - ad) * sigma * H
-                )
-                / ((1 - ad) * ((1 - abar) * c1**2 + abar * c2**2)),
-                (
-                    c2**2 * (rho - arho1d - (1 - abar) * (1 - ad) * rho02)
-                    + (1 - abar) * (1 - ad) * c1**2 * rho01
-                )
-                / ((1 - ad) * ((1 - abar) * c1**2 + abar * c2**2)),
-            ),
-            np.nan,
-        )
-        rho2 = np.full_like(rho, np.nan)
-        rho2 = np.where(
-            (1 - abar) > 0,
-            np.where(
-                ~np.isnan(H),
-                (
-                    c1**2 * (rho - arho1d - abar * (1 - ad) * rho01)
-                    + abar * (1 - ad) * c2**2 * rho02
-                    + abar * (1 - ad) * sigma * H
-                )
-                / ((1 - ad) * (abar * c2**2 + (1 - abar) * c1**2)),
-                (
-                    c1**2 * (rho - arho1d - abar * (1 - ad) * rho01)
-                    + abar * (1 - ad) * c2**2 * rho02
-                )
-                / ((1 - ad) * (abar * c2**2 + (1 - abar) * c1**2)),
-            ),
-            np.nan,
+        values[..., Q.fields.abarrho] = values[..., Q.fields.abar] * (
+            values[..., Q.fields.arho1]
+            + values[..., Q.fields.arho2]
+            + values[..., Q.fields.arho1d]
         )
 
-        values[..., Q.fields.abarrho] = abar * rho
-        values[..., Q.fields.rhoU] = rho * U
-        values[..., Q.fields.rhoV] = rho * V
-        values[..., Q.fields.arho1] = np.where(
-            abar > 0,
-            abar * (1 - ad) * rho1,
-            0,
-        )
-        values[..., Q.fields.arho2] = np.where(
-            (1 - abar) > 0,
-            (1 - abar) * (1 - ad) * rho2,
-            0,
-        )
+    # def prim2Qc(self, values: Q):
+    #     abar = values[..., Q.fields.abar]
+    #     U = values[..., Q.fields.U]
+    #     V = values[..., Q.fields.V]
+    #     pbar = values[..., Q.fields.pbar]
+    #     arho1d = values[..., Q.fields.arho1d]
+    #     ad = values[..., Q.fields.ad]
+    #     H = values[..., Q.fields.H]
+    #     sigma = self.problem.sigma
+
+    #     # For linearized EOS only
+    #     p1 = np.full_like(abar, np.nan)
+    #     p1 = np.where(
+    #         abar > 0,
+    #         np.where(~np.isnan(H), pbar + (1 - abar) * sigma * H,pbar),
+    #         # pbar + (1 - abar) * sigma * H,
+    #         np.nan,
+    #     )
+    #     rho1 = self.problem.eos[Phases.PHASE1].rho(p1)
+    #     p2 = np.full_like(abar, np.nan)
+    #     p2 = np.where(
+    #         abar < 1,
+    #         # pbar - abar * sigma * H,
+    #         np.where(~np.isnan(H), pbar - abar * sigma * H,pbar),
+    #         np.nan,
+    #     )
+    #     rho2 = self.problem.eos[Phases.PHASE2].rho(p2)
+
+    #     values[..., Q.fields.arho1] = np.where(
+    #         abar > 0,
+    #         abar * (1 - ad) * rho1,
+    #         0,
+    #     )
+    #     values[..., Q.fields.arho2] = np.where(
+    #         (1 - abar) > 0,
+    #         (1 - abar) * (1 - ad) * rho2,
+    #         0,
+    #     )
+    #     rho = values[..., Q.fields.arho1] + values[..., Q.fields.arho2] + arho1d
+
+    #     values[..., Q.fields.abarrho] = abar * rho
+    #     values[..., Q.fields.rhoU] = rho * U
+    #     values[..., Q.fields.rhoV] = rho * V
+
+    def post_extrapolation(self, values: Q):
+        self.prim2Qc(values)
+
+        self.geoUpdate = False
+        self.relaxation(values)
+        self.geoUpdate = True
+
+        # auxilliary variables update
+        self.auxilliaryVariableUpdateNoGeo(values)
+        # self.auxilliaryVariableUpdate(values)
 
 
 class Rusanov(TsCapScheme):
@@ -813,7 +1019,7 @@ class Rusanov(TsCapScheme):
         return FS
 
     def post_extrapolation(self, values: Q):
-        # self.prim2Qc(values)
+        self.prim2Qc(values)
 
         self.geoUpdate = False
         self.relaxation(values)
