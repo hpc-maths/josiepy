@@ -76,7 +76,7 @@ class Writer(abc.ABC):
                     # TODO: Factor out in separate object hierarchy the
                     # `animate` method of :class:`Solver`
                     solver.animate(self.solver.t)
-
+            break
             solver.step(dt)
 
 
@@ -184,7 +184,7 @@ class XDMFWriter(FileWriter):
 
         for field in self.solver.Q.fields:
             cell_data[field.name] = {
-                cell_type_str: self.solver.mesh.cells.values[..., field].ravel()
+                cell_type_str: self.solver.mesh.cells.values[..., 0, field].ravel()
             }
 
         self._writer.write_data(self.solver.t, cell_data=cell_data)

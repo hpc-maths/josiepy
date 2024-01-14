@@ -94,9 +94,10 @@ def test_atom(request, write, atom_param, init_schemes, init_solver, Hmax):
     # Initial conditions
     # We = atom_param.We  # We = rho * (U_l-U_g) ** 2 * L / sigma
     sigma = atom_param.sigma
-    kappa = 0.5
+    kappa = 1
     R = atom_param.R
-    nSmoothPass = 5
+    nSmoothPass = 0
+    Hmax = 500
 
     # U_inlet = np.sqrt(We / eos[Phases.PHASE2].rho0 / R * sigma)
     U_inlet = 6.66
@@ -123,8 +124,9 @@ def test_atom(request, write, atom_param, init_schemes, init_solver, Hmax):
     if filename == "":
         N = 40
     else:
-        reader = XDMFReader(filename, Q)
-        N = int(np.sqrt(reader.read_dim() / 2))
+        # reader = XDMFReader(filename, Q)
+        # N = int(np.sqrt(reader.read_dim() / 2))
+        N = 1600
     mesh.interpolate(int(box_ratio * N), N)
     mesh.generate()
 
@@ -201,8 +203,26 @@ def test_atom(request, write, atom_param, init_schemes, init_solver, Hmax):
         mollify_state(cells, r, ad, U_0, U_1, V, x_c, y_c, x_0, y_0)
         schemes[0].auxilliaryVariableUpdate(cells._values)
 
+    def init_fun_load(cells: MeshCellSet):
+        abar = np.load("alpha_19.npy").reshape((2 * N, N), order="F")
+        rho = np.load("rho_19.npy").reshape((2 * N, N), order="F")
+        pres = np.load("pres_19.npy").reshape((2 * N, N), order="F")
+        U = np.load("U_19.npy").reshape((2 * N, N), order="F")
+        V = np.load("V_19.npy").reshape((2 * N, N), order="F")
+
+        fields = Q.fields
+        cells.values[..., 0, fields.abarrho] = abar * rho
+        cells.values[..., 0, fields.ad] = 0
+        cells.values[..., 0, fields.capSigma] = 0
+        cells.values[..., 0, fields.arho1] = abar * eos[Phases.PHASE1].rho(pres)
+        cells.values[..., 0, fields.arho1d] = 0
+        cells.values[..., 0, fields.arho2] = (1 - abar) * eos[Phases.PHASE2].rho(pres)
+        cells.values[..., 0, fields.rhoU] = rho * U
+        cells.values[..., 0, fields.rhoV] = rho * V
+        schemes[0].auxilliaryVariableUpdate(cells._values)
+
     if filename == "":
-        solver = init_solver(mesh, schemes, init_fun)
+        solver = init_solver(mesh, schemes, init_fun_load)
     else:
         solver = init_solver(mesh, schemes, init_from_file)
         solver.t = reader.read_time(num_step)
