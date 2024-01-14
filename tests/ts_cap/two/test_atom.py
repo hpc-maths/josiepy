@@ -46,30 +46,30 @@ class AtomParam:
 
 
 atom_params = [
-    # AtomParam(
-    #     name="High_deformation",
-    #     We=666,
-    #     sigma=1e-2,
-    #     rho0l=1e3,
-    #     rho0g=1e0,
-    #     c0l=1e1,
-    #     c0g=1e1,
-    #     R=0.15,
-    #     final_time=3,
-    #     final_time_test=1e-2,
-    # ),
     AtomParam(
-        name="more_comp",
-        We=50,
+        name="Grenier_comparaison_shock_1dx",
+        We=333.33,
         sigma=1e-2,
         rho0l=1e3,
         rho0g=1e0,
-        c0l=2e1,
-        c0g=2e1,
+        c0l=1e1,
+        c0g=1e1,
         R=0.15,
-        final_time=3,
+        final_time=0.7,
         final_time_test=1e-2,
     ),
+    # AtomParam(
+    #    name="more_comp",
+    #    We=50,
+    #    sigma=1e-2,
+    #    rho0l=1e3,
+    #    rho0g=1e0,
+    #    c0l=2e1,
+    #    c0g=2e1,
+    #    R=0.15,
+    #    final_time=3,
+    #    final_time_test=1e-2,
+    # ),
 ]
 
 
@@ -94,11 +94,12 @@ def test_atom(request, write, atom_param, init_schemes, init_solver, Hmax):
     # Initial conditions
     We = atom_param.We  # We = rho * (U_l-U_g) ** 2 * L / sigma
     sigma = atom_param.sigma
-    kappa = 1
+    kappa = 0.5
     R = atom_param.R
     nSmoothPass = 5
 
-    U_inlet = np.sqrt(We / eos[Phases.PHASE2].rho0 / R * sigma)
+    # U_inlet = np.sqrt(We / eos[Phases.PHASE2].rho0 / R * sigma)
+    U_inlet = 6.66
     print("Advection time: " + str(width / U_inlet))
     # Inlet BC
     abar_in = 0
@@ -192,7 +193,7 @@ def test_atom(request, write, atom_param, init_schemes, init_solver, Hmax):
         y_0 = height / 2
 
         ad = 0
-        U_0 = U_inlet
+        U_0 = -6.66
         U_1 = 0
         V = 0
 
@@ -220,6 +221,10 @@ def test_atom(request, write, atom_param, init_schemes, init_solver, Hmax):
             + str(N)
             + "x"
             + str(2 * N)
+            + "-"
+            + str(Hmax)
+            + "-"
+            + str(kappa)
         )
         fh = logging.FileHandler(test_name + f"-{now}.log")
         fh.setLevel(logging.DEBUG)
@@ -231,7 +236,7 @@ def test_atom(request, write, atom_param, init_schemes, init_solver, Hmax):
         logger.addHandler(fh)
 
         # Write strategy
-        dt_save = final_time / 100
+        dt_save = 0.01
         strategy = TimeStrategy(dt_save=dt_save, t_init=solver.t, animate=False)
         writer = XDMFWriter(
             test_name + f"-{now}.xdmf",
