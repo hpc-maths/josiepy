@@ -745,7 +745,7 @@ class TsCapScheme(ConvectiveScheme):
 
     def auxilliaryVariableUpdateNoGeo(self, values: Q):
         fields = Q.fields
-        sigma = self.problem.sigma
+        # sigma = self.problem.sigma
 
         # Get variables updated by the scheme
         abarrho = values[..., fields.abarrho]

@@ -92,7 +92,7 @@ def test_atom(request, write, atom_param, init_schemes, init_solver, Hmax):
     )
 
     # Initial conditions
-    We = atom_param.We  # We = rho * (U_l-U_g) ** 2 * L / sigma
+    # We = atom_param.We  # We = rho * (U_l-U_g) ** 2 * L / sigma
     sigma = atom_param.sigma
     kappa = 0.5
     R = atom_param.R
