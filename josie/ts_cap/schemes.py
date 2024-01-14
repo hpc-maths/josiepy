@@ -389,7 +389,7 @@ class TsCapScheme(ConvectiveScheme):
         iter = 0
 
         # Index that locates the cell where there the pressures need to be relaxed
-        eps = 0
+        eps = 1e-20
         tol = 1e-10
         p0 = self.problem.eos[Phases.PHASE1].p0
         p0 = np.minimum(
@@ -397,6 +397,8 @@ class TsCapScheme(ConvectiveScheme):
         )
         F = phi(ad, Hlim, rho1, rho2)
         index = np.where((np.abs(F) > tol * p0) & (abar > eps) & (1 - abar > eps))
+        self.fac = np.zeros_like(abar)
+        self.drho_fac = np.zeros_like(abar)
         while index[0].size > 0:
             # Counter
             iter += 1
@@ -408,9 +410,10 @@ class TsCapScheme(ConvectiveScheme):
                 rho1[index], abar[index]
             )
             momDotVel = (rhoU**2 + rhoV**2) / rho
-            fac = np.where(
-                (DH > 0),
-                3 / self.problem.kappa / rho1d * rho1 / (1 - abar) - 1 / (1 - ad),
+            self.fac[index] = np.where(
+                (DH > 0)[index],
+                3 / self.problem.kappa / rho1d[index] * rho1[index] / (1 - abar[index])
+                - 1 / (1 - ad[index]),
                 0,
             )
             # fac = 3 * rho1[index] / (
@@ -420,21 +423,24 @@ class TsCapScheme(ConvectiveScheme):
             dFda = dphi_dabar(
                 arho1[index], arho2[index], abar[index], rho1[index], rho2[index]
             )
-            dtau = compute_step(
-                dc,
-                arho1[index],
-                abar[index],
-                ad[index],
-                DH[index],
-                R,
-                F[index],
-                dFda,
-                rho1[index],
-                momDotVel[index],
-                fac[index],
-                # fac,
-                rho1d[index],
-            )
+            if np.any(DH[index] > 0):
+                dtau = compute_step(
+                    dc,
+                    arho1[index],
+                    abar[index],
+                    ad[index],
+                    DH[index],
+                    R,
+                    F[index],
+                    dFda,
+                    rho1[index],
+                    momDotVel[index],
+                    self.fac[index],
+                    # fac,
+                    rho1d[index],
+                )
+            else:
+                dtau = np.full_like(arho1[index], np.inf)
             if np.any(dtau < 0) or np.any(np.isnan(dtau)):
                 raise Exception("Negative timestep in relaxation: " + str(dtau))
 
@@ -462,38 +468,44 @@ class TsCapScheme(ConvectiveScheme):
                     )
                 ),
             )
+            if np.any(DH[index] > 0):
+                self.drho_fac.fill(0)
+                self.drho_fac = np.multiply(
+                    dtau,
+                    np.divide(
+                        self.problem.sigma**2
+                        * DH[index]
+                        * self.fac[index]
+                        * Hlim[index]
+                        * rho[index],
+                        (rhoU**2 + rhoV**2)[index],
+                        where=(rhoU**2 + rhoV**2)[index] > 0,
+                    ),
+                    where=DH[index] > 0,
+                )
+                #     np.divide(
+                #         dtau / (1 - ad[index]) * (F[index] - darho1 * R),
+                #         (1 - dtau / (1 - ad[index]) * dFda),
+                #         where=~np.isinf(dtau),
+                #     ),
+                # )
+                # indtmp = np.where(~np.isinf(dtau))
+                # drho_fac = np.zeros_like(dtau)
+                # drho_fac[indtmp] = (
+                #     dtau[indtmp]
+                #     * self.problem.sigma**2
+                #     * DH[index][indtmp]
+                #     * fac[indtmp]
+                #     * Hlim[index][indtmp]
+                #     * rho[index][indtmp]
+                #     / (rhoU**2 + rhoV**2)[index][indtmp]
+                # )
 
-            drho_fac = np.where(
-                DH[index] > 0,
-                dtau
-                * self.problem.sigma**2
-                * DH[index]
-                * fac[index]
-                * Hlim[index]
-                * rho[index]
-                / (rhoU**2 + rhoV**2)[index],
-                0,
-            )
-            #     np.divide(
-            #         dtau / (1 - ad[index]) * (F[index] - darho1 * R),
-            #         (1 - dtau / (1 - ad[index]) * dFda),
-            #         where=~np.isinf(dtau),
-            #     ),
-            # )
-            # indtmp = np.where(~np.isinf(dtau))
-            # drho_fac = np.zeros_like(dtau)
-            # drho_fac[indtmp] = (
-            #     dtau[indtmp]
-            #     * self.problem.sigma**2
-            #     * DH[index][indtmp]
-            #     * fac[indtmp]
-            #     * Hlim[index][indtmp]
-            #     * rho[index][indtmp]
-            #     / (rhoU**2 + rhoV**2)[index][indtmp]
-            # )
-
-            drhoU = -drho_fac * rhoU[index]
-            drhoV = -drho_fac * rhoV[index]
+                drhoU = -self.drho_fac[index] * rhoU[index]
+                drhoV = -self.drho_fac[index] * rhoV[index]
+            else:
+                drhoU = 0 * rhoU[index]
+                drhoV = 0 * rhoV[index]
 
             # Update values
             abar[index] += dabar[index]
@@ -889,7 +901,6 @@ class TsCapScheme(ConvectiveScheme):
         )
 
         if np.any(np.isnan(self.c_max)):
-            print(U[..., 0])
             raise Exception("Nan in maximal velocity estimator :" + str(self.c_max))
 
         return self.c_max

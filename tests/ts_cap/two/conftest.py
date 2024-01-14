@@ -33,7 +33,7 @@ def circle(
     y_0: float,
     symBool: bool = True,
 ):
-    eps = R / 0.75
+    eps = R * 0.8
     r = np.sqrt((x_c - x_0) ** 2 + (y_c - y_0) ** 2)
     arr = np.where(
         (r >= R - eps / 2) * (r < R + eps / 2),
