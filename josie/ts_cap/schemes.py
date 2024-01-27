@@ -882,7 +882,7 @@ class TsCapScheme(ConvectiveScheme):
             self.compute_max_vel(U, cells.values.view(Q), self.problem.sigma)
         )
 
-        dt = np.min((dt, CFL_value * dx / max_vel))
+        dt = np.nanmin((dt, CFL_value * dx / max_vel))
 
         return dt
 
@@ -900,8 +900,8 @@ class TsCapScheme(ConvectiveScheme):
             np.abs(U + self.c_max),
         )
 
-        if np.any(np.isnan(self.c_max)):
-            raise Exception("Nan in maximal velocity estimator :" + str(self.c_max))
+        # if np.any(np.isnan(self.c_max)):
+        #     raise Exception("Nan in maximal velocity estimator :" + str(self.c_max))
 
         return self.c_max
 

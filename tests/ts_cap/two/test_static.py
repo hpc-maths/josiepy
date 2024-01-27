@@ -7,7 +7,7 @@ import numpy as np
 import logging
 from datetime import datetime
 from josie.io.write.writer import XDMFWriter
-from josie.io.write.strategy import TimeStrategy
+from josie.io.write.strategy import TimeStrategy, IterationStrategy
 
 
 from josie.boundary import Line
@@ -22,7 +22,7 @@ from josie.FourEq.eos import LinearizedGas
 from josie.euler.eos import PerfectGas, StiffenedGas
 from josie.twofluid.fields import Phases
 
-from tests.ts_cap.two.conftest import circle
+from tests.ts_cap.two.conftest import circle, square
 
 
 def test_static(plot, write, request, init_schemes, init_solver, nSmoothPass):
@@ -36,11 +36,12 @@ def test_static(plot, write, request, init_schemes, init_solver, nSmoothPass):
     bottom, top = make_periodic(bottom, top, Direction.Y)
 
     mesh = Mesh(left, bottom, right, top, MUSCLCell)
-    N = 40
+    N = 60
     mesh.interpolate(N, N)
     mesh.generate()
 
-    sigma = 800
+    nSmoothPass = 10
+    sigma = 30
     Hmax = 1e3
     kappa = 1
     dx = mesh.cells._centroids[1, 1, 0, 0] - mesh.cells._centroids[0, 1, 0, 0]
@@ -69,6 +70,11 @@ def test_static(plot, write, request, init_schemes, init_solver, nSmoothPass):
             # c0=1e1,
         ),
     )
+    print(
+        eos_ref[Phases.PHASE1].sound_velocity(rho_liq, p_init),
+        eos_ref[Phases.PHASE2].sound_velocity(rho_gas, p_init),
+    )
+    exit()
 
     schemes = init_schemes(eos, sigma, Hmax, kappa, dx, dy, norm_grada_min, nSmoothPass)
 
@@ -143,7 +149,7 @@ def test_static(plot, write, request, init_schemes, init_solver, nSmoothPass):
 
     solver = init_solver(mesh, schemes, init_fun)
 
-    final_time = 1
+    final_time = 1e-4
     final_time_test = 1e-4
     CFL = 0.4
     if write:
@@ -163,7 +169,7 @@ def test_static(plot, write, request, init_schemes, init_solver, nSmoothPass):
         logger.addHandler(fh)
 
         # Write strategy
-        strategy = TimeStrategy(dt_save=final_time / 100, animate=False)
+        strategy = TimeStrategy(dt_save=final_time / 10, animate=False)
         writer = XDMFWriter(
             test_name + f"{now}.xdmf", strategy, solver, final_time=final_time, CFL=CFL
         )

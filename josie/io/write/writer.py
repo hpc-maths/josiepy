@@ -76,7 +76,7 @@ class Writer(abc.ABC):
                     # TODO: Factor out in separate object hierarchy the
                     # `animate` method of :class:`Solver`
                     solver.animate(self.solver.t)
-            break
+
             solver.step(dt)
 
 

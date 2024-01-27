@@ -47,7 +47,7 @@ class AtomParam:
 
 atom_params = [
     AtomParam(
-        name="Grenier_comparaison_shock_1dx",
+        name="Mesh_convergence",
         We=333.33,
         sigma=1e-2,
         rho0l=1e3,
@@ -55,7 +55,7 @@ atom_params = [
         c0l=1e1,
         c0g=1e1,
         R=0.15,
-        final_time=0.7,
+        final_time=1e-2,
         final_time_test=1e-2,
     ),
     # AtomParam(
@@ -97,7 +97,7 @@ def test_atom(request, write, atom_param, init_schemes, init_solver, Hmax):
     kappa = 1
     R = atom_param.R
     nSmoothPass = 0
-    Hmax = 500
+    Hmax = 40
 
     # U_inlet = np.sqrt(We / eos[Phases.PHASE2].rho0 / R * sigma)
     U_inlet = 6.66
@@ -122,7 +122,7 @@ def test_atom(request, write, atom_param, init_schemes, init_solver, Hmax):
     mesh = Mesh(left, bottom, right, top, MUSCLCell)
 
     if filename == "":
-        N = 40
+        N = 50
     else:
         # reader = XDMFReader(filename, Q)
         # N = int(np.sqrt(reader.read_dim() / 2))
@@ -222,7 +222,8 @@ def test_atom(request, write, atom_param, init_schemes, init_solver, Hmax):
         schemes[0].auxilliaryVariableUpdate(cells._values)
 
     if filename == "":
-        solver = init_solver(mesh, schemes, init_fun_load)
+        # solver = init_solver(mesh, schemes, init_fun_load)
+        solver = init_solver(mesh, schemes, init_fun)
     else:
         solver = init_solver(mesh, schemes, init_from_file)
         solver.t = reader.read_time(num_step)
@@ -243,8 +244,8 @@ def test_atom(request, write, atom_param, init_schemes, init_solver, Hmax):
             + str(2 * N)
             + "-"
             + str(Hmax)
-            + "-"
-            + str(kappa)
+            # + "-"
+            # + str(kappa)
         )
         fh = logging.FileHandler(test_name + f"-{now}.log")
         fh.setLevel(logging.DEBUG)
@@ -257,6 +258,7 @@ def test_atom(request, write, atom_param, init_schemes, init_solver, Hmax):
 
         # Write strategy
         dt_save = 0.01
+        dt_save = final_time
         strategy = TimeStrategy(dt_save=dt_save, t_init=solver.t, animate=False)
         writer = XDMFWriter(
             test_name + f"-{now}.xdmf",

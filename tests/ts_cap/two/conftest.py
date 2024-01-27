@@ -21,7 +21,7 @@ def f(x):
 
 
 def g(x):
-    k = 20
+    k = 8
     return np.maximum(0.5 + 0.5 * np.tanh(-k * (x - 0.5)), 0)
 
 
@@ -33,7 +33,7 @@ def circle(
     y_0: float,
     symBool: bool = True,
 ):
-    eps = R * 0.8
+    eps = R * 0.6
     r = np.sqrt((x_c - x_0) ** 2 + (y_c - y_0) ** 2)
     arr = np.where(
         (r >= R - eps / 2) * (r < R + eps / 2),
@@ -56,16 +56,16 @@ def circle(
 
 
 def square(R: float, x_c: np.ndarray, y_c: np.ndarray, x_0: float, y_0: float):
-    eps = R / 1.5
+    eps = R * 0.6
 
     # Square
     # Left/right sides
     arr = np.where(
-        (np.abs(x_c - x_0) >= R) * (np.abs(x_c - x_0) < R + eps),
+        (np.abs(x_c - x_0) >= R - eps / 2) * (np.abs(x_c - x_0) < R + eps / 2),
         # Interface layer
-        f((np.abs(x_c - x_0) - R) / eps),
+        g((np.abs(x_c - x_0) - R + eps / 2) / eps),
         np.where(
-            (np.abs(x_c - x_0) >= R + eps),
+            (np.abs(x_c - x_0) >= R + eps / 2),
             # Outside
             0,
             # Inside
@@ -73,11 +73,11 @@ def square(R: float, x_c: np.ndarray, y_c: np.ndarray, x_0: float, y_0: float):
         ),
     )
     arr *= np.where(
-        (np.abs(y_c - y_0) >= R) * (np.abs(y_c - y_0) < R + eps),
+        (np.abs(y_c - y_0) >= R - eps / 2) * (np.abs(y_c - y_0) < R + eps / 2),
         # Interface layer
-        f((np.abs(y_c - y_0) - R) / eps),
+        g((np.abs(y_c - y_0) - R + eps / 2) / eps),
         np.where(
-            (np.abs(y_c - y_0) >= R + eps),
+            (np.abs(y_c - y_0) >= R + eps / 2),
             # Outside
             0,
             # Inside
