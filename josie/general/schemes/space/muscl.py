@@ -131,9 +131,9 @@ class MUSCL(ConvectiveScheme):
         self.linear_extrapolation(cells)
 
         # Update the auxiliary components at each face
-        for dir in range(2**cells.dimensionality):
-            self.post_extrapolation(self.cells._values_face[..., dir, :])
-
+        #for dir in range(2**cells.dimensionality):
+        #self.post_extrapolation(self.cells._values_face[..., dir, :])
+        self.post_extrapolation(self.cells._values_face)
 
 class MUSCL_Hancock(MUSCL):
     def update_values_face(self, cells: MeshCellSet, dt: float):

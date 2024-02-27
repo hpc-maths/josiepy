@@ -47,7 +47,7 @@ class AtomParam:
 
 atom_params = [
     AtomParam(
-        name="Mesh_convergence",
+        name="Hmax",
         We=333.33,
         sigma=1e-2,
         rho0l=1e3,
@@ -55,8 +55,8 @@ atom_params = [
         c0l=1e1,
         c0g=1e1,
         R=0.15,
-        final_time=1e-2,
-        final_time_test=1e-2,
+        final_time=2.25,
+        final_time_test=2.25,
     ),
     # AtomParam(
     #    name="more_comp",
@@ -97,7 +97,7 @@ def test_atom(request, write, atom_param, init_schemes, init_solver, Hmax):
     kappa = 1
     R = atom_param.R
     nSmoothPass = 0
-    Hmax = 40
+    Hmax = 30
 
     # U_inlet = np.sqrt(We / eos[Phases.PHASE2].rho0 / R * sigma)
     U_inlet = 6.66
@@ -117,16 +117,16 @@ def test_atom(request, write, atom_param, init_schemes, init_solver, Hmax):
     # bottom.bc = Neumann(np.zeros(len(Q.fields)).view(Q))
     # top.bc = Neumann(np.zeros(len(Q.fields)).view(Q))
     # filename = "Sheet_stripping-100-20231111185748.xdmf"
-    filename = ""
-    num_step = 0
+    filename = "test_atom-HypCap-Splitting-1000.0-Hmax-200x400-30-1-20240226010501.xdmf"
+    num_step = 125
     mesh = Mesh(left, bottom, right, top, MUSCLCell)
 
     if filename == "":
-        N = 50
+        N = 200
     else:
-        # reader = XDMFReader(filename, Q)
+        reader = XDMFReader(filename, Q)
         # N = int(np.sqrt(reader.read_dim() / 2))
-        N = 1600
+        N = 200
     mesh.interpolate(int(box_ratio * N), N)
     mesh.generate()
 
@@ -186,6 +186,12 @@ def test_atom(request, write, atom_param, init_schemes, init_solver, Hmax):
 
     def init_from_file(cells: MeshCellSet):
         reader.read(num_step, cells.values)
+        if np.any(cells._values[..., Q.fields.cFd]<=0):
+            exit()
+
+        schemes[0].auxilliaryVariableUpdate(cells._values)
+        if np.any(cells._values[..., Q.fields.cFd]<=0):
+            exit()
 
     def init_fun(cells: MeshCellSet):
         # include ghost cells
@@ -195,7 +201,7 @@ def test_atom(request, write, atom_param, init_schemes, init_solver, Hmax):
         y_0 = height / 2
 
         ad = 0
-        U_0 = -6.66
+        U_0 = 6.66
         U_1 = 0
         V = 0
 
@@ -244,8 +250,8 @@ def test_atom(request, write, atom_param, init_schemes, init_solver, Hmax):
             + str(2 * N)
             + "-"
             + str(Hmax)
-            # + "-"
-            # + str(kappa)
+            + "-"
+            + str(kappa)
         )
         fh = logging.FileHandler(test_name + f"-{now}.log")
         fh.setLevel(logging.DEBUG)
@@ -258,7 +264,6 @@ def test_atom(request, write, atom_param, init_schemes, init_solver, Hmax):
 
         # Write strategy
         dt_save = 0.01
-        dt_save = final_time
         strategy = TimeStrategy(dt_save=dt_save, t_init=solver.t, animate=False)
         writer = XDMFWriter(
             test_name + f"-{now}.xdmf",

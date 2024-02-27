@@ -70,15 +70,14 @@ class TsCapConsFields(Fields):
 class TsCapPrimFields(Fields):
     """Indexing fields for the consevative part of the full state"""
 
-    rhoU = 0
-    rhoV = 1
+    U = 0
+    V = 1
 
-    abar = 2
-    arho1 = 3
-    arho2 = 4
-    arho1d = 5
-    ad = 6
-    capSigma = 7
+    pbar = 2
+    abar = 3
+    arho1d = 4
+    ad = 5
+    capSigma = 6
 
 
 class TsCapPhaseFields(Fields):
@@ -117,7 +116,7 @@ class Q(TwoFluidState):
 
     fields = TsCapFields
     cons_state = TsCapConsState
-    # prim_state = TsCapConsState
+    #prim_state = TsCapConsState
     prim_state = TsCapPrimState
     phase_state = TsCapPhaseState
 

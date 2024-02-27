@@ -56,7 +56,7 @@ def circle(
 
 
 def square(R: float, x_c: np.ndarray, y_c: np.ndarray, x_0: float, y_0: float):
-    eps = R * 0.6
+    eps = R * 1.4
 
     # Square
     # Left/right sides
@@ -138,7 +138,7 @@ def init_schemes(request):
         yield initschemes
 
 
-@pytest.fixture(params=[circle, square])
+@pytest.fixture(params=[square])
 def shape_fun(request):
     yield request.param
 
