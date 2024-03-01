@@ -137,14 +137,6 @@ class FourEqScheme(ConvectiveScheme):
         c2 = self.problem.eos[Phases.PHASE2].sound_velocity(rho2)
 
         alpha = np.minimum(np.maximum((rho - rho2) / (rho1 - rho2), 0), 1)
-        # alpha = (rho - rho2) / (rho1 - rho2)
-
-        if np.any(alpha < 0.0) or np.any(alpha > 1.0) or np.any(np.isnan(alpha)):
-            print(alpha)
-            exit()
-        if np.any(rho < 0):
-            print(rho)
-            exit()
 
         values[..., fields.arho] = alpha * rho
         values[..., fields.arho1] = alpha * rho1
@@ -172,16 +164,6 @@ class FourEqScheme(ConvectiveScheme):
 
         rho = arho1 + arho2
         alpha = arho / rho
-
-        if np.any(alpha < 0.0):
-            print(alpha)
-            exit()
-        if np.any(alpha > 1.0):
-            print(alpha)
-            exit()
-        if np.any(np.isnan(alpha)):
-            print(alpha)
-            exit()
 
         alphas = PhasePair(alpha, 1.0 - alpha)
         arhos = PhasePair(arho1, arho2)
@@ -228,6 +210,7 @@ class FourEqScheme(ConvectiveScheme):
 
     def post_extrapolation(self, values: Q):
         self.prim2Q(values)
+        # self.auxilliaryVariableUpdate(values)
         # self.relaxation(values)
 
         # auxilliary variables update

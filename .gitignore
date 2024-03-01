@@ -4,6 +4,7 @@
 *.xdmf
 *.mp4
 *.pyc
+*.log
 
 *.egg-info/
 

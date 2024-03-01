@@ -47,11 +47,10 @@ class FourEqConsFields(Fields):
 class FourEqPrimFields(Fields):
     """Indexing fields for a substate associated to a phase"""
 
-    alpha = 0
-    rho = 1
-    P = 2
-    U = 3
-    V = 4
+    rho = 0
+    P = 1
+    U = 2
+    V = 3
 
 
 class FourEqPhaseFields(Fields):

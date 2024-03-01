@@ -63,14 +63,10 @@ class Writer(abc.ABC):
         logger.info("Solving...")
 
         solver = self.solver
-
         while self.solver.t < self.final_time:
             logger.info(f"Current time: {self.solver.t}")
 
-            dt = solver.scheme.CFL(
-                solver.mesh.cells,
-                self.CFL,
-            )
+            dt = solver.CFL(self.CFL)
 
             dt = self.strategy.check_write(self.solver.t, dt, solver)
 
@@ -188,7 +184,7 @@ class XDMFWriter(FileWriter):
 
         for field in self.solver.Q.fields:
             cell_data[field.name] = {
-                cell_type_str: self.solver.mesh.cells.values[..., field].ravel()
+                cell_type_str: self.solver.mesh.cells.values[..., 0, field].ravel()
             }
 
         self._writer.write_data(self.solver.t, cell_data=cell_data)

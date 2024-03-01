@@ -80,8 +80,10 @@ class MUSCL(ConvectiveScheme):
 
         direction = neighs.direction
         oppDirection = direction + 1 if direction % 2 == 0 else direction - 1
-        Q_L = self.cells.values_face[..., [direction], :]
-        Q_R = self.cells.neighbours[direction].values_face[..., [oppDirection], :]
+        Q_L = self.cells.values_face[..., direction : direction + 1, :]
+        Q_R = self.cells.neighbours[direction].values_face[
+            ..., oppDirection : oppDirection + 1, :
+        ]
         return self.intercellFlux(
             Q_L,
             Q_R,
@@ -113,7 +115,7 @@ class MUSCL(ConvectiveScheme):
         # Initialize state values at each face with the state value
         # of the cell
         for dir in range(2**cells.dimensionality):
-            self.cells._values_face[..., [dir], :] = self.cells._values.copy()
+            self.cells._values_face[..., dir, :] = self.cells._values[..., 0, :].copy()
 
         # Compute the slope for each direction according to the
         # chosen limiter
@@ -129,9 +131,9 @@ class MUSCL(ConvectiveScheme):
         self.linear_extrapolation(cells)
 
         # Update the auxiliary components at each face
-        for dir in range(2**cells.dimensionality):
-            self.post_extrapolation(self.cells.values_face[..., dir, :])
-
+        #for dir in range(2**cells.dimensionality):
+        #self.post_extrapolation(self.cells._values_face[..., dir, :])
+        self.post_extrapolation(self.cells._values_face)
 
 class MUSCL_Hancock(MUSCL):
     def update_values_face(self, cells: MeshCellSet, dt: float):

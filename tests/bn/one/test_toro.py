@@ -577,7 +577,7 @@ def set_bc_state(bc_state: RiemannBCState, eos: TwoPhaseEOS):
 
 def plot_func(data, time_annotation, lines, axes, fields_to_plot):
     t = data[0]
-    time_annotation.set_text(f"t={t:.3f}s")
+    time_annotation.set_text(f"t={t: .3f}s")
     x = data[1]
     values = data[2]
 

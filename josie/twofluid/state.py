@@ -32,7 +32,7 @@ class PhasePair(dict):
         val1 = self[key1]
         val2 = self[key2]
 
-        return f"{{ {key1}:{val1}, {key2}:{val2}  }}"
+        return f"{{{key1}: {val1}, {key2}: {val2}}}"
 
     @property
     def phase1(self) -> Any:

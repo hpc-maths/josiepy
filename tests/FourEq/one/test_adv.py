@@ -48,7 +48,7 @@ def test_cvv(riemann2Q, plot, animate, request):
     bottom.bc = None
 
     mesh = Mesh(left, bottom, right, top, MUSCLCell)
-    mesh.interpolate(500, 1)
+    mesh.interpolate(50, 1)
     mesh.generate()
 
     def init_fun(cells: MeshCellSet):

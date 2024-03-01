@@ -92,6 +92,9 @@ class Solver:
         # Initialize the scheme datastructures (notably the fluxes)
         self.scheme.post_init(self.mesh.cells)
 
+    def CFL(self, CFL) -> float:
+        return self.scheme.CFL(self.mesh.cells, CFL)
+
     def copy(self) -> Solver:
         """This methods copies the :class:`Solver` object into another"""
 
@@ -141,3 +144,51 @@ class Solver:
 
         plt = self.mesh.backend
         plt.show(fields)
+
+
+class SolverLieSplitting(Solver):
+    def __init__(self, mesh: Mesh, Q: Type[State], schemes: Sequence[Scheme]):
+        self.mesh = mesh
+        self.Q = Q
+        self.schemes = schemes
+
+    def step(self, dt: float):
+        for scheme in self.schemes:
+            scheme.update(self.mesh, dt, self.t)
+        self.t += dt
+
+    def CFL(self, CFL: float) -> float:
+        return self.schemes[0].CFL(self.mesh.cells, CFL)
+
+    def init(self, init_fun: Callable[[MeshCellSet], NoReturn]):
+        """
+        This method initialize the internal values of the cells of the
+        :class:`~.Mesh` and the values of the ghost cells that apply the
+        :class:`~.BoundaryCondition` for each boundary of the domain
+
+        Parameters
+        ---------
+        init_fun
+            The function to use to initialize the value in the domain
+        """
+
+        # Init time
+        self.t = 0
+
+        # Init data structure for field values
+        self.mesh.cells._values = self.Q.from_mesh(self.mesh)
+        self.mesh.cells._values[:] = np.nan
+
+        # First set all the values for the internal cells
+        # The actual values are a view of only the internal cells
+        init_fun(self.mesh.cells)
+
+        # Note: Corner values are unused
+
+        self.mesh.create_neighbours()
+        self.mesh.init_bcs()
+        self.mesh.update_ghosts(self.t)
+
+        # Initialize the scheme datastructures (notably the fluxes)
+        for scheme in self.schemes:
+            scheme.post_init(self.mesh.cells)
