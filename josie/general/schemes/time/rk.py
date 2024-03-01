@@ -258,9 +258,6 @@ class RK2_relax(TimeScheme):
     def step(self, mesh: Mesh, dt: float, t: float):
         # Compute q1
         q = mesh.cells.copy()
-        if np.any(q._values[..., 0, 9]<0):
-            print(np.nanmin(q._values[..., 0, 9]))
-            exit()
         self._fluxes.fill(0)
         self.pre_accumulate(q, dt, t)
         q.update_ghosts(mesh.boundaries, t)
@@ -271,23 +268,11 @@ class RK2_relax(TimeScheme):
         q.values[..., [0], :] -= (  # type: ignore
             dt / mesh.cells.volumes[..., np.newaxis, np.newaxis]
         ) * self._fluxes
-        if np.any(q._values[..., 0, 9]<0):
-            if np.any(q._values[..., 0, 9]<-1e-10):
-                print(np.nanmin(q._values[..., 0, 9]))
-                exit()
-            else:
-                q._values[..., 0, 9] = np.maximum(0, q._values[..., 0, 9])
         # q1 -> q1rel
         # TODO: Create a RelaxScheme class to account for relaxation processes
-        #tmp_values = q._values[..., 0, :].deepcopy()
+        # tmp_values = q._values[..., 0, :].deepcopy()
         self.relaxation(q._values[..., 0, :])  # type: ignore
-        if np.any(q._values[..., 0, 9]<0):
-            print(np.nanmin(q._values[..., 0, 9]))
-            exit()
         self.auxilliaryVariableUpdate(q._values[..., 0, :])
-        if np.any(q._values[..., 0, 9]<0):
-            print(np.nanmin(q._values[..., 0, 9]))
-            exit()
 
         q.update_ghosts(mesh.boundaries, t)
 

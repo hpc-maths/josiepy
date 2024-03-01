@@ -449,7 +449,7 @@ class TsCapScheme(ConvectiveScheme):
 
         # Index that locates the cell where there the pressures need to be relaxed
         eps = 1e-20
-        tol = 1e-10
+        tol = 1e-12
         p0 = self.problem.eos[Phases.PHASE1].p0
         p0 = np.minimum(
             np.abs(self.problem.sigma * Hlim), self.problem.eos[Phases.PHASE1].p0
@@ -666,19 +666,6 @@ class TsCapScheme(ConvectiveScheme):
                 H = values[..., fields.H]
                 Hlim = H.copy()
                 if not (self.noMassTransfer):
-                    try:
-                        g = -grada_x * rhoU - grada_y * rhoV
-                    except:
-                        grada_x = np.ravel(grada_x)
-                        rhoU = np.ravel(rhoU)
-                        grada_y = np.ravel(grada_y)
-                        rhoV = np.ravel(rhoV)
-                        for i in range(len(grada_x)):
-                            try:
-                                g = -grada_x * rhoU - grada_y * rhoV
-                            except:
-                                print(grada_x[i], rhoU[i], rhoV[i], grada_y[i])
-                                exit()
                     Hlim = np.where(
                         (
                             3 / self.problem.kappa / rho1d * rho1 * (1 - ad)

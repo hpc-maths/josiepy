@@ -74,6 +74,6 @@ class XDMFReader(FileReader):
             _, _, cell_data = reader.read_data(num_step)
 
             for field in self.Q.fields:
-                values[..., field] = cell_data[field.name][0].reshape(
-                    values[..., field].shape
+                values[..., 0, field] = cell_data[field.name][0].reshape(
+                    values[..., 0, field].shape
                 )

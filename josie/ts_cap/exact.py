@@ -154,27 +154,30 @@ class ExactHyp(TsCapScheme):
         Q_L: Q,
         Q_R: Q,
         dUn: np.ndarray,
+        Un_L: np.ndarray,
         P0L: np.ndarray,
         P0R: np.ndarray,
     ):
         P = P_init
-        tol = 1e-8
+        tol = 1e-14
         firstLoop = True
 
         if np.any(P_init <= P0L):
             exit()
 
-        P0tilde = np.maximum(
-            self.P0(Q_L[..., Q.fields.abar]), self.P0(Q_R[..., Q.fields.abar])
-        )
+        P0tilde = np.maximum(P0L, P0R)
         self.dP = np.zeros_like(P)
 
         # Newton-Raphson loop
         k = 0
         fields = Q.fields
-        while np.any(np.abs(self.dP / P) > tol) or firstLoop:
+        F = np.zeros_like(dUn)
+        while (
+            np.any((np.abs(self.dP / P) > tol) & (np.abs(F) > tol * np.abs(Un_L)))
+            or firstLoop
+        ):
             k += 1
-            if np.any(P <= P0L) or np.any(Q_L[..., fields.pbar]<=P0L):
+            if np.any(P <= P0L) or np.any(Q_L[..., fields.pbar] <= P0L):
                 print(k)
                 exit()
 
@@ -193,18 +196,17 @@ class ExactHyp(TsCapScheme):
             ddF = self.d2deltaU_dP2(Q_L, Q_R, P, P0L, P0R)
             self.dP = -2 * F * dF / (2 * dF**2 - F * ddF)
             P += np.maximum(self.dP, 0.9 * (P0tilde - P))
-            # if k == 20:
-            #     tol = 1e-6
-            # if k == 40:
-            #     raise Exception("Maximal iteration reached in NR solve of Pstar")
-
+            if k == 20:
+                tol = 1e-6
+            if k == 40:
+                exit()
         return P
 
     @classmethod
     def solveAlpha1dFan(cls, RHS: np.ndarray, ad: np.ndarray):
         ad_fan = ad.copy()
         dad_fan = np.zeros_like(ad_fan)
-        tol = 1e-8
+        tol = 1e-10
         eps = 1e-16
         firstLoop = True
 
@@ -291,6 +293,7 @@ class ExactHyp(TsCapScheme):
             Q_L,
             Q_R,
             Un_L - Un_R,
+            Un_L,
             P0L,
             P0R,
         )
@@ -301,6 +304,29 @@ class ExactHyp(TsCapScheme):
             Un_L + c_L * (1 - ad_L) * np.log((P_L - P0L) / (P_star - P0L)),
             Un_L - np.sqrt(1 - ad_L) * (P_star - P_L) / np.sqrt(rho_L * (P_star - P0L)),
         )
+        # if np.any((np.abs(U_star) > 10 * np.abs(0.5 * (Un_L+Un_R))) & (np.abs(Un_L)>1e-2)):
+        #    index = np.where((np.abs(U_star) > 10 * np.abs(0.5 * (Un_L+Un_R))) & (np.abs(Un_L)>1e-2))
+        #    P_init = np.ravel(np.maximum(0.5 * (P_L + P_R), P0tilde + 0.1 * np.abs(P0tilde))[index])[0]
+        #    dU = np.ravel((Un_L - Un_R)[index])[0]
+        #    P0L = np.ravel(P0L[index])[0]
+        #    P0R = np.ravel(P0R[index])[0]
+        #    U_star = np.ravel(U_star[index])[0]
+        #    Un_L = np.ravel(Un_L[index])[0]
+        #    Un_R = np.ravel(Un_R[index])[0]
+        #    P_star = np.ravel(P_star[index])[0]
+        #    P_L = np.ravel(Q_L[..., fields.pbar][index])[0]
+        #    P_R = np.ravel(Q_R[..., fields.pbar][index])[0]
+        #    print(P_init)
+        #    print(dU)
+        #    print(U_star)
+        #    print(Un_L)
+        #    print(Un_R)
+        #    print(P_star)
+        #    print(P_L)
+        #    print(P_R)
+        #    print(P0L)
+        #    print(P0R)
+        #    exit()
 
         # If 0 < Ustar
         #   If left shock
@@ -357,7 +383,7 @@ class ExactHyp(TsCapScheme):
             1 + ad_L / (1 - ad_L) * np.exp((Un_L - U_star) / c_L / (1 - ad_L))
         )
         SH_L = Un_L - c_L
-        ST_L = U_star - c_L * (1 + ad_L  * np.exp((Un_L - U_star) / c_L / (1 - ad_L)))
+        ST_L = U_star - c_L * (1 + ad_L * np.exp((Un_L - U_star) / c_L / (1 - ad_L)))
 
         ind = np.where((0 < U_star) * (P_star <= P_L) * (SH_L < 0) * (ST_L > 0))
         ind_tmp = ind[:3]
@@ -495,17 +521,20 @@ class ExactHyp(TsCapScheme):
         intercells[ind_tmp + (fields.capSigma,)] = capSigma_R_star[ind]
 
         #   If right fan -> check if in or out of the fan
-        index = np.where(-(Un_R - U_star) / c_R / (1 - ad_R)<100)
+        index = np.where(-(Un_R - U_star) / c_R / (1 - ad_R) < 100)
         ad_R_star = np.ones_like(ad_R)
         ad_R_star[index] = 1 - 1 / (
-            1 + ad_R[index] / (1 - ad_R[index]) * np.exp(-(Un_R[index] - U_star[index]) / c_R[index] / (1 - ad_R[index]))
+            1
+            + ad_R[index]
+            / (1 - ad_R[index])
+            * np.exp(-(Un_R[index] - U_star[index]) / c_R[index] / (1 - ad_R[index]))
         )
 
-        #try:
+        # try:
         #    ad_R_star = 1 - 1 / (
         #        1 + ad_R / (1 - ad_R) * np.exp(-(Un_R - U_star) / c_R / (1 - ad_R))
         #    )
-        #except:
+        # except:
         #    for i in range(ad_R_star.shape[0]):
         #        for j in range(ad_R_star.shape[1]):
         #            try:
@@ -517,9 +546,13 @@ class ExactHyp(TsCapScheme):
         #                print(c_R[i,j,...])
         #                exit()
         SH_R = Un_R + c_R
-        index = np.where((Un_R - U_star) / c_R / (1 - ad_R)<100)
+        index = np.where((Un_R - U_star) / c_R / (1 - ad_R) < 100)
         ST_R = np.ones_like(U_star) * np.inf
-        ST_R[index] = U_star[index] + c_R[index] * (1 + ad_R[index] * np.exp((Un_R[index] - U_star[index]) / c_R[index] / (1 - ad_R[index])))
+        ST_R[index] = U_star[index] + c_R[index] * (
+            1
+            + ad_R[index]
+            * np.exp((Un_R[index] - U_star[index]) / c_R[index] / (1 - ad_R[index]))
+        )
         #       If right of the fan -> Qc_R
         ind = np.where((0 >= U_star) * (P_star <= P_R) * (SH_R < 0))
         ind_tmp = ind[:3]

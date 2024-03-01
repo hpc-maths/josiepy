@@ -47,7 +47,7 @@ class AtomParam:
 
 atom_params = [
     AtomParam(
-        name="Hmax",
+        name="mesh_conv",
         We=333.33,
         sigma=1e-2,
         rho0l=1e3,
@@ -97,7 +97,7 @@ def test_atom(request, write, atom_param, init_schemes, init_solver, Hmax):
     kappa = 1
     R = atom_param.R
     nSmoothPass = 0
-    Hmax = 30
+    Hmax = 40
 
     # U_inlet = np.sqrt(We / eos[Phases.PHASE2].rho0 / R * sigma)
     U_inlet = 6.66
@@ -117,8 +117,8 @@ def test_atom(request, write, atom_param, init_schemes, init_solver, Hmax):
     # bottom.bc = Neumann(np.zeros(len(Q.fields)).view(Q))
     # top.bc = Neumann(np.zeros(len(Q.fields)).view(Q))
     # filename = "Sheet_stripping-100-20231111185748.xdmf"
-    filename = "test_atom-HypCap-Splitting-1000.0-Hmax-200x400-30-1-20240226010501.xdmf"
-    num_step = 125
+    filename = ""
+    num_step = 0
     mesh = Mesh(left, bottom, right, top, MUSCLCell)
 
     if filename == "":
@@ -186,11 +186,11 @@ def test_atom(request, write, atom_param, init_schemes, init_solver, Hmax):
 
     def init_from_file(cells: MeshCellSet):
         reader.read(num_step, cells.values)
-        if np.any(cells._values[..., Q.fields.cFd]<=0):
+        if np.any(cells._values[..., Q.fields.cFd] <= 0):
             exit()
 
         schemes[0].auxilliaryVariableUpdate(cells._values)
-        if np.any(cells._values[..., Q.fields.cFd]<=0):
+        if np.any(cells._values[..., Q.fields.cFd] <= 0):
             exit()
 
     def init_fun(cells: MeshCellSet):
